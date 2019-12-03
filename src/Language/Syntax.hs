@@ -44,15 +44,17 @@ data Ftype = Ft Ptype Ptype
 
 data Type = Plain Ptype | Function Ftype
 
-data Expr = I Int
+data Expr = I Integer
           | S String
+          | B Bool
           | N Name
           | Tuple [Expr]
           | App Name [Expr]
-          | Binop Expr Op Expr
+          | Binop Op Expr Expr
           | Let Name Expr Expr
           | If Expr Expr Expr
           | While Expr Expr
+
 
 data Op = Plus
         | Minus
