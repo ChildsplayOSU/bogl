@@ -1,0 +1,54 @@
+game TicTacToe
+
+
+-- Board and input type definitions
+--
+type Board = Grid(3,3) of Player|Empty
+type Input = Position
+
+
+-- Game setup
+--
+initialBoard : Board
+initialBoard(positions) = Empty
+
+goFirst : Player
+goFirst = A
+
+
+-- Game ending: game-over condition and game outcome
+--
+gameOver : Board -> Bool
+gameOver(b) = or(threeInARow(b),isFull(b))
+
+outcome : (Board,Player) -> Player|Tie|Continue
+outcome(b,p) = if inARow(3,A,b) then A else
+               if inARow(3,B,b) then B else
+               if isFull(b)     then Tie else Continue
+
+threeInARow : Board -> Bool
+threeInARow(b) = or(inARow(3,A,b),inARow(3,B,b))
+
+
+-- Predefined operations
+--
+isValid : (Board,Position) -> Bool
+isValid(b,p) = if b(p) == Empty then True else False
+
+
+-- Game loop
+--
+tryMove : (Player,Board) -> (Board,Player)
+tryMove(p,b) = let pos = input in
+                   if isValid(b,pos) then (place(p,b,pos),next(p))
+                                     else (b,p)
+
+loop : (Player,Board) -> (Player,Board)
+loop(p,b) = while not(gameOver(b)) do tryMove(p,b)
+
+play : (Player,Board) -> Player|Tie
+play(a,b) = outcome(loop(a,b))
+-- play(a,b) = outcome(while not(gameOver(b)) do tryMove(p,b))
+
+result : Player|Tie
+result = play(initialBoard,goFirst)

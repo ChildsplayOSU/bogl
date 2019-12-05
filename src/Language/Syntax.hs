@@ -4,9 +4,9 @@ module Language.Syntax where
 
 type Name = String
 
-data Game = Game Name BoardDef InputDef ValDef
+data Game = Game Name BoardDef InputDef [ValDef]
 
-data BoardDef = BoardDef Int Int Type
+data BoardDef = BoardDef Integer Integer Type
 
 data InputDef = InputDef Type
 
@@ -14,31 +14,32 @@ data ValDef = Val Signature Equation
 
 data Signature = Sig Name Type
 
-type Parlist = [Name]
+data Parlist = Pars [Name]
 
 data Equation = Veq Name Expr
               | Feq Name Parlist Expr
-              | Beq [BoardEq]
+             
 
 data BoardEq = PosDef Name Int Int Expr
              | RegDef Name Expr Expr
+             -- How does this work?
 
 -- Types
 
-data Btype = Bool
-           | Int
+data Btype = Booltype
+           | Itype
            | Symbol
-           | Input Type
-           | Board Int Int Type
+           | Input
+           | Board
            | Player
            | Position
            | Positions
 
-data Xtype = BType | X [Name] -- Not sure what this is
+data Xtype = X Btype [Name] -- Not sure what this is
 
 data Tuptype = Tup [Xtype]
 
-data Ptype = Xtype | Tuptype
+data Ptype = Pext Xtype | Pt Tuptype
 
 data Ftype = Ft Ptype Ptype
 
