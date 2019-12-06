@@ -95,7 +95,7 @@ instance Show Type where
 data Expr = I Integer
           | S String
           | B Bool
-          | N Name
+          | Ref Name
           | Tuple [Expr]
           | App Name [Expr]
           | Binop Op Expr Expr
@@ -106,7 +106,7 @@ instance Show Expr where
   show (I i) = show i
   show (S s) = show s
   show (B b) = show b
-  show (N n) = n
+  show (Ref n) = "ref " ++ n
   show (Tuple e) = "(" ++ intercalate " , " (map show e) ++ ")"
   show (App n es) = n ++ "(" ++ intercalate "," (map show es) ++ ")"
   show (Binop o e1 e2) = show e1 ++ show o ++ show e2
