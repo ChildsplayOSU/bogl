@@ -8,11 +8,18 @@ import Text.ParserCombinators.Parsec
 import qualified Text.Parsec.Token as P
 import Text.Parsec.Language
 import Text.Parsec.Expr
+import Text.ParserCombinators.Parsec.Char
+import Text.Parsec.Combinator
+
+
 
 types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
                                                             "let", "in", "if", "then", "else",
-                                                            "while", "do", "game", "type", "Grid", "of"] ++ types,
+                                                            "while", "do", "game", "type", "Grid", "of"
+                                                            -- "A", "B", "free", "place", "next", "isFull", "inARow",
+                                                            -- "countBoard", "countColumn", "countRow" ]
+                                                            ] ++ types,
                                         P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->"]})
 
 
@@ -32,7 +39,9 @@ lexeme = P.lexeme lexer
 integer = P.integer lexer
 reserved = P.reserved lexer
 parens = P.parens lexer
+builtin = choice (map (lexeme) [string "or", string "inARow"])
 identifier = P.identifier lexer
+capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
@@ -47,7 +56,9 @@ atom =
   <|>
   (try $ App <$> identifier <*> (parens (commaSep1 expr)))
   <|>
-  N <$> identifier
+  S <$> capIdentifier
+  <|>
+  Ref <$> identifier
   <|>
   Tuple <$> parens (commaSep1 expr)
   <|>
