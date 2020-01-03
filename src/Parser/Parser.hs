@@ -1,15 +1,19 @@
 module Parser.Parser where
 
 import Language.Syntax
+import Debug.Trace(trace)
 
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec hiding (Parser)
 import qualified Text.Parsec.Token as P
 import Text.Parsec.Language
 import Text.Parsec.Expr
+import qualified Text.Parsec as Par
 import Text.ParserCombinators.Parsec.Char
 import Text.Parsec.Combinator
+-- FIXME why am I using both parsec2 and parsec3?
 
 import Data.Either 
+type Parser = Par.Parsec String (Maybe Type)
 
 types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
@@ -45,6 +49,8 @@ reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
 comma = P.comma lexer 
 
+
+
 atom :: Parser Expr
 atom =
   I <$> integer
@@ -78,10 +84,15 @@ equation =
   <|>
   (try $ (Feq <$> identifier <*> (Pars <$> parens (commaSep1 (identifier))) <*> (reservedOp "=" *> expr)))
 
+boardeqn :: Parser BoardEq
+boardeqn =
+  (try $ (RegDef <$> identifier <*> (parens expr) <*> (reservedOp "=" *> expr)))
+  <|>
+  (try $ (PosDef <$> identifier <*> (char '(' *> integer) <*> (integer <* char ')') <*> (reservedOp "=" *> expr)))
 
 btype :: Parser Btype
 btype =
-  reserved "Bool" *> pure Booltype
+  (reserved "Bool" *> pure Booltype
   <|>
   reserved "Int" *> pure Itype
   <|>
@@ -89,13 +100,15 @@ btype =
   <|>
   reserved "Input" *> pure Input
   <|>
-  reserved "Board" *> pure Board
+  do
+    reserved "Board"
+    pure Board
   <|>
   reserved "Player" *> pure Player
   <|>
   reserved "Position" *> pure Position
   <|>
-  reserved "Positions" *> pure Positions
+  reserved "Positions" *> pure Positions)
 
 xtype :: Parser Xtype
 xtype =
@@ -105,16 +118,16 @@ xtype =
 
 -- |
 --
--- >>> parse ttype "" "(Board, Position)"
+-- >>> runParser ttype Nothing "" "(Board, Position)"
 -- Right (Board,Position) 
 --
--- >>> parse ttype "" "(Symbol,Board)"
+-- >>> runParser ttype Nothing "" "(Symbol,Board)"
 -- Right (Symbol,Board) 
 --
--- >>> isLeft $ parse ttype "" "(Symbol)" 
+-- >>> isLeft $ runParser ttype Nothing "" "(Symbol)" 
 -- True  
 --
--- >>> isLeft $ parse ttype "" "(3)" 
+-- >>> isLeft $ runParser ttype Nothing "" "(3)" 
 -- True 
 ttype :: Parser Tuptype
 --ttype = Tup <$> parens (commaSep1 xtype) -- this should only work for k>=2.
@@ -127,20 +140,35 @@ ftype :: Parser Ftype
 ftype = Ft <$> ptype <*> (reservedOp "->" *> ptype)
 
 typ :: Parser Type
-typ = (try $ Function <$> ftype) <|> (try $ Plain <$> ptype)
+typ = 
+  (try $ (do
+      f <- ftype
+      Par.putState (Just $ Function f)
+      return (Function f)
+  ))
+  <|>
+  (try $ (do
+            p <- ptype
+            Par.putState (Just $ Plain p)
+            return (Plain p)))
+   
 
 sig :: Parser Signature
 sig =
   Sig <$> identifier <*> (reservedOp ":" *> typ)
 
 valdef :: Parser ValDef
-valdef =
-  Val <$> sig <*> equation
+valdef = do
+  s <- sig
+  b <- getState
+  case b of
+    Just (Plain (Pext (X Board []))) -> (BVal s) <$> (boardeqn)
+    _ -> (Val s) <$> (equation)
 
 -- |
 -- note: Empty is currently parsed as a string in the grammar, not as a Name. Is it an issue? 
 -- >>> :{ 
---     parse valdef "" ex1 == 
+--     runParser valdef Nothing "" ex1 == 
 --       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board [], X Position []])) 
 --       (Pext (X Booltype []))))) (Feq "isValid" (Pars ["b", "p"]) 
 --       (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False)))) 
@@ -167,15 +195,7 @@ game :: Parser Game
 game =
   Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
 
-parseString :: String -> Game
-parseString str =
-  case parse game "" str of
-    Left e  -> error $ show e
-    Right r -> r
-
-parseFile :: String -> IO Game
-parseFile file =
-  do program  <- readFile file
-     case parse game "" program of
-       Left e  -> print e >> fail "parse error"
-       Right r -> return r
+parseFromFile p fname
+   = do{ input <- readFile fname
+       ; return (runParser p Nothing fname input)
+       }

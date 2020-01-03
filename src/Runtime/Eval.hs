@@ -4,6 +4,8 @@ module Runtime.Eval where
 import Language.Syntax
 import Control.Monad
 import Data.Array
+import Control.Monad.Reader
+import Control.Monad.Error
 
 type Env = [(Name, V)]
 
@@ -17,6 +19,7 @@ data Val = Vi Integer
          | Vs String
          | Vf [Name] Expr
          | Err String
+         deriving Show
 
 unpackBool :: Val -> Bool
 unpackBool (Vb b) = b
@@ -31,33 +34,41 @@ bind (Val _ (Feq n (Pars ls) e)) = (n, Fun ls e)
 
 -- builtins
 
-input :: [Expr] -> IO Val
-input [] = (Vpos . read) <$> getLine
+input :: [Expr] -> Eval Val
+input [] = (Vpos . read) <$> (liftIO getLine)
 input _ = undefined
 
-builtins :: [(Name, [Expr] -> IO Val)]
+builtins :: [(Name, [Expr] -> Eval Val)]
 builtins = [("input", input)]
 
+type Eval a = ReaderT Env (IO) a
 
-
-eval :: Env -> Expr -> IO Val
-eval e (I i) = return $ Vi i
-eval e (B b) = return $ Vb b
-eval e (S s) = return $ Vs s
-eval e (Tuple es) = (sequence (map (eval e) es)) >>= (return . Vt)
-eval e (Ref n) = case lookup n e of
-  Just (Simple v) -> eval e v
-  _ -> return $ Err $ "Variable " ++ n ++ " undefined"
-eval env (App n es) = case lookup n env of
-  Just (Fun params e) -> eval ((zip params args) ++ env) e
-  Nothing -> case lookup n builtins of
-    Just (f) -> f es
-    Nothing -> return $ Err ""
+eval :: Expr -> Eval Val
+eval (I i) = return $ Vi i
+eval (B b) = return $ Vb b
+eval (S s) = return $ Vs s
+eval (Tuple es) = (sequence (map eval es)) >>= (return . Vt)
+eval (Ref n) = do
+  e <- ask
+  case lookup n e of
+        Just (Simple v) -> eval v
+        _ -> return $ Err $ "Variable " ++ n ++ " undefined"
+eval (App n es) = do
+  env <- ask
+  case lookup n env of
+        Just (Fun params e) -> local ((++) (zip params args)) (eval e)
+        Nothing -> case lookup n builtins of
+                Just (f) -> f es
+                Nothing -> return $ Err ""
   where
     args = map Simple es
-eval env (Let n e1 e2) = eval ((n, Simple e1):env) e2
-eval env (If p e1 e2) = do
-  b <- unpackBool <$> (eval env p)
-  if b then eval env e1 else eval env e2
+eval (Let n e1 e2) = local ((:) (n, Simple e1)) (eval e2)
+eval (If p e1 e2) = do
+  b <- unpackBool <$> (eval p)
+  if b then eval e1 else eval e2
 
 -- eval env (While t p e) = do
+evaluate :: Env -> Expr -> IO ()
+evaluate env e = do
+  v <- (runReaderT (eval e) env)
+  putStrLn ("Result: " ++ show v)

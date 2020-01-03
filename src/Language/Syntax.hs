@@ -22,11 +22,12 @@ data InputDef = InputDef Type
 instance Show InputDef where
   show (InputDef t) = "Input : " ++ show t
 
-data ValDef = Val Signature Equation
+data ValDef = Val Signature Equation | BVal Signature BoardEq
    deriving (Eq)
 
 instance Show ValDef where
   show (Val s e) = show s ++ "\n" ++ show e
+  show (BVal s e) = show s ++ "\n" ++ show e
 
 data Signature = Sig Name Type
    deriving (Eq) 
@@ -49,9 +50,13 @@ instance Show Equation where
   show (Feq n p e) = n ++ show p ++ " = " ++ show e
 
 
-data BoardEq = PosDef Name Int Int Expr
+data BoardEq = PosDef Name Integer Integer Expr
              | RegDef Name Expr Expr
              -- How does this work?
+   deriving (Eq)
+instance Show BoardEq where
+  show (PosDef n i1 i2 e) = n ++ "(" ++ show i1 ++ ", " ++ show i2 ++ ")" ++ "=" ++ show e
+  show (RegDef n e1 e2) = n ++ "(" ++ show e1 ++ ")" ++ "=" ++ show e2
 
 -- Types
 
@@ -64,6 +69,7 @@ data Btype = Booltype
            | Position
            | Positions
    deriving (Eq) 
+
 instance Show Btype where
   show Booltype = "Bool"
   show Itype = "Int"
@@ -76,12 +82,14 @@ instance Show Btype where
 
 data Xtype = X Btype [Name]
    deriving (Eq) 
+
 instance Show Xtype where
   show (X b []) = show b
   show (X b xs) = show b ++ "|" ++ intercalate ("|") (xs)
 
 data Tuptype = Tup [Xtype]
    deriving (Eq) 
+
 instance Show Tuptype where
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
 
@@ -94,11 +102,13 @@ instance Show Ptype where
 
 data Ftype = Ft Ptype Ptype
    deriving (Eq) 
+
 instance Show Ftype where
   show (Ft t1 t2) = show t1 ++ " -> " ++ show t2
 
 data Type = Plain Ptype | Function Ftype
    deriving (Eq) 
+
 instance Show Type where
   show (Plain t) = show t
   show (Function f) = show f
