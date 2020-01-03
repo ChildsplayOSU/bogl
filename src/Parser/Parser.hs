@@ -3,15 +3,18 @@
 module Parser.Parser where
 
 import Language.Syntax
+import Debug.Trace(trace)
 
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec hiding (Parser)
 import qualified Text.Parsec.Token as P
 import Text.Parsec.Language
 import Text.Parsec.Expr
+import qualified Text.Parsec as Par
 import Text.ParserCombinators.Parsec.Char
 import Text.Parsec.Combinator
+-- FIXME why am I using both parsec2 and parsec3?
 
-
+type Parser = Par.Parsec String (Maybe Type)
 
 types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
@@ -46,6 +49,8 @@ commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
 
+
+
 atom :: Parser Expr
 atom =
   I <$> integer
@@ -79,10 +84,15 @@ equation =
   <|>
   (try $ (Feq <$> identifier <*> (Pars <$> parens (commaSep1 (identifier))) <*> (reservedOp "=" *> expr)))
 
+boardeqn :: Parser BoardEq
+boardeqn =
+  (try $ (RegDef <$> identifier <*> (parens expr) <*> (reservedOp "=" *> expr)))
+  <|>
+  (try $ (PosDef <$> identifier <*> (char '(' *> integer) <*> (integer <* char ')') <*> (reservedOp "=" *> expr)))
 
 btype :: Parser Btype
 btype =
-  reserved "Bool" *> pure Booltype
+  (reserved "Bool" *> pure Booltype
   <|>
   reserved "Int" *> pure Itype
   <|>
@@ -90,13 +100,15 @@ btype =
   <|>
   reserved "Input" *> pure Input
   <|>
-  reserved "Board" *> pure Board
+  do
+    reserved "Board"
+    pure Board
   <|>
   reserved "Player" *> pure Player
   <|>
   reserved "Position" *> pure Position
   <|>
-  reserved "Positions" *> pure Positions
+  reserved "Positions" *> pure Positions)
 
 xtype :: Parser Xtype
 xtype =
@@ -105,7 +117,7 @@ xtype =
   (\x -> X x []) <$> btype
 
 ttype :: Parser Tuptype
-ttype = Tup <$> parens (commaSep1 xtype) -- this should only work for k>=2.
+ttype = (Tup <$> parens (commaSep1 xtype)) -- this should only work for k>=2.L
 
 ptype :: Parser Ptype
 ptype = (Pext <$> xtype <|> Pt <$> ttype)
@@ -114,15 +126,30 @@ ftype :: Parser Ftype
 ftype = Ft <$> ptype <*> (reservedOp "->" *> ptype)
 
 typ :: Parser Type
-typ = (try $ Function <$> ftype) <|> (try $ Plain <$> ptype)
+typ = 
+  (try $ (do
+      f <- ftype
+      Par.putState (Just $ Function f)
+      return (Function f)
+  ))
+  <|>
+  (try $ (do
+            p <- ptype
+            Par.putState (Just $ Plain p)
+            return (Plain p)))
+   
 
 sig :: Parser Signature
 sig =
   Sig <$> identifier <*> (reservedOp ":" *> typ)
 
 valdef :: Parser ValDef
-valdef =
-  Val <$> sig <*> equation
+valdef = do
+  s <- sig
+  b <- getState
+  case b of
+    Just (Plain (Pext (X Board []))) -> (BVal s) <$> (boardeqn)
+    _ -> (Val s) <$> (equation)
 
 ex1 = "isValid : (Board,Position) -> Bool\n  isValid(b,p) = if b(p) == Empty then True else False"
 ex2 = "outcome : (Board,Player) -> Player|Tie \
@@ -143,3 +170,8 @@ input =
 game :: Parser Game
 game =
   Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
+
+parseFromFile p fname
+   = do{ input <- readFile fname
+       ; return (runParser p Nothing fname input)
+       }
