@@ -23,24 +23,28 @@ instance Show InputDef where
   show (InputDef t) = "Input : " ++ show t
 
 data ValDef = Val Signature Equation | BVal Signature BoardEq
+   deriving (Eq)
 
 instance Show ValDef where
   show (Val s e) = show s ++ "\n" ++ show e
   show (BVal s e) = show s ++ "\n" ++ show e
 
 data Signature = Sig Name Type
+   deriving (Eq) 
 
 instance Show Signature where
   show (Sig n t) = n ++ " : " ++ show t
 
 data Parlist = Pars [Name]
+   deriving (Eq) 
 
 instance Show Parlist where
   show (Pars xs) = "(" ++ intercalate (" , ") (xs) ++ ")"
 
 data Equation = Veq Name Expr
               | Feq Name Parlist Expr
-             
+   deriving (Eq)              
+
 instance Show Equation where
   show (Veq n e) = n ++ " = " ++ show e
   show (Feq n p e) = n ++ show p ++ " = " ++ show e
@@ -49,6 +53,7 @@ instance Show Equation where
 data BoardEq = PosDef Name Integer Integer Expr
              | RegDef Name Expr Expr
              -- How does this work?
+   deriving (Eq)
 instance Show BoardEq where
   show (PosDef n i1 i2 e) = n ++ "(" ++ show i1 ++ ", " ++ show i2 ++ ")" ++ "=" ++ show e
   show (RegDef n e1 e2) = n ++ "(" ++ show e1 ++ ")" ++ "=" ++ show e2
@@ -63,7 +68,8 @@ data Btype = Booltype
            | Player
            | Position
            | Positions
-           deriving Eq
+   deriving (Eq) 
+
 instance Show Btype where
   show Booltype = "Bool"
   show Itype = "Int"
@@ -75,29 +81,34 @@ instance Show Btype where
   show Positions = "Positions"
 
 data Xtype = X Btype [Name]
-  deriving Eq
+   deriving (Eq) 
+
 instance Show Xtype where
   show (X b []) = show b
   show (X b xs) = show b ++ "|" ++ intercalate ("|") (xs)
 
 data Tuptype = Tup [Xtype]
-  deriving Eq
+   deriving (Eq) 
+
 instance Show Tuptype where
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
 
 data Ptype = Pext Xtype | Pt Tuptype
-  deriving Eq
+   deriving (Eq) 
+
 instance Show Ptype where
   show (Pext x) = show x
   show (Pt t) = show t
 
 data Ftype = Ft Ptype Ptype
-  deriving Eq
+   deriving (Eq) 
+
 instance Show Ftype where
   show (Ft t1 t2) = show t1 ++ " -> " ++ show t2
 
 data Type = Plain Ptype | Function Ftype
-  deriving Eq
+   deriving (Eq) 
+
 instance Show Type where
   show (Plain t) = show t
   show (Function f) = show f
@@ -112,6 +123,7 @@ data Expr = I Integer
           | Let Name Expr Expr
           | If Expr Expr Expr
           | While Expr Expr
+   deriving (Eq) 
 instance Show Expr where
   show (I i) = show i
   show (S s) = show s
@@ -133,6 +145,7 @@ data Op = Plus
         | Or
         | And
         | Xor
+   deriving (Eq) 
 instance Show Op where
   show Plus = " + "
   show Minus = " - "

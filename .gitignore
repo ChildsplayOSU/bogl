@@ -1,0 +1,5 @@
+*.hi
+*.o
+*.swp
+stack*.yaml.lock
+.stack-work/

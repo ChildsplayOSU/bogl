@@ -1,5 +1,3 @@
--- |
-
 module Parser.Parser where
 
 import Language.Syntax
@@ -14,6 +12,7 @@ import Text.ParserCombinators.Parsec.Char
 import Text.Parsec.Combinator
 -- FIXME why am I using both parsec2 and parsec3?
 
+import Data.Either 
 type Parser = Par.Parsec String (Maybe Type)
 
 types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
@@ -48,6 +47,7 @@ capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
+comma = P.comma lexer 
 
 
 
@@ -116,8 +116,22 @@ xtype =
   <|>
   (\x -> X x []) <$> btype
 
+-- |
+--
+-- >>> runParser ttype Nothing "" "(Board, Position)"
+-- Right (Board,Position) 
+--
+-- >>> runParser ttype Nothing "" "(Symbol,Board)"
+-- Right (Symbol,Board) 
+--
+-- >>> isLeft $ runParser ttype Nothing "" "(Symbol)" 
+-- True  
+--
+-- >>> isLeft $ runParser ttype Nothing "" "(3)" 
+-- True 
 ttype :: Parser Tuptype
-ttype = (Tup <$> parens (commaSep1 xtype)) -- this should only work for k>=2.L
+--ttype = Tup <$> parens (commaSep1 xtype) -- this should only work for k>=2.
+ttype = Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
 
 ptype :: Parser Ptype
 ptype = (Pext <$> xtype <|> Pt <$> ttype)
@@ -151,7 +165,17 @@ valdef = do
     Just (Plain (Pext (X Board []))) -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
 
+-- |
+-- note: Empty is currently parsed as a string in the grammar, not as a Name. Is it an issue? 
+-- >>> :{ 
+--     runParser valdef Nothing "" ex1 == 
+--       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board [], X Position []])) 
+--       (Pext (X Booltype []))))) (Feq "isValid" (Pars ["b", "p"]) 
+--       (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False)))) 
+-- :}
+-- True 
 ex1 = "isValid : (Board,Position) -> Bool\n  isValid(b,p) = if b(p) == Empty then True else False"
+
 ex2 = "outcome : (Board,Player) -> Player|Tie \
 \ outcome(b,p) = if inARow(3,A,b) then A else \
                \ if inARow(3,B,b) then B else \
