@@ -33,6 +33,7 @@ executables:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
+    - -Wall
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
@@ -41,11 +42,13 @@ executables:
 
 tests:
   Spiel-Lang-test:
-    main:                Spec.hs
+    main:                Tests.hs
     source-dirs:         test
     ghc-options:
+    - -Wall
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - Spiel-Lang
+    - doctest
