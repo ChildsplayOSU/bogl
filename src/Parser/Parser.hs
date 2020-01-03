@@ -11,8 +11,6 @@ import Text.Parsec.Expr
 import Text.ParserCombinators.Parsec.Char
 import Text.Parsec.Combinator
 
-
-
 types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
                                                             "let", "in", "if", "then", "else",
@@ -124,7 +122,17 @@ valdef :: Parser ValDef
 valdef =
   Val <$> sig <*> equation
 
+-- |
+-- note: Empty is currently parsed as a string in the grammar, not as a Name. Is it an issue? 
+-- >>> :{ 
+--     parse valdef "" ex1 == 
+--       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board [], X Position []])) 
+--       (Pext (X Booltype []))))) (Feq "isValid" (Pars ["b", "p"]) 
+--       (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False)))) 
+-- :}
+-- True 
 ex1 = "isValid : (Board,Position) -> Bool\n  isValid(b,p) = if b(p) == Empty then True else False"
+
 ex2 = "outcome : (Board,Player) -> Player|Tie \
 \ outcome(b,p) = if inARow(3,A,b) then A else \
                \ if inARow(3,B,b) then B else \
