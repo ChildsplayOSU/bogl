@@ -1,5 +1,3 @@
--- |
-
 module Parser.Parser where
 
 import Language.Syntax
@@ -10,6 +8,8 @@ import Text.Parsec.Language
 import Text.Parsec.Expr
 import Text.ParserCombinators.Parsec.Char
 import Text.Parsec.Combinator
+
+import Data.Either 
 
 types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
@@ -43,6 +43,7 @@ capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
+comma = P.comma lexer 
 
 atom :: Parser Expr
 atom =
@@ -102,8 +103,22 @@ xtype =
   <|>
   (\x -> X x []) <$> btype
 
+-- |
+--
+-- >>> parse ttype "" "(Board, Position)"
+-- Right (Board,Position) 
+--
+-- >>> parse ttype "" "(Symbol,Board)"
+-- Right (Symbol,Board) 
+--
+-- >>> isLeft $ parse ttype "" "(Symbol)" 
+-- True  
+--
+-- >>> isLeft $ parse ttype "" "(3)" 
+-- True 
 ttype :: Parser Tuptype
-ttype = Tup <$> parens (commaSep1 xtype) -- this should only work for k>=2.
+--ttype = Tup <$> parens (commaSep1 xtype) -- this should only work for k>=2.
+ttype = Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
 
 ptype :: Parser Ptype
 ptype = (Pext <$> xtype <|> Pt <$> ttype)
@@ -151,3 +166,16 @@ input =
 game :: Parser Game
 game =
   Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
+
+parseString :: String -> Game
+parseString str =
+  case parse game "" str of
+    Left e  -> error $ show e
+    Right r -> r
+
+parseFile :: String -> IO Game
+parseFile file =
+  do program  <- readFile file
+     case parse game "" program of
+       Left e  -> print e >> fail "parse error"
+       Right r -> return r
