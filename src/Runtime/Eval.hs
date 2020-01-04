@@ -5,7 +5,7 @@ import Language.Syntax
 import Control.Monad
 import Data.Array
 import Control.Monad.Reader
-import Control.Monad.Error
+import Control.Monad.Except
 
 type Env = [(Name, V)]
 
@@ -31,7 +31,7 @@ bindings vs = map bind vs
 bind :: ValDef -> (Name, V)
 bind (Val _ (Veq n e)) = (n, Simple e)
 bind (Val _ (Feq n (Pars ls) e)) = (n, Fun ls e)
-
+-- bval?
 -- builtins
 
 input :: [Expr] -> Eval Val
@@ -42,7 +42,7 @@ builtins :: [(Name, [Expr] -> Eval Val)]
 builtins = [("input", input)]
 
 type Eval a = ReaderT Env (IO) a
-
+-- | Evaluate an expression in the Eval Monad
 eval :: Expr -> Eval Val
 eval (I i) = return $ Vi i
 eval (B b) = return $ Vb b
@@ -66,9 +66,34 @@ eval (Let n e1 e2) = local ((:) (n, Simple e1)) (eval e2)
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   if b then eval e1 else eval e2
+eval (While p f x) = do
+  b <- eval (App p [x])
+  case b of
+    (Vb b) -> if b then eval (While p f (App f [x])) else eval x
+    _ -> undefined
+ 
+eval (Binop Plus e1 e2) = do
+  v1 <- eval e1
+  v2 <- eval e2
+  case (v1, v2) of
+    (Vi x, Vi y) -> return $ Vi (x + y)
+eval (Binop Less e1 e2) = do
+  v1 <- eval e1
+  v2 <- eval e2
+  case (v1, v2) of
+    (Vi i1, Vi i2) -> return $ Vb (i1 < i2)
 
--- eval env (While t p e) = do
-evaluate :: Env -> Expr -> IO ()
-evaluate env e = do
+
+-- | evaluate an expression and run it
+-- >>> run [] (I 2)
+-- Result: Vi 2
+-- >>> run [] (Tuple [I 2, I 3, I 4])
+-- Result: Vt [Vi 2,Vi 3,Vi 4]
+-- >>> run [] (Let "x" (I 2) (Ref "x"))
+-- Result: Vi 2
+
+run :: Env -> Expr -> IO ()
+run env e = do
   v <- (runReaderT (eval e) env)
   putStrLn ("Result: " ++ show v)
+enviroment = [("ten", (Fun ["x"] (Binop Less (Ref "x") (I 10)))), ("succ", (Fun ["x"] (Binop Plus (Ref "x") (I 1))))]
