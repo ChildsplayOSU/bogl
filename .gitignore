@@ -1,3 +1,8 @@
 .stack-work/
 Spiel-Lang.cabal
 *~
+*.hi
+*.o
+*.swp
+stack*.yaml.lock
+.stack-work/
