@@ -52,7 +52,6 @@ instance Show Equation where
 
 data BoardEq = PosDef Name Integer Integer Expr
              | RegDef Name Expr Expr
-             -- How does this work?
    deriving (Eq)
 instance Show BoardEq where
   show (PosDef n i1 i2 e) = n ++ "(" ++ show i1 ++ ", " ++ show i2 ++ ")" ++ "=" ++ show e
