@@ -122,8 +122,8 @@ data Expr = I Integer
           | Binop Op Expr Expr
           | Let Name Expr Expr
           | If Expr Expr Expr
-          | While Expr Expr
-   deriving (Eq) 
+          | While Name Name Expr
+   deriving (Eq)
 instance Show Expr where
   show (I i) = show i
   show (S s) = show s
@@ -134,7 +134,7 @@ instance Show Expr where
   show (Binop o e1 e2) = show e1 ++ show o ++ show e2
   show (Let n e1 e2) = "Let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
   show (If e1 e2 e3) = "If " ++ show e1 ++ " Then " ++ show e2 ++ " Else " ++ show e3
-  show (While e1 e2) = "While " ++ show e1 ++ " do " ++ show e2
+  show (While e1 e2 x) = "While " ++ show e1 ++ " do " ++ show e2 ++ " to " ++ show x
 
 data Op = Plus
         | Minus
@@ -144,6 +144,7 @@ data Op = Plus
         | Equiv
         | Or
         | And
+        | Less
         | Xor
    deriving (Eq) 
 instance Show Op where
@@ -155,4 +156,5 @@ instance Show Op where
   show Equiv = " == "
   show Or = " or "
   show And = " and "
+  show Less = " < "
   show Xor = " xor "
