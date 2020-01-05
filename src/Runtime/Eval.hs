@@ -61,7 +61,7 @@ eval (App n es) = do
   args <- return $  map (\x -> Simple x env) es
   (trace $ show env) $ return ()
   case lookup n env of
-    Just (Fun params e env') -> local (const $ ((zip params args)) ++ env') (eval e)
+    Just (Fun params e env') -> local (const $ ((zip params args)) ++ env' ++ env) (eval e)
     Nothing -> case lookup n builtins of
         Just (f) -> f es
         Nothing -> return $ Err $ "Couldn't find " ++ n ++ "in enviroment!"

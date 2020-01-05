@@ -11,8 +11,8 @@ add(x,y) = x+y
 
 
 addPlusOne : (Int, Int) -> Int
-addPlusOne(y,z) = succ(add(y,z))
+addPlusOne(x,y) = succ(add(x,y))
 
-example : Int
-example = addPlusOne(1,2)
+example :  Int
+example = addPlusOne(5,2)
 -- App "addPlusOne" [1,2] -> succ(add)
