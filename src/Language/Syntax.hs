@@ -156,3 +156,5 @@ instance Show Op where
   show Equiv = " == "
   show Or = " or "
   show And = " and "
+  show Less = " < "
+  show Xor = " xor "

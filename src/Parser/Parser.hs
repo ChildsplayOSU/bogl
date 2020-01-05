@@ -1,3 +1,5 @@
+-- | Parser for BOGL 
+
 module Parser.Parser where
 
 import Language.Syntax

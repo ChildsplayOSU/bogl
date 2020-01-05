@@ -42,7 +42,47 @@ builtins :: [(Name, [Expr] -> Eval Val)]
 builtins = [("input", input)]
 
 type Eval a = ReaderT Env (IO) a
+
+evalBinOp :: Op -> Expr -> Expr -> Eval Val 
+evalBinOp Plus l r  = evalNumOp (+) l r  
+evalBinOp Minus l r = evalNumOp (-) l r
+evalBinOp Times l r = evalNumOp (*) l r
+evalBinOp Div l r   = evalNumOp div l r 
+evalBinOp Mod l r   = evalNumOp mod l r
+evalBinOp Equiv l r = evalBoolOp (==) l r
+evalBinOp Or l r    = evalBoolOp (&&) l r
+evalBinOp Less l r  = evalBoolOp (<) l r
+evalBinOp And l r   = evalBoolOp (||) l r 
+evalBinOp Xor l r   = evalBoolOp (/=) l r
+
+-- |evaluates numerical operations 
+evalNumOp :: (Integer -> Integer -> Integer) -> Expr -> Expr -> Eval Val 
+evalNumOp f l r = do
+                     v1 <- eval l 
+                     v2 <- eval r 
+                     case (v1, v2) of 
+                        (Vi l', Vi r') -> return (Vi (f l' r'))
+                        _ -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)  
+
+-- |evaluates boolean operations 
+evalBoolOp :: (Bool -> Bool -> Bool) -> Expr -> Expr -> Eval Val 
+evalBoolOp f l r = do
+                     v1 <- eval l 
+                     v2 <- eval r 
+                     case (v1, v2) of 
+                        (Vb l', Vb r') -> return (Vb (f l' r'))
+                        _ -> return $ Err $ "Could not do boolean operation on " ++ (show l) ++ " to " ++ (show r)  
+
 -- | Evaluate an expression in the Eval Monad
+-- 
+-- >>> run [] (Binop Equiv (B True) (Binop And (B True) (B True)))
+-- Result: Vb True 
+-- 
+-- >>> run [] (Binop Plus (Binop Minus (I 1) (I 1)) (Binop Times (I 2) (I 3)))
+-- Result: Vi 6  
+-- 
+-- >>> run [] (Binop Plus (B True) (Binop Times (I 2) (I 3)))
+-- Result: Err ...  
 eval :: Expr -> Eval Val
 eval (I i) = return $ Vi i
 eval (B b) = return $ Vb b
@@ -66,24 +106,13 @@ eval (Let n e1 e2) = local ((:) (n, Simple e1)) (eval e2)
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   if b then eval e1 else eval e2
+eval (Binop o l r) = evalBinOp o l r 
 eval (While p f x) = do
   b <- eval (App p [x])
   case b of
     (Vb b) -> if b then eval (While p f (App f [x])) else eval x
     _ -> undefined
  
-eval (Binop Plus e1 e2) = do
-  v1 <- eval e1
-  v2 <- eval e2
-  case (v1, v2) of
-    (Vi x, Vi y) -> return $ Vi (x + y)
-eval (Binop Less e1 e2) = do
-  v1 <- eval e1
-  v2 <- eval e2
-  case (v1, v2) of
-    (Vi i1, Vi i2) -> return $ Vb (i1 < i2)
-
-
 -- | evaluate an expression and run it
 -- >>> run [] (I 2)
 -- Result: Vi 2
@@ -91,9 +120,9 @@ eval (Binop Less e1 e2) = do
 -- Result: Vt [Vi 2,Vi 3,Vi 4]
 -- >>> run [] (Let "x" (I 2) (Ref "x"))
 -- Result: Vi 2
-
 run :: Env -> Expr -> IO ()
 run env e = do
   v <- (runReaderT (eval e) env)
   putStrLn ("Result: " ++ show v)
+
 enviroment = [("ten", (Fun ["x"] (Binop Less (Ref "x") (I 10)))), ("succ", (Fun ["x"] (Binop Plus (Ref "x") (I 1))))]
