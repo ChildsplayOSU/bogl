@@ -14,5 +14,8 @@ addPlusOne : (Int, Int) -> Int
 addPlusOne(x,y) = succ(add(x,y))
 
 example :  Int
-example = addPlusOne(5,2)
+example = addPlusOne(3,2)
+
+isTen : Int -> Bool
+isTen(x) = x == 10
 -- App "addPlusOne" [1,2] -> succ(add)

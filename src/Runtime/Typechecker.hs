@@ -61,7 +61,10 @@ exprtype (Binop Plus e1 e2) = do
   v1 <- exprtype e1
   v2 <- exprtype e2
   if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
-
+exprtype (Binop Equiv e1 e2) = do
+  t1 <- exprtype e1
+  t2 <- exprtype e2
+  if (t1 == t2) then return (Pext (X Booltype [])) else throwError (WrongType $ "Couldn't match types " ++ show t1 ++ ", " ++ show t2)
 
 extract (Pext x) = x
 extract _ = undefined
