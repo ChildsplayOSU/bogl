@@ -73,7 +73,7 @@ atom =
   <|>
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
   <|>
-  While <$> (reserved "while" *> expr) <*> (reserved "do" *> expr)
+  While <$> (reserved "while" *> identifier) <*> (reserved "do" *> identifier) <*> expr
   <|>
   expr
 
@@ -199,3 +199,14 @@ parseFromFile p fname
    = do{ input <- readFile fname
        ; return (runParser p Nothing fname input)
        }
+parseLine :: String -> IO (Maybe Expr)
+parseLine s = case runParser expr Nothing "" s of
+  Left e -> (putStrLn $ show e) >> return Nothing
+  Right e -> return $ Just e
+
+par :: String -> IO (Maybe Game)
+par f = do
+  parsed <- Parser.Parser.parseFromFile game f
+  case parsed of
+    Left err -> (putStrLn $ show err) >> return Nothing
+    Right g -> return (Just g)
