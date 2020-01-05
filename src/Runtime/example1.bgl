@@ -1,0 +1,18 @@
+game Example1
+
+type Board = Grid(1,1) of Int
+type Input = Position
+
+succ : Int -> Int
+succ(x) = x+1
+
+add : (Int, Int) -> Int
+add(x,y) = x+y
+
+
+addPlusOne : (Int, Int) -> Int
+addPlusOne(y,z) = succ(add(y,z))
+
+example : Int
+example = addPlusOne(1,2)
+-- App "addPlusOne" [1,2] -> succ(add)
