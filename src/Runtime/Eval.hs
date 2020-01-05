@@ -22,6 +22,8 @@ data Val = Vi Integer
          | Err String
          deriving Show
 
+
+
 unpackBool :: Val -> Bool
 unpackBool (Vb b) = b
 unpackBool _ = undefined
@@ -119,12 +121,12 @@ eval (Tuple es) = (sequence (map eval es)) >>= (return . Vt)
 eval (Ref n) = do
   e <- ask
   case lookup n e of
-        Just (Simple v e') -> (trace $ "evaling " ++ show v) $ local (const $ e') (eval v)
+        Just (Simple v e') -> local (const $ e') (eval v)
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 eval (App n es) = do
   env <- ask
   args <- return $  map (\x -> Simple x env) es
-  (trace $ show env) $ return ()
+
   case lookup n env of
     Just (Fun params e env') -> local (const $ ((zip params args)) ++ env' ++ env) (eval e)
     Nothing -> case lookup n builtins of
@@ -141,6 +143,8 @@ eval (While p f x) = do
   case b of
     (Vb b) -> if b then eval (While p f (App f [x])) else eval x
     _ -> undefined
+eval (Binop op e1 e2) = evalBinOp op e1 e2
+
  
 
 
