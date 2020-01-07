@@ -76,8 +76,6 @@ atom =
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
   <|>
   While <$> (reserved "while" *> identifier) <*> (reserved "do" *> identifier) <*> expr
-  <|>
-  expr
 
 
 equation :: Parser Equation

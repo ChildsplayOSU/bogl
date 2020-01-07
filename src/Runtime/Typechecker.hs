@@ -61,6 +61,26 @@ exprtype (Binop Plus e1 e2) = do
   v1 <- exprtype e1
   v2 <- exprtype e2
   if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
+exprtype (Binop Minus e1 e2) = do
+  v1 <- exprtype e1
+  v2 <- exprtype e2
+  if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
+exprtype (Binop Times e1 e2) = do
+  v1 <- exprtype e1
+  v2 <- exprtype e2
+  if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
+exprtype (Binop Div e1 e2) = do
+  v1 <- exprtype e1
+  v2 <- exprtype e2
+  if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
+exprtype (Binop Mod e1 e2) = do
+  v1 <- exprtype e1
+  v2 <- exprtype e2
+  if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
+exprtype (Binop Or e1 e2) = do
+  t1 <- exprtype e1
+  t2 <- exprtype e2
+  if t1 == t2 && t1 == (Pext (X Booltype [])) then return $ (Pext (X Booltype [])) else throwError (WrongType "TYPE MISMATCH")
 exprtype (Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
