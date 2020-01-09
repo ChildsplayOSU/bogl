@@ -70,7 +70,7 @@ atom =
   <|>
   Ref <$> identifier
   <|>
-  (try $ parens (expr <* notFollowedBy comma)) -- ^ parenthesised expression
+  (try $ parens (expr <* notFollowedBy comma))
   <|>
   Tuple <$> parens (commaSep1 expr)
   <|>
