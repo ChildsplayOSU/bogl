@@ -1,6 +1,6 @@
 -- | Parser for BOGL 
 
-module Parser.Parser where
+module Parser.Parser (parseLine, parseGameFile) where
 
 import Language.Syntax
 import Debug.Trace(trace)
@@ -16,8 +16,9 @@ import Text.Parsec.Combinator
 
 import Data.Either 
 type Parser = Par.Parsec String (Maybe Type)
-
+-- | The 'Type' keywords
 types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
+-- | The lexer, using the reserved keywords and operation names
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
                                                             "let", "in", "if", "then", "else",
                                                             "while", "do", "game", "type", "Grid", "of"
@@ -27,16 +28,18 @@ lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True"
                                         P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->"]})
 
 
-
+-- | Operators (might want to fix the order of operations)
 operators = [[op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "mod" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
              [op "==" (Binop Equiv) AssocLeft]
             ]
               -- and so on
 
+-- | Parser for the 'Expr' datatype
 expr :: Parser Expr
 expr = buildExpressionParser operators atom
 
+-- | Helper function for handling operators
 op s f assoc = Infix (reservedOp s *> pure f) assoc
 
 lexeme = P.lexeme lexer
@@ -52,7 +55,7 @@ charLiteral = P.charLiteral lexer
 comma = P.comma lexer 
 
 
-
+-- | Atomic expressions
 atom :: Parser Expr
 atom =
   I <$> integer
@@ -67,9 +70,9 @@ atom =
   <|>
   Ref <$> identifier
   <|>
-  Tuple <$> parens (commaSep1 expr)
+  (try $ parens (expr <* notFollowedBy comma)) -- ^ parenthesised expression
   <|>
-  parens expr -- parenthesised expression
+  Tuple <$> parens (commaSep1 expr)
   <|>
   Let <$> (reserved "let" *> identifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
   <|>
@@ -77,26 +80,26 @@ atom =
   <|>
   While <$> (reserved "while" *> identifier) <*> (reserved "do" *> identifier) <*> expr
 
-
+-- | Equations
 equation :: Parser Equation
 equation =
   (try $ (Veq <$> identifier <*> (reservedOp "=" *> expr)))
   <|>
   (try $ (Feq <$> identifier <*> (Pars <$> parens (commaSep1 (identifier))) <*> (reservedOp "=" *> expr)))
 
+-- | Board equations
 boardeqn :: Parser BoardEq
 boardeqn =
   (try $ (RegDef <$> identifier <*> (parens expr) <*> (reservedOp "=" *> expr)))
   <|>
   (try $ (PosDef <$> identifier <*> (char '(' *> integer) <*> (integer <* char ')') <*> (reservedOp "=" *> expr)))
 
+-- | Atomic types
 btype :: Parser Btype
 btype =
   (reserved "Bool" *> pure Booltype
   <|>
   reserved "Int" *> pure Itype
-  <|>
-  reserved "Symbol" *> pure Symbol
   <|>
   reserved "Input" *> pure Input
   <|>
@@ -109,12 +112,15 @@ btype =
   reserved "Position" *> pure Position
   <|>
   reserved "Positions" *> pure Positions)
+  <|>
+  Symbol <$> capIdentifier
 
+-- | Extended types: type safter the first are restricted to symbols
 xtype :: Parser Xtype
 xtype =
-  (try $ (X <$> btype <*> (many1 (reservedOp "|" *> identifier))))
+  (try $ (X <$> btype <*> (many1 (reservedOp "|" *> (Symbol <$> capIdentifier)))))
   <|>
-  (\x -> X x []) <$> btype
+  (\x -> X x []) <$> btype -- ^ The unextended case
 
 -- |
 --
@@ -204,8 +210,8 @@ parseLine s = case runParser expr Nothing "" s of
   Left e -> (putStrLn $ show e) >> return Nothing
   Right e -> return $ Just e
 
-par :: String -> IO (Maybe Game)
-par f = do
+parseGameFile :: String -> IO (Maybe Game)
+parseGameFile f = do
   parsed <- Parser.Parser.parseFromFile game f
   case parsed of
     Left err -> (putStrLn $ show err) >> return Nothing
