@@ -20,7 +20,7 @@ data Val = Vi Integer
          | Vs String
          | Vf [Name] Expr
          | Err String
-         deriving Show
+         deriving (Show, Eq)
 
 
 
@@ -64,11 +64,8 @@ evalBinOp Xor l r   = evalBoolOp (/=) l r
 evalEquiv :: Expr -> Expr -> Eval Val 
 evalEquiv l r = do
                   v1 <- eval l 
-                  v2 <- eval r 
-                  case (v1, v2) of 
-                     (Vi l', Vi r') -> return (Vb (l' == r'))
-                     (Vb l', Vb r') -> return (Vb (l' == r'))
-                     _ -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)  
+                  v2 <- eval r
+                  return $ Vb (v1 == v2)
 
 -- | evaluates comparison operations (except for ==) 
 evalCompareOp :: (Integer -> Integer -> Bool) -> Expr -> Expr -> Eval Val 

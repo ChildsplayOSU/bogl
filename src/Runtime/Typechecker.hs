@@ -109,6 +109,11 @@ tc (Game _ _ _ vs) = if all (isRight) (checked) then return True else ((putStrLn
     env = signatures vs
     checked = map (runTypeCheck env) vs
 
+tcexpr :: Env -> Expr -> IO Bool
+tcexpr e x = do
+  if isRight t then return True else ((putStrLn . show) t) >> return False
+  where
+    t = runIdentity $ runExceptT $ runReaderT (exprtype x) e
 
 
 
