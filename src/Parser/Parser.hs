@@ -120,7 +120,7 @@ xtype :: Parser Xtype
 xtype =
   (try $ (X <$> btype <*> (many1 (reservedOp "|" *> (Symbol <$> capIdentifier)))))
   <|>
-  (\x -> X x []) <$> btype -- ^ The unextended case
+  (\x -> X x []) <$> btype
 
 -- |
 --
