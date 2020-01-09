@@ -134,17 +134,22 @@ xtype =
 -- True  
 --
 -- >>> isLeft $ runParser ttype Nothing "" "(3)" 
--- True 
+-- True
+
+-- | Tuple types
 ttype :: Parser Tuptype
 --ttype = Tup <$> parens (commaSep1 xtype) -- this should only work for k>=2.
 ttype = Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
 
+-- | Plain types
 ptype :: Parser Ptype
 ptype = (Pext <$> xtype <|> Pt <$> ttype)
 
+-- | Function types
 ftype :: Parser Ftype
 ftype = Ft <$> ptype <*> (reservedOp "->" *> ptype)
 
+-- | 'Type's
 typ :: Parser Type
 typ = 
   (try $ (do
@@ -158,11 +163,12 @@ typ =
             Par.putState (Just $ Plain p)
             return (Plain p)))
    
-
+-- | Value signatures
 sig :: Parser Signature
 sig =
   Sig <$> identifier <*> (reservedOp ":" *> typ)
 
+-- | Value definitions
 valdef :: Parser ValDef
 valdef = do
   s <- sig
@@ -186,6 +192,7 @@ ex2 = "outcome : (Board,Player) -> Player|Tie \
 \ outcome(b,p) = if inARow(3,A,b) then A else \
                \ if inARow(3,B,b) then B else \
                \ if isFull(b)     then Tie"
+-- | Board definition
 board :: Parser BoardDef
 board =
   (reserved "type" *> reserved "Board" *> reservedOp "=") *>
@@ -193,23 +200,28 @@ board =
    ((lexeme . char) ',' *> integer <* (lexeme . char) ')') <*>
    (reserved "of" *> typ)) -- fixme
 
+-- | Input definition
 input :: Parser InputDef
 input =
   reserved "type" *> reserved "Input" *> reservedOp "=" *> (InputDef <$> typ)
 
+-- | Game definition
 game :: Parser Game
 game =
   Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
 
+-- | Read from the file, and parse
 parseFromFile p fname
    = do{ input <- readFile fname
        ; return (runParser p Nothing fname input)
        }
+-- | Parse a single line, displaying an error if there's a problem (used in REPL)
 parseLine :: String -> IO (Maybe Expr)
 parseLine s = case runParser expr Nothing "" s of
   Left e -> (putStrLn $ show e) >> return Nothing
   Right e -> return $ Just e
 
+-- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Maybe Game)
 parseGameFile f = do
   parsed <- Parser.Parser.parseFromFile game f

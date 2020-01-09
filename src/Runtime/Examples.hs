@@ -1,4 +1,4 @@
--- |
+-- | an example
 
 module Runtime.Examples where
 
@@ -12,7 +12,7 @@ import Parser.Parser
 
 ex :: IO ()
 ex = do
-  parsed <- par "example1.bgl"
+  parsed <- parseGameFile "example1.bgl"
   case parsed of
     Just g -> do
       check <- tc g
