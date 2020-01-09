@@ -60,34 +60,14 @@ exprtype (App n es) = do
   case t of
         (Function (Ft (Pt (Tup i)) o)) -> if map extract es' == i then return o else (throwError (WrongType $ "Couldn't match type " ++ show es' ++ " with type " ++ show i)) -- single input case?
         (Function (Ft i o)) -> if es' == [i] then return o else (throwError (WrongType $ "Couldn't match type" ++ show es' ++ " with type " ++ show i))
-exprtype (Binop Plus e1 e2) = do
-  v1 <- exprtype e1
-  v2 <- exprtype e2
-  if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
-exprtype (Binop Minus e1 e2) = do
-  v1 <- exprtype e1
-  v2 <- exprtype e2
-  if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
-exprtype (Binop Times e1 e2) = do
-  v1 <- exprtype e1
-  v2 <- exprtype e2
-  if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
-exprtype (Binop Div e1 e2) = do
-  v1 <- exprtype e1
-  v2 <- exprtype e2
-  if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
-exprtype (Binop Mod e1 e2) = do
-  v1 <- exprtype e1
-  v2 <- exprtype e2
-  if (v1 == v2 && v1 == (Pext (X Itype []))) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
-exprtype (Binop Or e1 e2) = do
-  t1 <- exprtype e1
-  t2 <- exprtype e2
-  if t1 == t2 && t1 == (Pext (X Booltype [])) then return $ (Pext (X Booltype [])) else throwError (WrongType "TYPE MISMATCH")
 exprtype (Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   if (t1 == t2) then return (Pext (X Booltype [])) else throwError (WrongType $ "Couldn't match types " ++ show t1 ++ ", " ++ show t2)
+exprtype (Binop _ e1 e2) = do
+  v1 <- exprtype e1
+  v2 <- exprtype e2
+  if (v1 == v2) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
 -- if
 exprtype (If e1 e2 e3) = undefined
 -- while
