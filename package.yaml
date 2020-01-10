@@ -25,6 +25,8 @@ dependencies:
 - array
 - mtl
 - transformers
+- haskeline
+- bifunctors
 library:
   source-dirs: src
 
