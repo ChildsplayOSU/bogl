@@ -21,6 +21,17 @@ type Eval a = ReaderT Env (IO) a
 data V = Simple Expr Env | Fun [Name] Expr Env
   deriving Show
 
+newScope :: Env -> Eval a -> Eval a
+newScope env = local (env++)
+
+lookupName :: Name -> Eval (Maybe V)
+lookupName n = ask >>= (return . (lookup n))
+
+giveEnv :: Expr -> Eval V
+giveEnv e = ask >>= (return . (Simple e))
+
+
+
 -- | Values
 data Val = Vi Integer -- ^ Integer value
          | Vb Bool -- ^ Boolean value
@@ -131,28 +142,30 @@ eval (Tuple es) = (sequence (map eval es)) >>= (return . Vt)
 eval (Ref n) = do
   e <- ask
   case lookup n e of
-        Just (Simple v e') -> local (const $ e') (eval v)
+        Just (Simple v e') -> newScope (e') (eval v)
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 eval (App n es) = do
-  env <- ask
-  args <- return $  map (\x -> Simple x env) es
-
-  case lookup n env of
-    Just (Fun params e env') -> local (const $ ((zip params args)) ++ env' ++ env) (eval e) -- FIXME
+  args <- sequence $ map giveEnv es
+  f <- lookupName n
+  case f of
+    Just (Fun params e env') -> newScope ((zip params args) ++ env') (eval e) -- FIXME
     Nothing -> case lookup n builtins of
         Just (f) -> f es
         Nothing -> return $ Err $ "Couldn't find " ++ n ++ "in enviroment!"
 eval (Let n e1 e2) = do
   env <- ask
-  local ((:) (n, Simple e1 env)) (eval e2)
+  newScope (pure (n, Simple e1 env)) (eval e2)
+ 
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   if b then eval e1 else eval e2
+
 eval (While p f x) = do
   b <- eval (App p [x])
   case b of
     (Vb b) -> if b then eval (While p f (App f [x])) else eval x
     _ -> undefined
+
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
  

@@ -46,6 +46,9 @@ exprtype :: Expr -> Typechecked Ptype
 exprtype (I _) = return $ (Pext (X Itype []))
 exprtype (S s) = return $ (Pext (X (Symbol s) []))
 exprtype (B _) = return $ (Pext (X Booltype []))
+exprtype (Let n e1 e2) = do
+  t <- exprtype e1
+  local ((n, Plain t):) (exprtype e2)
 exprtype (Ref s) = do
   x <- getType s
   case x of
