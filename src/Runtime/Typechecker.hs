@@ -64,10 +64,19 @@ exprtype (Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   if (t1 == t2) then return (Pext (X Booltype [])) else throwError (WrongType $ "Couldn't match types " ++ show t1 ++ ", " ++ show t2)
-exprtype (Binop _ e1 e2) = do
+exprtype (Binop x e1 e2) = do
   v1 <- exprtype e1
   v2 <- exprtype e2
-  if (v1 == v2) then return $ (Pext (X Itype [])) else throwError (WrongType "TYPE MISMATCH")
+  case (v1, v2) of
+    (Pext (X Itype []), Pext (X Itype [])) -> if x `elem` [Plus, Minus, Times, Div, Mod]
+                                              then return $ (Pext (X Itype []))
+                                              else throwError (WrongType $ "Cannot " ++ show x ++ " types " ++ show v1 ++ " and " ++ show v2 )
+    (Pext (X Booltype []), Pext (X Booltype [])) -> if x `elem` [And, Or, Xor]
+                                                    then return $ (Pext (X Itype []))
+                                                    else throwError (WrongType $ "Cannot " ++ show x ++ " types " ++ show v1 ++ " and " ++ show v2)
+    (x, y) -> throwError (WrongType $ "Type mismatch: " ++ show x ++ " is not " ++ show y)
+
+
 -- if
 exprtype (If e1 e2 e3) = undefined
 -- while
