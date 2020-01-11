@@ -1,4 +1,4 @@
--- |
+-- | Typechecker.
 
 module Runtime.Typechecker (tc, tcexpr, signatures) where
 
@@ -8,12 +8,36 @@ import Control.Monad.Identity
 import Control.Monad.Except
 import Debug.Trace
 import Data.Either
-type Error = String
+import Data.Maybe
+
 type Env = [(String, Type)]
 
--- | You've either given me a wrong type, or its a name that's not bound
-data TypeError = WrongType String | NotBound String
-  deriving Show
+-- | Encoding the different type errors as types should let us do interesting things with them
+data TypeError = Mismatch Type Type -- ^ Couldn't match two types in an expression
+               | NotBound Name -- ^ Name isn't bound in the enviroment
+               | SigMismatch Name Type Type -- ^ couldn't match the type of an equation with its signature
+               | Unknown String -- ^ Errors that "shouldn't happen"
+               | BadOp Op Type Type
+
+-- | smart constructors for type errors
+mismatch :: Type -> Type -> Typechecked a
+mismatch t1 t2 = throwError $ Mismatch t1 t2
+notbound :: Name -> Typechecked a
+notbound n = throwError $ NotBound n
+sigmismatch :: Name -> Type -> Type -> Typechecked a
+sigmismatch n t1 t2= throwError $ SigMismatch n t1 t2
+unknown :: String -> Typechecked a
+unknown s = throwError $ Unknown s
+badop :: Op -> Type -> Type -> Typechecked a
+badop o t1 t2 = throwError $ BadOp o t1 t2
+
+
+instance Show TypeError where
+  show (Mismatch t1 t2) = "Could not match types " ++ show t1 ++ " and " ++ show t2
+  show (NotBound n) = "Variable " ++ n ++ " not bound in the enviroment!"
+  show (SigMismatch n sig t) = "Signature for defition " ++ n ++ ": " ++ show sig ++ "\n does not match inferred type: " ++ show t
+  show (Unknown s) = s
+  show (BadOp o t1 t2) = "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2
 
 -- | Things are typechecked with an enviroment ('ReaderT') and the possibility of failure ('ExceptT'). The typechecker is non-interactive so we do not need IO.
 type Typechecked a =  (ReaderT Env (ExceptT TypeError Identity)) a
@@ -27,8 +51,7 @@ detuple x = (trace $ show x) $ undefined
 deftype :: ValDef -> Typechecked Type
 deftype (Val (Sig n t) eqn) = do
   eqt <- eqntype t eqn
-  if eqt == t then return t else throwError $ WrongType $ "Type " ++ show eqt ++ " doesn't match signature" ++ show t
-
+  if eqt == t then return t else sigmismatch n t eqt
 -- | Get the type of an equation
 eqntype :: Type -> Equation -> Typechecked Type
 eqntype _ (Veq _ e) = exprtype e >>= (return . Plain)
@@ -38,7 +61,7 @@ eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
                 x -> [Plain x]
     e' <- local ((++) (zip params (i))) (exprtype e)
     return $ Function (Ft inputs (e'))
-eqntype _ _ = throwError (WrongType "ERR!")
+eqntype _ _ = throwError (Unknown "Enviroment corrupted.") -- this should never happen?
 
 
 -- Get the type of an expression
@@ -53,37 +76,51 @@ exprtype (Ref s) = do
   x <- getType s
   case x of
     (Plain t) -> return t
-    other -> throwError (WrongType $ "Couldn't defererence type " ++ show other)  -- exceptT
+    other -> unknown $ "Type " ++ show other ++ " is a function type and cannot be dereferenced."
 exprtype (Tuple xs) = do
-  xs' <- (sequence $ map exprtype xs)
+  xs' <- mapM exprtype xs
   return $ (Pt (Tup (map extract xs')))
 exprtype (App n es) = do
-  es' <- sequence $ map exprtype es
+  es' <- mapM exprtype es
   t <- getType n
   case t of
-        (Function (Ft (Pt (Tup i)) o)) -> if map extract es' == i then return o else (throwError (WrongType $ "Couldn't match type " ++ show es' ++ " with type " ++ show i)) -- single input case?
-        (Function (Ft i o)) -> if es' == [i] then return o else (throwError (WrongType $ "Couldn't match type" ++ show es' ++ " with type " ++ show i))
+    (Function (Ft (Pt (Tup i)) o)) -> if map extract es' == i then return o else do
+      ts <- mapM xtype es'
+      mismatch (Plain $ Pt $ Tup ts) (Plain (Pt $ Tup i))
+    (Function (Ft i o)) -> if es' == [i] then return o else do
+      ts <- mapM xtype es' -- ugly indentation
+      mismatch (Plain $ Pt $ Tup ts) (Plain i) -- thinking emoji FIXME
+    _ -> do
+      ts <- mapM xtype es'
+      mismatch (Function $ (Ft (Pt (Tup ts)) (Pext (X Undef [])))) t -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
+
+
+                                      
 exprtype (Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
-  if (t1 == t2) then return (Pext (X Booltype [])) else throwError (WrongType $ "Couldn't match types " ++ show t1 ++ ", " ++ show t2)
+  if (t1 == t2) then return (Pext (X Booltype [])) else badop Equiv (Plain t1) (Plain t2)
 exprtype (Binop x e1 e2) = do
-  v1 <- exprtype e1
-  v2 <- exprtype e2
-  case (v1, v2) of
+  t1 <- exprtype e1
+  t2 <- exprtype e2
+  case (t1, t2) of
     (Pext (X Itype []), Pext (X Itype [])) -> if x `elem` [Plus, Minus, Times, Div, Mod]
                                               then return $ (Pext (X Itype []))
-                                              else throwError (WrongType $ "Cannot " ++ show x ++ " types " ++ show v1 ++ " and " ++ show v2 )
+                                              else badop x (Plain t1) (Plain t2)
     (Pext (X Booltype []), Pext (X Booltype [])) -> if x `elem` [And, Or, Xor]
-                                                    then return $ (Pext (X Itype []))
-                                                    else throwError (WrongType $ "Cannot " ++ show x ++ " types " ++ show v1 ++ " and " ++ show v2)
-    (x, y) -> throwError (WrongType $ "Type mismatch: " ++ show x ++ " is not " ++ show y)
+                                                    then return $ (Pext (X Booltype []))
+                                                    else badop x (Plain t1) (Plain t2)
+    _ -> badop x (Plain t1) (Plain t2)
 
 
 -- if
 exprtype (If e1 e2 e3) = undefined
 -- while
 exprtype (While n1 n2 e) = undefined
+
+xtype :: Ptype -> Typechecked Xtype
+xtype (Pext x) = return x
+xtype y = mismatch (Plain (Pext (X Undef []))) (Plain y)
 
 -- | Extract a type
 extract (Pext x) = x
@@ -95,7 +132,7 @@ getType n = do
   env <- ask
   case lookup n env of
     Just e -> return e
-    Nothing -> throwError (NotBound $ "not bound")
+    Nothing -> notbound n
 
 -- | Get all the signatures out of the list of value defintions
 signatures :: [ValDef] -> Env

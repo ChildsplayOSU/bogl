@@ -75,6 +75,7 @@ data Btype = Booltype -- ^ Boolean
            | Player -- ^ A player
            | Position -- ^ A position, specified by the board description
            | Positions -- ^ The list of all positions
+           | Undef -- ^ Only occurs when typechecking. The user cannot define anything of this type. (I could use 'undefined' everywhere I use this, but one false move and the whole program crashes)
    deriving (Eq) 
 
 instance Show Btype where
@@ -86,6 +87,7 @@ instance Show Btype where
   show Player = "Player"
   show Position = "Position"
   show Positions = "Positions"
+  show Undef = "?"
 
 -- | Xtypes are sum types, but restricted by the semantics to only contain Symbols after the atomic type.
 data Xtype = X Btype [Btype]
