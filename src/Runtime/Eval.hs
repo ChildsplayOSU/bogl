@@ -6,29 +6,23 @@ import Control.Monad
 import Data.Array
 import Control.Monad.Reader
 import Control.Monad.Except
+import Control.Monad.Identity
 import Debug.Trace
 
--- | Call-by-name semantics
-type Env = [(Name, V)]
+-- | Call-by-value semantics
+type Env = [(Name, Val)]
 
 -- | Evaluation occurs in the IO monad with an enviroment to read from.
 -- alternate definition:
 -- @type Eval a = ReaderT (Env, InputTape) (Identity) a@
 -- for the 'pure' evaluator
-type Eval a = ReaderT Env (IO) a
-
--- | Either a simple expression (not a function) or a function. FIXME: this can be collapsed into a single type if the App rule and syntax is changed
-data V = Simple Expr Env | Fun [Name] Expr Env
-  deriving Show
+type Eval a = ReaderT Env (Identity) a
 
 newScope :: Env -> Eval a -> Eval a
 newScope env = local (env++)
 
-lookupName :: Name -> Eval (Maybe V)
+lookupName :: Name -> Eval (Maybe Val)
 lookupName n = ask >>= (return . (lookup n))
-
-giveEnv :: Expr -> Eval V
-giveEnv e = ask >>= (return . (Simple e))
 
 
 
@@ -39,7 +33,7 @@ data Val = Vi Integer -- ^ Integer value
          | Vboard (Array Int Val) -- ^ Board value (displayed to user)
          | Vt [Val] -- ^ Tuple value
          | Vs Name -- ^ Symbol value
-         | Vf [Name] Expr -- ^ Function value
+         | Vf [Name] Env Expr -- ^ Function value
          | Err String -- ^ Runtime error (I think the typechecker catches all these)
          deriving (Show, Eq)
 
@@ -50,26 +44,19 @@ unpackBool (Vb b) = b
 unpackBool _ = undefined
 
 -- | Produce all of the bindings from a list
+-- Note that this is a little bizarre: x is the list of all bindings in an empty enviroment,
+-- which is then used as the enviroment in a second pass.
 bindings :: [ValDef] -> Env
 bindings vs = map (bind x) vs
   where
     x = map (bind []) vs
 
--- | Bind an individual valdef to its name in the current Enviroment
-bind :: Env -> ValDef -> (Name, V)
-bind env (Val _ (Veq n e)) = (n, Simple e env)
-bind env (Val _ (Feq n (Pars ls) e)) = (n, Fun ls e env)
--- bval?
--- builtins
-
--- | Builtin input function (SUBJECT TO CHANGE)
-input :: [Expr] -> Eval Val
-input [] = (Vpos . read) <$> (liftIO getLine)
-input _ = undefined
-
--- | List of all the builtins in the builtin enviroment
-builtins :: [(Name, [Expr] -> Eval Val)]
-builtins = [("input", input)]
+-- | Bind the value of a definition to its name in the current Enviroment
+bind :: Env -> ValDef -> (Name, Val)
+bind env (Val _ (Veq n e)) = (n, v)
+  where
+    v = runIdentity (runReaderT (eval e) env)
+bind env (Val _ (Feq n (Pars ls) e)) = (n, Vf ls env e)
 
 -- | Binary operation evaluation
 evalBinOp :: Op -> Expr -> Expr -> Eval Val 
@@ -140,21 +127,19 @@ eval (B b) = return $ Vb b
 eval (S s) = return $ Vs s
 eval (Tuple es) = (sequence (map eval es)) >>= (return . Vt)
 eval (Ref n) = do
-  e <- ask
-  case lookup n e of
-        Just (Simple v e') -> newScope (e') (eval v)
+  e <- lookupName n
+  case e of
+        Just (v) -> return $ v
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 eval (App n es) = do
-  args <- sequence $ map giveEnv es
+  args <- sequence $ map (eval) es
   f <- lookupName n
   case f of
-    Just (Fun params e env') -> newScope ((zip params args) ++ env') (eval e) -- FIXME
-    Nothing -> case lookup n builtins of
-        Just (f) -> f es
-        Nothing -> return $ Err $ "Couldn't find " ++ n ++ "in enviroment!"
+    Just (Vf params env' e) -> newScope ((zip params args) ++ env') (eval e)
+    Nothing -> undefined -- check if its a builtin? TODO
 eval (Let n e1 e2) = do
-  env <- ask
-  newScope (pure (n, Simple e1 env)) (eval e2)
+  v <- eval e1
+  newScope (pure (n, v)) (eval e2)
  
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
@@ -165,7 +150,7 @@ eval (While p f x) = do
   case b of
     (Vb b) -> if b then eval (While p f (App f [x])) else eval x
     _ -> undefined
-
+   
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
  
@@ -180,7 +165,6 @@ eval (Binop op e1 e2) = evalBinOp op e1 e2
 -- Result: Vi 2
 -- | Run an 'Expr' in the given 'Env' and display the result
 run :: Env -> Expr -> IO ()
-run env e = (runReaderT (eval e) env) >>= (putStrLn . show)
+run env e = let v = runIdentity (runReaderT (eval e) env) in
+  (putStrLn . show) v
 
--- | an example enviroment
-enviroment = [("ten", (Fun ["x"] (Binop Less (Ref "x") (I 10)))), ("succ", (Fun ["x"] (Binop Plus (Ref "x") (I 1))))]
