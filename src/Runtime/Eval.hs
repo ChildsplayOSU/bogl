@@ -18,8 +18,6 @@ type Env = [(Name, Val)]
 -- for the 'pure' evaluator
 type Eval a = ReaderT Env (Identity) a
 
--- | Either a simple expression (not a function) or a function. FIXME: this can be collapsed into a single type if the App rule and syntax is changed
-
 newScope :: Env -> Eval a -> Eval a
 newScope env = local (env++)
 
@@ -46,19 +44,19 @@ unpackBool (Vb b) = b
 unpackBool _ = undefined
 
 -- | Produce all of the bindings from a list
+-- Note that this is a little bizarre: x is the list of all bindings in an empty enviroment,
+-- which is then used as the enviroment in a second pass.
 bindings :: [ValDef] -> Env
 bindings vs = map (bind x) vs
   where
     x = map (bind []) vs
 
--- | Bind an individual valdef to its name in the current Enviroment
+-- | Bind the value of a definition to its name in the current Enviroment
 bind :: Env -> ValDef -> (Name, Val)
 bind env (Val _ (Veq n e)) = (n, v)
   where
     v = runIdentity (runReaderT (eval e) env)
 bind env (Val _ (Feq n (Pars ls) e)) = (n, Vf ls env e)
--- bval?
--- builtins
 
 -- | Binary operation evaluation
 evalBinOp :: Op -> Expr -> Expr -> Eval Val 
@@ -137,7 +135,7 @@ eval (App n es) = do
   args <- sequence $ map (eval) es
   f <- lookupName n
   case f of
-    Just (Vf params env' e) -> newScope ((zip params args) ++ env') (eval e) -- FIXME
+    Just (Vf params env' e) -> newScope ((zip params args) ++ env') (eval e)
     Nothing -> undefined -- check if its a builtin? TODO
 eval (Let n e1 e2) = do
   v <- eval e1
