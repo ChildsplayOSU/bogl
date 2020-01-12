@@ -130,13 +130,17 @@ exprtype e@(Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   if (t1 == t2) then return (Pext (X Booltype S.empty)) else badop Equiv (Plain t1) (Plain t2) e
+
 exprtype e@(Binop x e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   case (t1, t2) of
-    (Pext (X Itype s1), Pext (X Itype s2)) -> if x `elem` [Plus, Minus, Times, Div, Mod] && S.null s1 && S.null s2
+    (Pext (X Itype s1), Pext (X Itype s2)) | S.null s1 && S.null s2 -> if x `elem` [Plus, Minus, Times, Div, Mod]
                                               then return $ (Pext (X Itype S.empty))
-                                              else badop x (Plain t1) (Plain t2) e
+                                              else if x `elem` [Less]
+                                                   then return $ (Pext (X Booltype S.empty))
+                                                   else badop x (Plain t1) (Plain t2) e
+
     (Pext (X Booltype s1), Pext (X Booltype s2)) -> if x `elem` [And, Or, Xor] && S.null s1 && S.null s2
                                                     then return $ (Pext (X Booltype S.empty))
                                                     else badop x (Plain t1) (Plain t2) e
@@ -183,14 +187,19 @@ exprtype expr@(Case n xs e) = do
     notSymbol (_) = unknown "this is a function. I don't know what to do."
    
     fakeType :: Name -> (Type, Expr) -> Typechecked Ptype
-    fakeType n (t, e) = do
-      env <- getEnv
-      localEnv ((n, atomicType t):) (exprtype e)
+    fakeType n (t, e) = localEnv ((n, atomicType t):) (exprtype e)
 
     retrieveSymbols (Pext (X (Symbol n) s)) = (S.singleton n) `S.union` s
     retrieveSymbols _ = S.empty
 -- while
-exprtype (While n1 n2 e) = undefined
+exprtype (While n1 n2 e) = do
+  exprT <- exprtype e
+  predT <- getType n1
+  modT  <- getType n2
+  case (exprT, predT, modT) of
+    (e', Function (Ft i (Pext (X Booltype s))), Function (Ft i2 o2)) | all (== e') [i, i2, o2] && s == S.empty -> return $ e'
+    (x, y, z) -> unknown "something's wrong..." -- pattern match on each of the failure types.
+
 
 getExtensions :: Ptype -> S.Set Name
 getExtensions (Pext (X _ exs)) = exs

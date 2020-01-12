@@ -171,6 +171,7 @@ data Op = Plus
         | And
         | Less
         | Xor
+        | Greater
    deriving (Eq) 
 instance Show Op where
   show Plus = " + "
@@ -182,4 +183,5 @@ instance Show Op where
   show Or = " or "
   show And = " and "
   show Less = " < "
+  show Greater = " > "
   show Xor = " xor "

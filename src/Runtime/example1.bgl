@@ -37,3 +37,10 @@ addMoreExt(x) = case x of
               Option1 -> Option2
               Option2 -> Option3
               | if x == -1 then Option1 else x
+lessThanTen : Int -> Bool
+lessThanTen(x) = x < 10
+
+whileLoopEx : Int -> Int
+whileLoopEx(x) = while lessThanTen
+              do succ
+              x
