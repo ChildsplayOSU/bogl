@@ -96,7 +96,7 @@ boardeqn :: Parser BoardEq
 boardeqn =
   (try $ (RegDef <$> identifier <*> (parens expr) <*> (reservedOp "=" *> expr)))
   <|>
-  (try $ (PosDef <$> identifier <*> (char '(' *> integer) <*> (integer <* char ')') <*> (reservedOp "=" *> expr)))
+  (try $ (PosDef <$> identifier <*> (char '(' *> expr) <*> (comma *> expr <* char ')') <*> (reservedOp "=" *> expr)))
 
 -- | Atomic types
 btype :: Parser Btype
@@ -119,7 +119,7 @@ btype =
   <|>
   Symbol <$> capIdentifier
 
--- | Extended types: type safter the first are restricted to symbols
+-- | Extended types: types after the first are restricted to symbols
 xtype :: Parser Xtype
 xtype =
   (try $ (X <$> btype <*> (S.fromList <$> (many1 (reservedOp "|" *> capIdentifier)))))

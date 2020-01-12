@@ -59,7 +59,7 @@ instance Show Equation where
   show (Feq n p e) = n ++ show p ++ " = " ++ show e
 
 -- | Board equations can either be
-data BoardEq = PosDef Name Integer Integer Expr -- ^ Position defition: an assignment to a specific position
+data BoardEq = PosDef Name Expr Expr Expr -- ^ Position defition: an assignment to a specific position
              | RegDef Name Expr Expr -- ^ A region definition, an assignment to multiple positions
    deriving (Eq)
 instance Show BoardEq where
@@ -82,7 +82,7 @@ data Btype = Booltype -- ^ Boolean
 instance Show Btype where
   show Booltype = "Bool"
   show Itype = "Int"
-  show (Symbol s) = "Symbol: " ++ s
+  show (Symbol s) = s
   show Input = "Input"
   show Board = "Board"
   show Player = "Player"
@@ -95,8 +95,8 @@ data Xtype = X Btype (S.Set Name)
 
 -- This is a potential source of very confusing bugs. beware. Also this instance is not symmetric, which is bad.
 instance Eq Xtype where
-  (X (Symbol s) bs) == (X t1 xs) = s `S.member` xs
-  (X t1 xs) == (X (Symbol s) bs) = s `S.member` xs
+  (X (Symbol s) bs) == (X t1 xs) | not . S.null $ xs= s `S.member` xs
+  (X t1 xs) == (X (Symbol s) bs) | not . S.null $ xs= s `S.member` xs
   (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
   -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
   (X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
@@ -150,9 +150,9 @@ data Expr = I Integer -- ^ Integer expression
    deriving (Eq)
 instance Show Expr where
   show (I i) = show i
-  show (S s) = show s
+  show (S s) = s
   show (B b) = show b
-  show (Ref n) = "ref " ++ n
+  show (Ref n) = n
   show (Tuple e) = "(" ++ intercalate " , " (map show e) ++ ")"
   show (App n es) = n ++ "(" ++ intercalate "," (map show es) ++ ")"
   show (Binop o e1 e2) = show e1 ++ show o ++ show e2

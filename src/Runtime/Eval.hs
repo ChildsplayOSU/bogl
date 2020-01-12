@@ -4,6 +4,7 @@ module Runtime.Eval (run, bindings) where
 import Language.Syntax
 import Control.Monad
 import Data.Array
+import Data.List
 import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.Identity
@@ -35,8 +36,17 @@ data Val = Vi Integer -- ^ Integer value
          | Vs Name -- ^ Symbol value
          | Vf [Name] Env Expr -- ^ Function value
          | Err String -- ^ Runtime error (I think the typechecker catches all these)
-         deriving (Show, Eq)
+         deriving (Eq)
 
+instance Show Val where
+  show (Vi i) = show i
+  show (Vb b) = show b
+  show (Vpos x) = show x
+  show (Vboard _) = "Board"
+  show (Vt xs) = intercalate " " $ map show xs
+  show (Vs s) = s
+  show (Vf xs _ e) = "\\" ++ show xs ++ " -> " ++ show e
+  show (Err s) = "ERR: " ++ s
 
 -- | Helper function to get the Bool out of a value.
 unpackBool :: Val -> Bool
