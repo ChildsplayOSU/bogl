@@ -93,12 +93,12 @@ instance Show Btype where
 -- | Xtypes are sum types, but restricted by the semantics to only contain Symbols after the atomic type.
 data Xtype = X Btype (S.Set Name)
 
--- This is a potential source of very confusing bugs. beware
+-- This is a potential source of very confusing bugs. beware. Also this instance is not symmetric, which is bad.
 instance Eq Xtype where
   (X (Symbol s) bs) == (X t1 xs) = s `S.member` xs
   (X t1 xs) == (X (Symbol s) bs) = s `S.member` xs
-  -- (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1
-  -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1
+  (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
+  -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
   (X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
 
 instance Show Xtype where
@@ -159,6 +159,7 @@ instance Show Expr where
   show (Let n e1 e2) = "Let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
   show (If e1 e2 e3) = "If " ++ show e1 ++ " Then " ++ show e2 ++ " Else " ++ show e3
   show (While e1 e2 x) = "While " ++ show e1 ++ " do " ++ show e2 ++ " to " ++ show x
+  show (Case n xs e) = "case " ++ n ++ " of" ++ (intercalate "\n" (map show xs)) ++ "otherwise: " ++ show e
 -- | Binary operations
 data Op = Plus
         | Minus

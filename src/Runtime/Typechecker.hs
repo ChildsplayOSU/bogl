@@ -79,7 +79,7 @@ exprtype (Ref s) = do
   x <- getType s
   case x of
     (Plain t) -> return t
-    other -> unknown $ "Type " ++ show other ++ " is a function type and cannot be dereferenced."
+    other -> unknown $ "Object " ++ s ++ " of type " ++ show other ++ " is a function and cannot be dereferenced."
 exprtype (Tuple xs) = do
   xs' <- mapM exprtype xs
   return $ (Pt (Tup (map extract xs')))
@@ -143,6 +143,8 @@ exprtype expr@(Case n xs e) = do
       (atom, extension) <- partitionM notSymbol types
       case atom of
         [(Pext (X x exten'))] -> return $ (Pext (X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
+        h@(Pext (X x exten)):xs | all (== h) xs -> let exten' = (S.unions . map getExtensions)  (h:xs)
+                                in return $ (Pext (X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
         xs -> unknown $ "Cannot construct the type: " ++ (xs >>= show) ++ "\n produced by: " ++ (show expr)
       where
         ts' = e:(map (first singletonSymbol) xs)
@@ -151,6 +153,7 @@ exprtype expr@(Case n xs e) = do
     notSymbol (Pext (X (Symbol _) _)) = return False
     notSymbol (Pext _) = return True
     notSymbol (_) = unknown "this is a function. I don't know what to do."
+   
     fakeType :: Name -> (Type, Expr) -> Typechecked Ptype
     fakeType n (t, e) = do
       env <- ask
@@ -162,7 +165,9 @@ exprtype expr@(Case n xs e) = do
 -- while
 exprtype (While n1 n2 e) = undefined
 
-
+getExtensions :: Ptype -> S.Set Name
+getExtensions (Pext (X _ exs)) = exs
+getExtensions _ = S.empty
 atomicType :: Type -> Type
 atomicType (Plain (Pext (X t _))) = Plain (Pext $ X t S.empty)
 
@@ -201,7 +206,7 @@ tc (Game _ _ _ vs) = if all (isRight) (checked) then return True else ((putStrLn
     env = signatures vs
     checked = map (runTypeCheck env) vs
 
--- | Run the typechecker on an 'Expr' and report any erros to the console.
+-- | Run the typechecker on an 'Expr' and report any errors to the console.
 tcexpr :: Env -> Expr -> IO Bool
 tcexpr e x = do
   if isRight t then return True else ((putStrLn . show) t) >> return False
