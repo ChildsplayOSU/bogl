@@ -2,6 +2,7 @@
 
 module Language.Syntax where
 import Data.List
+import qualified Data.Set as S
 type Name = String
 
 -- | Game datatype
@@ -90,12 +91,19 @@ instance Show Btype where
   show Undef = "?"
 
 -- | Xtypes are sum types, but restricted by the semantics to only contain Symbols after the atomic type.
-data Xtype = X Btype [Btype]
-   deriving (Eq) 
+data Xtype = X Btype (S.Set Name)
+
+-- This is a potential source of very confusing bugs. beware
+instance Eq Xtype where
+  (X (Symbol s) bs) == (X t1 xs) = s `S.member` xs
+  (X t1 xs) == (X (Symbol s) bs) = s `S.member` xs
+  (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1
+  (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1
+  (X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
 
 instance Show Xtype where
-  show (X b []) = show b
-  show (X b xs) = show b ++ "|" ++ intercalate ("|") (map show xs)
+  show (X b xs) | S.null xs = show b
+                | otherwise = show b ++ "|" ++ intercalate ("|") (map show (S.toList xs))
 
 -- | Tuples can only contain Xtypes (no sub-tuples)
 data Tuptype = Tup [Xtype]
@@ -104,7 +112,7 @@ data Tuptype = Tup [Xtype]
 instance Show Tuptype where
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
 
--- | A plain type is either a tuples, or an extended type
+-- | A plain type is either a tuple, or an extended type
 data Ptype = Pext Xtype | Pt Tuptype
    deriving (Eq) 
 

@@ -16,6 +16,15 @@ addPlusOne(x,y) = succ(add(x,y))
 example :  Int
 example = addPlusOne(3,2)
 
+
+safeDivide : (Int, Int) -> Int|Nothing
+safeDivide (x, y) = if y == 0 then Nothing else x / y
+
+useSafe : Int | Nothing -> Int | Nothing
+useSafe(x) = if x == Nothing then Nothing else x + 1
+
+
+
 isTen : Int -> Bool
 isTen(x) = x == 10
 -- App "addPlusOne" [1,2] -> succ(add)

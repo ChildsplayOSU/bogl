@@ -9,35 +9,36 @@ import Control.Monad.Except
 import Debug.Trace
 import Data.Either
 import Data.Maybe
+import qualified Data.Set as S
 
 type Env = [(String, Type)]
 
 -- | Encoding the different type errors as types should let us do interesting things with them
-data TypeError = Mismatch Type Type -- ^ Couldn't match two types in an expression
+data TypeError = Mismatch Type Type Expr -- ^ Couldn't match two types in an expression
                | NotBound Name -- ^ Name isn't bound in the enviroment
                | SigMismatch Name Type Type -- ^ couldn't match the type of an equation with its signature
                | Unknown String -- ^ Errors that "shouldn't happen"
-               | BadOp Op Type Type
+               | BadOp Op Type Type Expr
 
 -- | smart constructors for type errors
-mismatch :: Type -> Type -> Typechecked a
-mismatch t1 t2 = throwError $ Mismatch t1 t2
+mismatch :: Type -> Type -> Expr -> Typechecked a
+mismatch t1 t2 e = throwError $ Mismatch t1 t2 e
 notbound :: Name -> Typechecked a
 notbound n = throwError $ NotBound n
 sigmismatch :: Name -> Type -> Type -> Typechecked a
 sigmismatch n t1 t2= throwError $ SigMismatch n t1 t2
 unknown :: String -> Typechecked a
 unknown s = throwError $ Unknown s
-badop :: Op -> Type -> Type -> Typechecked a
-badop o t1 t2 = throwError $ BadOp o t1 t2
+badop :: Op -> Type -> Type -> Expr -> Typechecked a
+badop o t1 t2 e = throwError $ BadOp o t1 t2 e
 
 
 instance Show TypeError where
-  show (Mismatch t1 t2) = "Could not match types " ++ show t1 ++ " and " ++ show t2
+  show (Mismatch t1 t2 e) = "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
   show (NotBound n) = "Variable " ++ n ++ " not bound in the enviroment!"
   show (SigMismatch n sig t) = "Signature for defition " ++ n ++ ": " ++ show sig ++ "\n does not match inferred type: " ++ show t
   show (Unknown s) = s
-  show (BadOp o t1 t2) = "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2
+  show (BadOp o t1 t2 e) = "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
 
 -- | Things are typechecked with an enviroment ('ReaderT') and the possibility of failure ('ExceptT'). The typechecker is non-interactive so we do not need IO.
 type Typechecked a =  (ReaderT Env (ExceptT TypeError Identity)) a
@@ -66,9 +67,9 @@ eqntype _ _ = throwError (Unknown "Enviroment corrupted.") -- this should never 
 
 -- Get the type of an expression
 exprtype :: Expr -> Typechecked Ptype
-exprtype (I _) = return $ (Pext (X Itype []))
-exprtype (S s) = return $ (Pext (X (Symbol s) []))
-exprtype (B _) = return $ (Pext (X Booltype []))
+exprtype (I _) = return $ (Pext (X Itype S.empty))
+exprtype (S s) = return $ (Pext (X (Symbol s) S.empty))
+exprtype (B _) = return $ (Pext (X Booltype S.empty))
 exprtype (Let n e1 e2) = do
   t <- exprtype e1
   local ((n, Plain t):) (exprtype e2)
@@ -80,47 +81,57 @@ exprtype (Ref s) = do
 exprtype (Tuple xs) = do
   xs' <- mapM exprtype xs
   return $ (Pt (Tup (map extract xs')))
-exprtype (App n es) = do
+exprtype e@(App n es) = do
   es' <- mapM exprtype es
   t <- getType n
   case t of
     (Function (Ft (Pt (Tup i)) o)) -> if map extract es' == i then return o else do
-      ts <- mapM xtype es'
-      mismatch (Plain $ Pt $ Tup ts) (Plain (Pt $ Tup i))
+      ts <- mapM (xtype e) es'
+      mismatch (Plain $ Pt $ Tup ts) (Plain (Pt $ Tup i)) e
     (Function (Ft i o)) -> if es' == [i] then return o else do
-      ts <- mapM xtype es' -- ugly indentation
-      mismatch (Plain $ Pt $ Tup ts) (Plain i) -- thinking emoji FIXME
+      ts <- mapM (xtype e) es'
+      mismatch (Plain $ Pt $ Tup ts) (Plain i) e
     _ -> do
-      ts <- mapM xtype es'
-      mismatch (Function $ (Ft (Pt (Tup ts)) (Pext (X Undef [])))) t -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
+      ts <- mapM (xtype e) es'
+      mismatch (Function $ (Ft (Pt (Tup ts)) (Pext (X Undef S.empty)))) t e -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
 
 
                                       
-exprtype (Binop Equiv e1 e2) = do
+exprtype e@(Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
-  if (t1 == t2) then return (Pext (X Booltype [])) else badop Equiv (Plain t1) (Plain t2)
-exprtype (Binop x e1 e2) = do
+  if (t1 == t2) then return (Pext (X Booltype S.empty)) else badop Equiv (Plain t1) (Plain t2) e
+exprtype e@(Binop x e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   case (t1, t2) of
-    (Pext (X Itype []), Pext (X Itype [])) -> if x `elem` [Plus, Minus, Times, Div, Mod]
-                                              then return $ (Pext (X Itype []))
-                                              else badop x (Plain t1) (Plain t2)
-    (Pext (X Booltype []), Pext (X Booltype [])) -> if x `elem` [And, Or, Xor]
-                                                    then return $ (Pext (X Booltype []))
-                                                    else badop x (Plain t1) (Plain t2)
-    _ -> badop x (Plain t1) (Plain t2)
+    (Pext (X Itype s1), Pext (X Itype s2)) -> if x `elem` [Plus, Minus, Times, Div, Mod] && S.null s1 && S.null s2
+                                              then return $ (Pext (X Itype S.empty))
+                                              else badop x (Plain t1) (Plain t2) e
+    (Pext (X Booltype s1), Pext (X Booltype s2)) -> if x `elem` [And, Or, Xor] && S.null s1 && S.null s2
+                                                    then return $ (Pext (X Booltype S.empty))
+                                                    else badop x (Plain t1) (Plain t2) e
+    _ -> badop x (Plain t1) (Plain t2) e
 
 
 -- if
-exprtype (If e1 e2 e3) = undefined
+exprtype e@(If e1 e2 e3) = do
+  t1 <- exprtype e1
+  t2 <- exprtype e2
+  t3 <- exprtype e3
+  case (t1, t2, t3) of
+    (Pext (X Booltype empty), Pext (X (Symbol s) s1), Pext (X t3' s2)) | S.null empty -> return $ Pext (X t3' $ S.unions [s1, s2, S.fromList [s]])
+    (Pext (X Booltype empty), Pext ((X t2' s1)), Pext (X (Symbol s) s2)) | S.null empty -> return $ Pext (X t2' $ S.unions [s1, s2, S.fromList [s]])
+    (Pext (X Booltype empty), y, z) | S.null empty -> mismatch (Plain y) (Plain z) e
+    (x, _, _) -> mismatch (Plain $ Pext $ (X Booltype S.empty)) (Plain x) e
+
+
 -- while
 exprtype (While n1 n2 e) = undefined
 
-xtype :: Ptype -> Typechecked Xtype
-xtype (Pext x) = return x
-xtype y = mismatch (Plain (Pext (X Undef []))) (Plain y)
+xtype :: Expr -> Ptype -> Typechecked Xtype
+xtype e (Pext x) = return x
+xtype e y = mismatch (Plain (Pext (X Undef S.empty))) (Plain y) e
 
 -- | Extract a type
 extract (Pext x) = x
@@ -157,20 +168,4 @@ tcexpr e x = do
   where
     t = runIdentity $ runExceptT $ runReaderT (exprtype x) e
 
-
--- | an example valdef
-ex = Val (Sig "add"
-          (Function (Ft
-           (Pt (Tup [X Itype [], X Itype [], X Itype []]))
-           (Pext (X Itype []))))) (Feq "addThenExpPlusOne" (Pars ["x", "y", "z"])
-                                   (App "succ" [(App "exp"
-                                    [(Binop Plus (Ref "x") (Ref "y")), (Ref "z")])]))
--- | an example enviroment
-env :: Env
-env = [("succ", (Function (Ft
-           (Pext (X Itype []))
-           (Pext (X Itype []))))),
-        ("exp", (Function (Ft
-           (Pt (Tup [(X Itype []), (X Itype [])]))
-           (Pext (X Itype [])))))]
 

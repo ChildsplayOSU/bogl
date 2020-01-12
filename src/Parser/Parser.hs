@@ -12,6 +12,8 @@ import Text.Parsec.Expr
 import qualified Text.Parsec as Par
 import Text.ParserCombinators.Parsec.Char
 import Text.Parsec.Combinator
+import qualified Data.Set as S
+
 -- FIXME why am I using both parsec2 and parsec3?
 
 import Data.Either 
@@ -118,9 +120,9 @@ btype =
 -- | Extended types: type safter the first are restricted to symbols
 xtype :: Parser Xtype
 xtype =
-  (try $ (X <$> btype <*> (many1 (reservedOp "|" *> (Symbol <$> capIdentifier)))))
+  (try $ (X <$> btype <*> (S.fromList <$> (many1 (reservedOp "|" *> capIdentifier)))))
   <|>
-  (\x -> X x []) <$> btype
+  (\x -> X x S.empty) <$> btype
 
 -- |
 --
@@ -174,7 +176,7 @@ valdef = do
   s <- sig
   b <- getState
   case b of
-    Just (Plain (Pext (X Board []))) -> (BVal s) <$> (boardeqn)
+    Just (Plain (Pext (X Board set))) | S.null set  -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
 
 -- |
