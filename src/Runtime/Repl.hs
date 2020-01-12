@@ -8,6 +8,15 @@ import Text.Parsec
 import Language.Syntax
 import Runtime.Typechecker
 
+runFile :: String -> IO ()
+runFile f = do
+  parsed <- parseGameFile f
+  case parsed of
+    Just g -> do
+      check <- tc g
+      if check then repl g else return ()
+    Nothing -> return ()
+
 -- | run an interactive game
 repl :: Game -> IO ()
 repl g@(Game n i b _) = do

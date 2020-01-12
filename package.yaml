@@ -33,7 +33,7 @@ library:
   source-dirs: src
 
 executables:
-  Spiel-Lang-exe:
+  spiel:
     main:                Main.hs
     source-dirs:         app
     ghc-options:

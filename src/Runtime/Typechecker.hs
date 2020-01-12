@@ -158,9 +158,11 @@ exprtype e@(If e1 e2 e3) = do
 exprtype expr@(Case n xs e) = do
   t1 <- getType n
   case t1 of
-    Plain (Pext (X t' xs')) -> if xs' == (S.fromList patterns) then compileCases n xs (t1, e) else unknown $ "Incomplete pattern match in " ++ show expr -- TODO: a better error
-    _ -> unknown $ show t1 ++ " is not an extended type."
-
+    Plain (Pext (X t' xs')) | xs' /= S.empty -> if xs' == (S.fromList patterns) then compileCases n xs (t1, e) else unknown $ "Incomplete pattern match in "
+                                                                                                   ++ show expr
+                                                                                                   ++ " please match cases: "
+                                                                                                   ++ (concat . S.toList) (xs' `S.difference` (S.fromList patterns))-- TODO: a better error
+    _ -> unknown $ show t1 ++ " is not an extended type, so you can't pattern-match on it."
   where
     (patterns, exprs) = (map fst xs, map snd xs)
     compileCases :: Name -> [(Name, Expr)] -> (Type, Expr) -> Typechecked Ptype
@@ -171,7 +173,7 @@ exprtype expr@(Case n xs e) = do
         [(Pext (X x exten'))] -> return $ (Pext (X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
         h@(Pext (X x exten)):xs | all (== h) xs -> let exten' = (S.unions . map getExtensions)  (h:xs)
                                 in return $ (Pext (X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
-        xs -> unknown $ "Cannot construct the type: " ++ (xs >>= show) ++ "\n produced by: " ++ (show expr)
+        xs -> unknown $ "Cannot construct the type: " ++ ((intercalate "|") $ show <$> xs) ++ "\n produced by: " ++ (show expr)
       where
         ts' = e:(map (first singletonSymbol) xs)
 
