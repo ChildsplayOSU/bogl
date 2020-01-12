@@ -97,8 +97,8 @@ data Xtype = X Btype (S.Set Name)
 instance Eq Xtype where
   (X (Symbol s) bs) == (X t1 xs) = s `S.member` xs
   (X t1 xs) == (X (Symbol s) bs) = s `S.member` xs
-  (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1
-  (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1
+  -- (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1
+  -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1
   (X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
 
 instance Show Xtype where
@@ -146,6 +146,7 @@ data Expr = I Integer -- ^ Integer expression
           | Let Name Expr Expr -- ^ Let binding
           | If Expr Expr Expr -- ^ Conditional expression
           | While Name Name Expr -- ^ While loop (could be While Expr Expr Expr if we make the App change suggested above)
+          | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
    deriving (Eq)
 instance Show Expr where
   show (I i) = show i

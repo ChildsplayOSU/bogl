@@ -153,8 +153,15 @@ eval (While p f x) = do
    
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
- 
-
+eval (Case n xs e)  = do
+  f <- lookupName n
+  case f of
+    Just v -> case v of
+      (Vs s) -> case lookup s xs of
+        Just e' -> newScope (pure (n, v)) (eval e')
+        _ -> undefined
+      _ -> newScope (pure (n, v)) (eval e)
+    Nothing -> undefined
 
 -- | evaluate an expression and run it
 -- >>> run [] (I 2)

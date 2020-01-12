@@ -23,7 +23,7 @@ types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Posit
 -- | The lexer, using the reserved keywords and operation names
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
                                                             "let", "in", "if", "then", "else",
-                                                            "while", "do", "game", "type", "Grid", "of"
+                                                            "while", "do", "game", "type", "Grid", "of", "case"
                                                             -- "A", "B", "free", "place", "next", "isFull", "inARow",
                                                             -- "countBoard", "countColumn", "countRow" ]
                                                             ] ++ types,
@@ -79,6 +79,8 @@ atom =
   Let <$> (reserved "let" *> identifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
   <|>
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
+  <|>
+  Case <$> (reserved "case" *> identifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
   <|>
   While <$> (reserved "while" *> identifier) <*> (reserved "do" *> identifier) <*> expr
 

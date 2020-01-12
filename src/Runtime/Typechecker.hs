@@ -6,9 +6,11 @@ import Language.Syntax
 import Control.Monad.Reader
 import Control.Monad.Identity
 import Control.Monad.Except
+import Control.Monad.Extra
 import Debug.Trace
 import Data.Either
 import Data.Maybe
+import Data.Bifunctor
 import qualified Data.Set as S
 
 type Env = [(String, Type)]
@@ -125,9 +127,47 @@ exprtype e@(If e1 e2 e3) = do
     (Pext (X Booltype empty), y, z) | S.null empty -> mismatch (Plain y) (Plain z) e
     (x, _, _) -> mismatch (Plain $ Pext $ (X Booltype S.empty)) (Plain x) e
 
+-- case (FIXME)
+exprtype expr@(Case n xs e) = do
+  t1 <- getType n
+  case t1 of
+    Plain (Pext (X t' xs')) -> if xs' == (S.fromList patterns) then compileCases n xs (t1, e) else unknown $ "Incomplete pattern match in " ++ show expr -- TODO: a better error
+    _ -> unknown $ show t1 ++ " is not an extended type."
 
+  where
+    (patterns, exprs) = (map fst xs, map snd xs)
+    compileCases :: Name -> [(Name, Expr)] -> (Type, Expr) -> Typechecked Ptype
+    compileCases n xs e = do
+      traceM $ show ts'
+      types <- mapM (fakeType n) (ts')
+      (atom, extension) <- partitionM notSymbol types
+      case atom of
+        [(Pext (X x exten'))] -> return $ (Pext (X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
+        xs -> unknown $ "Cannot construct the type: " ++ (xs >>= show) ++ "\n produced by: " ++ (show expr)
+      where
+        ts' = e:(map (first singletonSymbol) xs)
+
+
+    notSymbol (Pext (X (Symbol _) _)) = return False
+    notSymbol (Pext _) = return True
+    notSymbol (_) = unknown "this is a function. I don't know what to do."
+    fakeType :: Name -> (Type, Expr) -> Typechecked Ptype
+    fakeType n (t, e) = do
+      env <- ask
+      traceM $ show $ (n, t):env
+      local ((n, atomicType t):) (exprtype e)
+
+    retrieveSymbols (Pext (X (Symbol n) s)) = (S.singleton n) `S.union` s
+    retrieveSymbols _ = S.empty
 -- while
 exprtype (While n1 n2 e) = undefined
+
+
+atomicType :: Type -> Type
+atomicType (Plain (Pext (X t _))) = Plain (Pext $ X t S.empty)
+
+singletonSymbol :: Name -> Type
+singletonSymbol n = Plain (Pext $ X (Symbol n) S.empty)
 
 xtype :: Expr -> Ptype -> Typechecked Xtype
 xtype e (Pext x) = return x
