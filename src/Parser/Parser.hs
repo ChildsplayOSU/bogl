@@ -27,13 +27,13 @@ lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True"
                                                             -- "A", "B", "free", "place", "next", "isFull", "inARow",
                                                             -- "countBoard", "countColumn", "countRow" ]
                                                             ] ++ types,
-                                        P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->"]})
+                                        P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "<"]})
 
 
 -- | Operators (might want to fix the order of operations)
 operators = [[op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "mod" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
-             [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft]
+             [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft, op "<" (Binop Less) AssocLeft, op ">" (Binop Greater) AssocLeft]
             ]
               -- and so on
 
@@ -102,7 +102,7 @@ boardeqn :: Parser BoardEq
 boardeqn =
   (try $ (RegDef <$> identifier <*> (parens expr) <*> (reservedOp "=" *> expr)))
   <|>
-  (try $ (PosDef <$> identifier <*> (char '(' *> integer) <*> (integer <* char ')') <*> (reservedOp "=" *> expr)))
+  (try $ (PosDef <$> identifier <*> (char '(' *> expr) <*> (comma *> expr <* char ')') <*> (reservedOp "=" *> expr)))
 
 -- | Atomic types
 btype :: Parser Btype
@@ -125,7 +125,7 @@ btype =
   <|>
   Symbol <$> capIdentifier
 
--- | Extended types: type safter the first are restricted to symbols
+-- | Extended types: types after the first are restricted to symbols
 xtype :: Parser Xtype
 xtype =
   (try $ (X <$> btype <*> (S.fromList <$> (many1 (reservedOp "|" *> capIdentifier)))))
@@ -134,11 +134,11 @@ xtype =
 
 -- |
 --
--- >>> parseAll ttype Nothing "" "(Board, Position)"
--- Right (Board,Position) 
+-- >>> parseAll ttype Nothing "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty]) 
+-- True 
 --
 -- >>> parseAll ttype Nothing "" "(Symbol,Board)"
--- Right (Symbol: Symbol,Board) 
+-- Right (Symbol,Board) 
 --
 -- >>> isLeft $ parseAll ttype Nothing "" "(Symbol)" 
 -- True  

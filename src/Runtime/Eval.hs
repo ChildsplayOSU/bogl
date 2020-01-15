@@ -4,6 +4,7 @@ module Runtime.Eval (run, bindings) where
 import Language.Syntax
 import Control.Monad
 import Data.Array
+import Data.List
 import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.Identity
@@ -35,8 +36,17 @@ data Val = Vi Integer -- ^ Integer value
          | Vs Name -- ^ Symbol value
          | Vf [Name] Env Expr -- ^ Function value
          | Err String -- ^ Runtime error (I think the typechecker catches all these)
-         deriving (Show, Eq)
+         deriving (Eq)
 
+instance Show Val where
+  show (Vi i) = show i
+  show (Vb b) = show b
+  show (Vpos x) = show x
+  show (Vboard _) = "Board"
+  show (Vt xs) = intercalate " " $ map show xs
+  show (Vs s) = s
+  show (Vf xs _ e) = "\\" ++ show xs ++ " -> " ++ show e
+  show (Err s) = "ERR: " ++ s
 
 -- | Helper function to get the Bool out of a value.
 unpackBool :: Val -> Bool
@@ -108,19 +118,19 @@ evalBoolOp f l r = do
 -- | Evaluate an expression in the Eval Monad
 -- 
 -- >>> run [] (Binop Equiv (B False) (Binop And (B True) (B False)))
--- Vb True 
+-- True 
 -- 
 -- >>> run [] (Binop Equiv (I 3) (I 4))
--- Vb False 
+-- False 
 --
 -- >>> run [] (Binop Less (I 3) (I 4))
--- Vb True 
+-- True 
 --
 -- >>> run [] (Binop Plus (Binop Minus (I 1) (I 1)) (Binop Times (I 2) (I 3)))
--- Vi 6  
+-- 6  
 -- 
 -- >>> run [] (Binop Plus (B True) (Binop Times (I 2) (I 3)))
--- Err ...  
+-- ERR: ...  
 eval :: Expr -> Eval Val
 eval (I i) = return $ Vi i
 eval (B b) = return $ Vb b
@@ -166,13 +176,13 @@ eval (Case n xs e)  = do
 -- | Run an 'Expr' in the given 'Env' and display the result
 --
 -- >>> run [] (I 2)
--- Vi 2
+-- 2
 --
 -- >>> run [] (Tuple [I 2, I 3, I 4])
--- Vt [Vi 2,Vi 3,Vi 4]
+-- 2 3 4 
 --
 -- >>> run [] (Let "x" (I 2) (Ref "x"))
--- Vi 2
+-- 2
 run :: Env -> Expr -> IO ()
 run env e = let v = runIdentity (runReaderT (eval e) env) in
   (putStrLn . show) v

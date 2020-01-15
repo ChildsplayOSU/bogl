@@ -1,6 +1,6 @@
 -- | Typechecker.
 
-module Runtime.Typechecker (tc, tcexpr, signatures) where
+module Runtime.Typechecker (tc, tcexpr, environment) where
 
 import Language.Syntax
 import Control.Monad.Reader
@@ -11,9 +11,27 @@ import Debug.Trace
 import Data.Either
 import Data.Maybe
 import Data.Bifunctor
+import Data.List
 import qualified Data.Set as S
 
-type Env = [(String, Type)]
+type TypeEnv = [(Name, Type)]
+data Env = Env {
+  types :: TypeEnv,
+  input :: Type,
+  piece :: Type
+               }
+-- monadReader m =>
+getEnv :: (Monad m) => ReaderT Env m TypeEnv
+getEnv = types <$> ask
+
+getInput :: (Monad m) => ReaderT Env m Type
+getInput = input <$> ask
+
+getBoardSize :: (Monad m) => ReaderT Env m Type
+getBoardSize = piece <$> ask
+
+localEnv :: (Monad m) => ([(Name, Type)] -> [(Name, Type)]) -> ReaderT Env m a -> ReaderT Env m a
+localEnv f e = local (\(Env a b c) -> Env (f a) b c) e
 
 -- | Encoding the different type errors as types should let us do interesting things with them
 data TypeError = Mismatch Type Type Expr -- ^ Couldn't match two types in an expression
@@ -33,6 +51,9 @@ unknown :: String -> Typechecked a
 unknown s = throwError $ Unknown s
 badop :: Op -> Type -> Type -> Expr -> Typechecked a
 badop o t1 t2 e = throwError $ BadOp o t1 t2 e
+
+
+
 
 
 instance Show TypeError where
@@ -55,6 +76,12 @@ deftype :: ValDef -> Typechecked Type
 deftype (Val (Sig n t) eqn) = do
   eqt <- eqntype t eqn
   if eqt == t then return t else sigmismatch n t eqt
+deftype (BVal (Sig n t) eqn) = do
+  eqt <- beqntype t eqn
+  if eqt == t then return t else sigmismatch n t eqt
+
+beqntype :: Type -> BoardEq -> Typechecked Type
+beqntype t (PosDef n e1 e2 e3) = undefined
 -- | Get the type of an equation
 eqntype :: Type -> Equation -> Typechecked Type
 eqntype _ (Veq _ e) = exprtype e >>= (return . Plain)
@@ -62,7 +89,7 @@ eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
     i <- return $ case inputs of
                 t@(Pt (Tup ts)) -> detuple t
                 x -> [Plain x]
-    e' <- local ((++) (zip params (i))) (exprtype e)
+    e' <- localEnv ((++) (zip params (i))) (exprtype e)
     return $ Function (Ft inputs (e'))
 eqntype _ _ = throwError (Unknown "Enviroment corrupted.") -- this should never happen?
 
@@ -74,7 +101,7 @@ exprtype (S s) = return $ (Pext (X (Symbol s) S.empty))
 exprtype (B _) = return $ (Pext (X Booltype S.empty))
 exprtype (Let n e1 e2) = do
   t <- exprtype e1
-  local ((n, Plain t):) (exprtype e2)
+  localEnv ((n, Plain t):) (exprtype e2)
 exprtype (Ref s) = do
   x <- getType s
   case x of
@@ -103,13 +130,17 @@ exprtype e@(Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   if (t1 == t2) then return (Pext (X Booltype S.empty)) else badop Equiv (Plain t1) (Plain t2) e
+
 exprtype e@(Binop x e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   case (t1, t2) of
-    (Pext (X Itype s1), Pext (X Itype s2)) -> if x `elem` [Plus, Minus, Times, Div, Mod] && S.null s1 && S.null s2
+    (Pext (X Itype s1), Pext (X Itype s2)) | S.null s1 && S.null s2 -> if x `elem` [Plus, Minus, Times, Div, Mod]
                                               then return $ (Pext (X Itype S.empty))
-                                              else badop x (Plain t1) (Plain t2) e
+                                              else if x `elem` [Less, Greater]
+                                                   then return $ (Pext (X Booltype S.empty))
+                                                   else badop x (Plain t1) (Plain t2) e
+
     (Pext (X Booltype s1), Pext (X Booltype s2)) -> if x `elem` [And, Or, Xor] && S.null s1 && S.null s2
                                                     then return $ (Pext (X Booltype S.empty))
                                                     else badop x (Plain t1) (Plain t2) e
@@ -131,21 +162,22 @@ exprtype e@(If e1 e2 e3) = do
 exprtype expr@(Case n xs e) = do
   t1 <- getType n
   case t1 of
-    Plain (Pext (X t' xs')) -> if xs' == (S.fromList patterns) then compileCases n xs (t1, e) else unknown $ "Incomplete pattern match in " ++ show expr -- TODO: a better error
-    _ -> unknown $ show t1 ++ " is not an extended type."
-
+    Plain (Pext (X t' xs')) | xs' /= S.empty -> if xs' == (S.fromList patterns) then compileCases n xs (t1, e) else unknown $ "Incomplete pattern match in "
+                                                                                                   ++ show expr
+                                                                                                   ++ " please match cases: "
+                                                                                                   ++ (concat . S.toList) (xs' `S.difference` (S.fromList patterns))-- TODO: a better error
+    _ -> unknown $ show t1 ++ " is not an extended type, so you can't pattern-match on it."
   where
     (patterns, exprs) = (map fst xs, map snd xs)
     compileCases :: Name -> [(Name, Expr)] -> (Type, Expr) -> Typechecked Ptype
     compileCases n xs e = do
-      traceM $ show ts'
       types <- mapM (fakeType n) (ts')
       (atom, extension) <- partitionM notSymbol types
       case atom of
         [(Pext (X x exten'))] -> return $ (Pext (X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
         h@(Pext (X x exten)):xs | all (== h) xs -> let exten' = (S.unions . map getExtensions)  (h:xs)
                                 in return $ (Pext (X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
-        xs -> unknown $ "Cannot construct the type: " ++ (xs >>= show) ++ "\n produced by: " ++ (show expr)
+        xs -> unknown $ "Cannot construct the type: " ++ ((intercalate "|") $ show <$> xs) ++ "\n produced by: " ++ (show expr)
       where
         ts' = e:(map (first singletonSymbol) xs)
 
@@ -155,15 +187,19 @@ exprtype expr@(Case n xs e) = do
     notSymbol (_) = unknown "this is a function. I don't know what to do."
    
     fakeType :: Name -> (Type, Expr) -> Typechecked Ptype
-    fakeType n (t, e) = do
-      env <- ask
-      traceM $ show $ (n, t):env
-      local ((n, atomicType t):) (exprtype e)
+    fakeType n (t, e) = localEnv ((n, atomicType t):) (exprtype e)
 
     retrieveSymbols (Pext (X (Symbol n) s)) = (S.singleton n) `S.union` s
     retrieveSymbols _ = S.empty
 -- while
-exprtype (While n1 n2 e) = undefined
+exprtype (While n1 n2 e) = do
+  exprT <- exprtype e
+  predT <- getType n1
+  modT  <- getType n2
+  case (exprT, predT, modT) of
+    (e', Function (Ft i (Pext (X Booltype s))), Function (Ft i2 o2)) | all (== e') [i, i2, o2] && s == S.empty -> return $ e'
+    (x, y, z) -> unknown "something's wrong..." -- pattern match on each of the failure types.
+
 
 getExtensions :: Ptype -> S.Set Name
 getExtensions (Pext (X _ exs)) = exs
@@ -185,14 +221,14 @@ extract _ = undefined
 -- | Get the type of a reference in the enviroment
 getType :: String -> Typechecked Type
 getType n = do
-  env <- ask
+  env <- getEnv
   case lookup n env of
     Just e -> return e
     Nothing -> notbound n
 
--- | Get all the signatures out of the list of value defintions
-signatures :: [ValDef] -> Env
-signatures = map f
+-- | Produce the environment
+environment :: BoardDef -> InputDef -> [ValDef] -> Env
+environment (BoardDef _ _ t) (InputDef i) vs = Env (map f vs) i t
   where f (Val (Sig n t) eq) = (n, t)
 
 -- | Run the typechecker on env and a list of ValDefs
@@ -201,15 +237,14 @@ runTypeCheck e v = runIdentity $ runExceptT $ runReaderT (deftype v) e
 
 -- | Run the typechecker on a 'Game' and report any errors to the console.
 tc :: Game -> IO Bool
-tc (Game _ _ _ vs) = if all (isRight) (checked) then return True else ((putStrLn . show) $ lefts checked) >> return False
+tc (Game _ b i vs) = if all (isRight) (checked) then return True else ((putStrLn . (intercalate "\n\n\n") . (map show)) $ lefts checked) >> return False
   where
-    env = signatures vs
+    env = environment b i vs
     checked = map (runTypeCheck env) vs
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
 tcexpr :: Env -> Expr -> IO Bool
-tcexpr e x = do
-  if isRight t then return True else ((putStrLn . show) t) >> return False
+tcexpr e x = either (\t -> (putStrLn . show $ t) >> return False)  (\_ -> return True) t
   where
     t = runIdentity $ runExceptT $ runReaderT (exprtype x) e
 

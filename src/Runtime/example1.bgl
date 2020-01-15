@@ -27,3 +27,20 @@ useSafe(x) = case x of Nothing -> 0 | x + 1
 isTen : Int -> Bool
 isTen(x) = x == 10
 -- App "addPlusOne" [1,2] -> succ(add)
+
+
+notTypeError3 : Int -> Int | Option1 | Option2
+notTypeError3(x) = if x == 0 then Option1 else if x == 1 then Option2 else x
+
+addMoreExt : Int | Option1 | Option2 -> Int | Option1 | Option2 | Option3
+addMoreExt(x) = case x of
+              Option1 -> Option2
+              Option2 -> Option3
+              | if x == -1 then Option1 else x
+lessThanTen : Int -> Bool
+lessThanTen(x) = x < 10
+
+whileLoopEx : Int -> Int
+whileLoopEx(x) = while lessThanTen
+              do succ
+              x
