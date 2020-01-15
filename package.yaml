@@ -27,6 +27,8 @@ dependencies:
 - transformers
 - haskeline
 - bifunctors
+- containers
+- extra
 library:
   source-dirs: src
 

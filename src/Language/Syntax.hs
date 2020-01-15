@@ -2,6 +2,7 @@
 
 module Language.Syntax where
 import Data.List
+import qualified Data.Set as S
 type Name = String
 
 -- | Game datatype
@@ -75,6 +76,7 @@ data Btype = Booltype -- ^ Boolean
            | Player -- ^ A player
            | Position -- ^ A position, specified by the board description
            | Positions -- ^ The list of all positions
+           | Undef -- ^ Only occurs when typechecking. The user cannot define anything of this type. (I could use 'undefined' everywhere I use this, but one false move and the whole program crashes)
    deriving (Eq) 
 
 instance Show Btype where
@@ -86,14 +88,22 @@ instance Show Btype where
   show Player = "Player"
   show Position = "Position"
   show Positions = "Positions"
+  show Undef = "?"
 
 -- | Xtypes are sum types, but restricted by the semantics to only contain Symbols after the atomic type.
-data Xtype = X Btype [Btype]
-   deriving (Eq) 
+data Xtype = X Btype (S.Set Name)
+
+-- This is a potential source of very confusing bugs. beware. Also this instance is not symmetric, which is bad.
+instance Eq Xtype where
+  (X (Symbol s) bs) == (X t1 xs) = s `S.member` xs
+  (X t1 xs) == (X (Symbol s) bs) = s `S.member` xs
+  (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
+  -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
+  (X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
 
 instance Show Xtype where
-  show (X b []) = show b
-  show (X b xs) = show b ++ "|" ++ intercalate ("|") (map show xs)
+  show (X b xs) | S.null xs = show b
+                | otherwise = show b ++ "|" ++ intercalate ("|") (map show (S.toList xs))
 
 -- | Tuples can only contain Xtypes (no sub-tuples)
 data Tuptype = Tup [Xtype]
@@ -102,7 +112,7 @@ data Tuptype = Tup [Xtype]
 instance Show Tuptype where
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
 
--- | A plain type is either a tuples, or an extended type
+-- | A plain type is either a tuple, or an extended type
 data Ptype = Pext Xtype | Pt Tuptype
    deriving (Eq) 
 
@@ -136,6 +146,7 @@ data Expr = I Integer -- ^ Integer expression
           | Let Name Expr Expr -- ^ Let binding
           | If Expr Expr Expr -- ^ Conditional expression
           | While Name Name Expr -- ^ While loop (could be While Expr Expr Expr if we make the App change suggested above)
+          | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
    deriving (Eq)
 instance Show Expr where
   show (I i) = show i
@@ -148,6 +159,7 @@ instance Show Expr where
   show (Let n e1 e2) = "Let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
   show (If e1 e2 e3) = "If " ++ show e1 ++ " Then " ++ show e2 ++ " Else " ++ show e3
   show (While e1 e2 x) = "While " ++ show e1 ++ " do " ++ show e2 ++ " to " ++ show x
+  show (Case n xs e) = "case " ++ n ++ " of" ++ (intercalate "\n" (map show xs)) ++ "otherwise: " ++ show e
 -- | Binary operations
 data Op = Plus
         | Minus
