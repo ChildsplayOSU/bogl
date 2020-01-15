@@ -132,7 +132,7 @@ xtype =
 -- Right (Board,Position) 
 --
 -- >>> runParser ttype Nothing "" "(Symbol,Board)"
--- Right (Symbol,Board) 
+-- Right (Symbol: Symbol,Board) 
 --
 -- >>> isLeft $ runParser ttype Nothing "" "(Symbol)" 
 -- True  

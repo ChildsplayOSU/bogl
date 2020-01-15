@@ -137,7 +137,7 @@ exprtype e@(Binop x e1 e2) = do
   case (t1, t2) of
     (Pext (X Itype s1), Pext (X Itype s2)) | S.null s1 && S.null s2 -> if x `elem` [Plus, Minus, Times, Div, Mod]
                                               then return $ (Pext (X Itype S.empty))
-                                              else if x `elem` [Less]
+                                              else if x `elem` [Less, Greater]
                                                    then return $ (Pext (X Booltype S.empty))
                                                    else badop x (Plain t1) (Plain t2) e
 

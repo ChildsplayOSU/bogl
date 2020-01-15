@@ -93,11 +93,10 @@ instance Show Btype where
 -- | Xtypes are sum types, but restricted by the semantics to only contain Symbols after the atomic type.
 data Xtype = X Btype (S.Set Name)
 
--- This is a potential source of very confusing bugs. beware. Also this instance is not symmetric, which is bad.
 instance Eq Xtype where
-  (X (Symbol s) bs) == (X t1 xs) | not . S.null $ xs= s `S.member` xs
-  (X t1 xs) == (X (Symbol s) bs) | not . S.null $ xs= s `S.member` xs
-  (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
+  -- (X (Symbol s) bs) == (X t1 xs) | not . S.null $ xs= s `S.member` xs
+  -- (X t1 xs) == (X (Symbol s) bs) | not . S.null $ xs= s `S.member` xs
+  -- (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
   -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
   (X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
 
