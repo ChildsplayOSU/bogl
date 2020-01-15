@@ -118,19 +118,19 @@ evalBoolOp f l r = do
 -- | Evaluate an expression in the Eval Monad
 -- 
 -- >>> run [] (Binop Equiv (B False) (Binop And (B True) (B False)))
--- Vb True 
+-- True 
 -- 
 -- >>> run [] (Binop Equiv (I 3) (I 4))
--- Vb False 
+-- False 
 --
 -- >>> run [] (Binop Less (I 3) (I 4))
--- Vb True 
+-- True 
 --
 -- >>> run [] (Binop Plus (Binop Minus (I 1) (I 1)) (Binop Times (I 2) (I 3)))
--- Vi 6  
+-- 6  
 -- 
 -- >>> run [] (Binop Plus (B True) (Binop Times (I 2) (I 3)))
--- Err ...  
+-- ERR: ...  
 eval :: Expr -> Eval Val
 eval (I i) = return $ Vi i
 eval (B b) = return $ Vb b
@@ -176,13 +176,13 @@ eval (Case n xs e)  = do
 -- | Run an 'Expr' in the given 'Env' and display the result
 --
 -- >>> run [] (I 2)
--- Vi 2
+-- 2
 --
 -- >>> run [] (Tuple [I 2, I 3, I 4])
--- Vt [Vi 2,Vi 3,Vi 4]
+-- 2 3 4 
 --
 -- >>> run [] (Let "x" (I 2) (Ref "x"))
--- Vi 2
+-- 2
 run :: Env -> Expr -> IO ()
 run env e = let v = runIdentity (runReaderT (eval e) env) in
   (putStrLn . show) v
