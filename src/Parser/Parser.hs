@@ -38,6 +38,12 @@ operators = [[op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "
               -- and so on
 
 -- | Parser for the 'Expr' datatype
+--
+-- >>> parseLine' expr "40 + 2" == Right (Binop Plus (I 40) (I 2))  
+-- True 
+--
+-- >>> isLeft $ parseLine' expr "40 + 2life,the universe, and everything" 
+-- True 
 expr :: Parser Expr
 expr = buildExpressionParser operators atom
 
@@ -128,16 +134,16 @@ xtype =
 
 -- |
 --
--- >>> runParser ttype Nothing "" "(Board, Position)"
+-- >>> parseAll ttype Nothing "" "(Board, Position)"
 -- Right (Board,Position) 
 --
--- >>> runParser ttype Nothing "" "(Symbol,Board)"
+-- >>> parseAll ttype Nothing "" "(Symbol,Board)"
 -- Right (Symbol: Symbol,Board) 
 --
--- >>> isLeft $ runParser ttype Nothing "" "(Symbol)" 
+-- >>> isLeft $ parseAll ttype Nothing "" "(Symbol)" 
 -- True  
 --
--- >>> isLeft $ runParser ttype Nothing "" "(3)" 
+-- >>> isLeft $ parseAll ttype Nothing "" "(3)" 
 -- True
 
 -- | Tuple types
@@ -184,9 +190,9 @@ valdef = do
 -- |
 -- note: Empty is currently parsed as a string in the grammar, not as a Name. Is it an issue? 
 -- >>> :{ 
---     runParser valdef Nothing "" ex1 == 
---       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board [], X Position []])) 
---       (Pext (X Booltype []))))) (Feq "isValid" (Pars ["b", "p"]) 
+--     parseAll valdef Nothing "" ex1 == 
+--       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty])) 
+--       (Pext (X Booltype S.empty))))) (Feq "isValid" (Pars ["b", "p"]) 
 --       (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False)))) 
 -- :}
 -- True 
@@ -214,16 +220,24 @@ game :: Parser Game
 game =
   Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
 
+-- | Uses the parser p to parse all input, throws an error if anything is left over 
+parseAll p = runParser (p <* eof) 
+
 -- | Read from the file, and parse
 parseFromFile p fname
    = do{ input <- readFile fname
-       ; return (runParser p Nothing fname input)
+       ; return (parseAll p Nothing fname input)
        }
+
 -- | Parse a single line, displaying an error if there's a problem (used in REPL)
 parseLine :: String -> IO (Maybe Expr)
-parseLine s = case runParser expr Nothing "" s of
+parseLine s = case parseAll expr Nothing "" s of
   Left e -> (putStrLn $ show e) >> return Nothing
   Right e -> return $ Just e
+
+-- | Read a single line and return the result (intended for brevity in test cases) 
+parseLine' :: Parser a -> String -> Either ParseError a 
+parseLine' p = parseAll p Nothing ""  
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Maybe Game)
