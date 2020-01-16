@@ -29,6 +29,7 @@ dependencies:
 - bifunctors
 - containers
 - extra
+- json
 library:
   source-dirs: src
 
