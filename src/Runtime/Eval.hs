@@ -69,68 +69,68 @@ bind env (Val _ (Veq n e)) = (n, v)
 bind env (Val _ (Feq n (Pars ls) e)) = (n, Vf ls env e)
 
 -- | Binary operation evaluation
-evalBinOp :: Op -> Expr -> Expr -> Eval Val
-evalBinOp Plus l r  = evalNumOp (+) l r
+evalBinOp :: Op -> Expr -> Expr -> Eval Val 
+evalBinOp Plus l r  = evalNumOp (+) l r  
 evalBinOp Minus l r = evalNumOp (-) l r
 evalBinOp Times l r = evalNumOp (*) l r
-evalBinOp Div l r   = evalNumOp div l r
+evalBinOp Div l r   = evalNumOp div l r 
 evalBinOp Mod l r   = evalNumOp mod l r
-evalBinOp Equiv l r = evalEquiv l r
+evalBinOp Equiv l r = evalEquiv l r 
 evalBinOp Or l r    = evalBoolOp (||) l r
-evalBinOp Less l r  = evalCompareOp (<) l r
-evalBinOp And l r   = evalBoolOp (&&) l r
+evalBinOp Less l r  = evalCompareOp (<) l r 
+evalBinOp And l r   = evalBoolOp (&&) l r 
 evalBinOp Xor l r   = evalBoolOp (/=) l r
 
--- | evaluates the == operation
-evalEquiv :: Expr -> Expr -> Eval Val
+-- | evaluates the == operation  
+evalEquiv :: Expr -> Expr -> Eval Val 
 evalEquiv l r = do
-                  v1 <- eval l
+                  v1 <- eval l 
                   v2 <- eval r
                   return $ Vb (v1 == v2)
 
--- | evaluates comparison operations (except for ==)
-evalCompareOp :: (Integer -> Integer -> Bool) -> Expr -> Expr -> Eval Val
+-- | evaluates comparison operations (except for ==) 
+evalCompareOp :: (Integer -> Integer -> Bool) -> Expr -> Expr -> Eval Val 
 evalCompareOp f l r = do
-                     v1 <- eval l
-                     v2 <- eval r
-                     case (v1, v2) of
+                     v1 <- eval l 
+                     v2 <- eval r 
+                     case (v1, v2) of 
                         (Vi l', Vi r') -> return (Vb (f l' r'))
-                        _ -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
+                        _ -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)  
 
--- | evaluates numerical operations
-evalNumOp :: (Integer -> Integer -> Integer) -> Expr -> Expr -> Eval Val
+-- | evaluates numerical operations 
+evalNumOp :: (Integer -> Integer -> Integer) -> Expr -> Expr -> Eval Val 
 evalNumOp f l r = do
-                     v1 <- eval l
-                     v2 <- eval r
-                     case (v1, v2) of
+                     v1 <- eval l 
+                     v2 <- eval r 
+                     case (v1, v2) of 
                         (Vi l', Vi r') -> return (Vi (f l' r'))
-                        _ -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
+                        _ -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)  
 
--- | evaluates boolean operations
-evalBoolOp :: (Bool -> Bool -> Bool) -> Expr -> Expr -> Eval Val
+-- | evaluates boolean operations 
+evalBoolOp :: (Bool -> Bool -> Bool) -> Expr -> Expr -> Eval Val 
 evalBoolOp f l r = do
-                     v1 <- eval l
-                     v2 <- eval r
-                     case (v1, v2) of
+                     v1 <- eval l 
+                     v2 <- eval r 
+                     case (v1, v2) of 
                         (Vb l', Vb r') -> return (Vb (f l' r'))
-                        _ -> return $ Err $ "Could not do boolean operation on " ++ (show l) ++ " to " ++ (show r)
+                        _ -> return $ Err $ "Could not do boolean operation on " ++ (show l) ++ " to " ++ (show r)  
 
 -- | Evaluate an expression in the Eval Monad
---
+-- 
 -- >>> run [] (Binop Equiv (B False) (Binop And (B True) (B False)))
 -- True 
---
+-- 
 -- >>> run [] (Binop Equiv (I 3) (I 4))
--- False
+-- False 
 --
 -- >>> run [] (Binop Less (I 3) (I 4))
--- True
+-- True 
 --
 -- >>> run [] (Binop Plus (Binop Minus (I 1) (I 1)) (Binop Times (I 2) (I 3)))
--- 6
---
+-- 6  
+-- 
 -- >>> run [] (Binop Plus (B True) (Binop Times (I 2) (I 3)))
--- ERR: ...
+-- ERR: ...  
 eval :: Expr -> Eval Val
 eval (I i) = return $ Vi i
 eval (B b) = return $ Vb b
@@ -150,7 +150,7 @@ eval (App n es) = do
 eval (Let n e1 e2) = do
   v <- eval e1
   newScope (pure (n, v)) (eval e2)
-
+ 
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   if b then eval e1 else eval e2
@@ -160,7 +160,7 @@ eval (While p f x) = do
   case b of
     (Vb b) -> if b then eval (While p f (App f [x])) else eval x
     _ -> undefined
-
+   
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
 eval (Case n xs e)  = do
@@ -179,10 +179,11 @@ eval (Case n xs e)  = do
 -- 2
 --
 -- >>> run [] (Tuple [I 2, I 3, I 4])
--- 2 3 4
+-- 2 3 4 
 --
 -- >>> run [] (Let "x" (I 2) (Ref "x"))
 -- 2
 run :: Env -> Expr -> IO ()
 run env e = let v = runIdentity (runReaderT (eval e) env) in
   (putStrLn . show) v
+
