@@ -3,13 +3,13 @@
 
 module Language.Syntax where
 import Data.List
-import Data.Typeable
 import Text.JSON.Generic
 import qualified Data.Set as S
 type Name = String
 
 -- | Game datatype
-data Game = Game Name BoardDef InputDef [ValDef] deriving(Data, Typeable)
+data Game = Game Name BoardDef InputDef [ValDef]
+  deriving (Data)
 
 instance Show Game where
   show (Game n b i vs) = "Game : " ++ n ++ "\n"
@@ -18,13 +18,15 @@ instance Show Game where
                          ++ intercalate ("\n\n\n") (map show vs)
 
 -- | Board definition: mxn board of type Type
-data BoardDef = BoardDef Integer Integer Type deriving(Data, Typeable)
+data BoardDef = BoardDef Integer Integer Type
+  deriving (Data)
 
 instance Show BoardDef where
   show (BoardDef i1 i2 t) = "Board : Grid(" ++ show i1 ++ "," ++ show i2 ++ ") of " ++ show t
 
 -- | Input definition: Player inputs must be an accepted type
-data InputDef = InputDef Type deriving(Data, Typeable)
+data InputDef = InputDef Type
+  deriving (Data)
 
 instance Show InputDef where
   show (InputDef t) = "Input : " ++ show t
@@ -32,7 +34,7 @@ instance Show InputDef where
 -- | Top level values are signatures paired with either an ordinary 'Equation'
 data ValDef = Val Signature Equation
   | BVal Signature BoardEq -- ^ Or a 'BoardEq'
-   deriving (Eq, Data, Typeable)
+   deriving (Eq, Data)
 
 instance Show ValDef where
   show (Val s e) = show s ++ "\n" ++ show e
@@ -40,14 +42,14 @@ instance Show ValDef where
 
 -- | Signatures are a product of name and type.
 data Signature = Sig Name Type
-   deriving (Eq)
+   deriving (Eq, Data)
 
 instance Show Signature where
   show (Sig n t) = n ++ " : " ++ show t
 
 -- | Parameter lists are lists of 'Name'
 data Parlist = Pars [Name]
-   deriving (Eq)
+   deriving (Eq, Data)
 
 instance Show Parlist where
   show (Pars xs) = "(" ++ intercalate (" , ") (xs) ++ ")"
@@ -55,7 +57,7 @@ instance Show Parlist where
 -- | Equations can either be
 data Equation = Veq Name Expr -- ^ Value equations (a mapping from 'Name' to 'Expr')
               | Feq Name Parlist Expr -- ^ Function equations (a 'Name', list of params 'Parlist', and the 'Expr' that may possibly use those parameters.
-   deriving (Eq)
+   deriving (Eq, Data)
 
 instance Show Equation where
   show (Veq n e) = n ++ " = " ++ show e
@@ -64,7 +66,8 @@ instance Show Equation where
 -- | Board equations can either be
 data BoardEq = PosDef Name Expr Expr Expr -- ^ Position defition: an assignment to a specific position
              | RegDef Name Expr Expr -- ^ A region definition, an assignment to multiple positions
-   deriving (Eq)
+   deriving (Eq, Data)
+
 instance Show BoardEq where
   show (PosDef n i1 i2 e) = n ++ "(" ++ show i1 ++ ", " ++ show i2 ++ ")" ++ "=" ++ show e
   show (RegDef n e1 e2) = n ++ "(" ++ show e1 ++ ")" ++ "=" ++ show e2
@@ -80,7 +83,7 @@ data Btype = Booltype -- ^ Boolean
            | Position -- ^ A position, specified by the board description
            | Positions -- ^ The list of all positions
            | Undef -- ^ Only occurs when typechecking. The user cannot define anything of this type. (I could use 'undefined' everywhere I use this, but one false move and the whole program crashes)
-   deriving (Eq)
+   deriving (Eq, Data)
 
 instance Show Btype where
   show Booltype = "Bool"
@@ -95,6 +98,7 @@ instance Show Btype where
 
 -- | Xtypes are sum types, but restricted by the semantics to only contain Symbols after the atomic type.
 data Xtype = X Btype (S.Set Name)
+  deriving (Data)
 
 instance Eq Xtype where
   -- (X (Symbol s) bs) == (X t1 xs) | not . S.null $ xs= s `S.member` xs
@@ -109,14 +113,14 @@ instance Show Xtype where
 
 -- | Tuples can only contain Xtypes (no sub-tuples)
 data Tuptype = Tup [Xtype]
-   deriving (Eq)
+   deriving (Eq, Data)
 
 instance Show Tuptype where
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
 
 -- | A plain type is either a tuple, or an extended type
 data Ptype = Pext Xtype | Pt Tuptype
-   deriving (Eq)
+   deriving (Eq, Data)
 
 instance Show Ptype where
   show (Pext x) = show x
@@ -124,14 +128,14 @@ instance Show Ptype where
 
 -- | A function type can be from a plain type to a plain type (no curried functions)
 data Ftype = Ft Ptype Ptype
-   deriving (Eq)
+   deriving (Eq, Data)
 
 instance Show Ftype where
   show (Ft t1 t2) = show t1 ++ " -> " ++ show t2
 
 -- | A type is either a plain type or a function.
 data Type = Plain Ptype | Function Ftype
-   deriving (Eq)
+   deriving (Eq, Data)
 
 instance Show Type where
   show (Plain t) = show t
@@ -149,7 +153,7 @@ data Expr = I Integer -- ^ Integer expression
           | If Expr Expr Expr -- ^ Conditional expression
           | While Name Name Expr -- ^ While loop (could be While Expr Expr Expr if we make the App change suggested above)
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
-   deriving (Eq)
+   deriving (Eq, Data)
 instance Show Expr where
   show (I i) = show i
   show (S s) = s
@@ -174,7 +178,7 @@ data Op = Plus
         | Less
         | Xor
         | Greater
-   deriving (Eq)
+   deriving (Eq, Data)
 instance Show Op where
   show Plus = " + "
   show Minus = " - "
