@@ -150,23 +150,69 @@ eval (App n es) = do
 eval (Let n e1 e2) = do
   v <- eval e1
   newScope (pure (n, v)) (eval e2)
-eval (Abs ns e) = do
+{-eval (Abs ns e) = do
   env <- ask
   return $ Vf ns env e
 eval (AppAbs es e) = do
   args <- mapM eval es
   (Vf params env' e') <- eval e
   newScope (zip params args ++ env') (eval e')
+-} 
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   if b then eval e1 else eval e2
-eval (While p f x) = do
+{-eval (While p f x) = do
   b <- eval (AppAbs x p)
   case b of
     (Vb b) -> if b then eval (While p f (unpack (AppAbs x f))) else eval (Tuple x)
     _ -> undefined
   where
     unpack (Tuple t) =  t
+-}
+
+{- 
+   to evaluate a while: we parse the arguments and keep track of them as a list of refs
+   
+   we store a while statement as While Expr Expr Expr 
+   
+   While (ref to c function) (ref to e function) (refs to all args in the containing function)   
+
+   to evaluate: 
+
+   first the condition: 
+      we add to the environment the mapping between the argrefs and their evaluations 
+      we then evalute the cond function application  
+      
+   if it is true 
+      we add to the environment the mapping between the argrefs and their evaluations 
+      we then evaluate the e function application 
+      we add references to these values to the environment 
+      we return eval of the same expression except now the environment has been extended 
+   
+   if it is false 
+      we return the evaluations of the argrefs 
+-} 
+
+eval (While (Ref c) (Ref e) refs) = do 
+   args <- sequence $ map eval refs 
+   cond <- lookupName c
+   case cond of
+      Just (Vf params env' cexpr) -> do 
+                                 result <- newScope ((zip (getNames refs) args) ++ env') (eval cexpr)
+                                 case result of 
+                                    (Vb True) -> do 
+                                       expr <- lookupName e 
+                                       case expr of 
+                                          Just (Vf params env' eexpr) -> do 
+                                                                  res <- newScope ((zip (getNames refs) args) ++ env') (eval eexpr)
+                                                                  case res of 
+                                                                     (Vt vals) -> do   
+                                                                        newScope ((zip (getNames refs) vals) ++ env') (eval (While (Ref c) (Ref e) refs))
+                                                                     val -> do   
+                                                                        newScope ((zip (getNames refs) [val]) ++ env') (eval (While (Ref c) (Ref e) refs))
+                                    (Vb False) -> do 
+                                       return $ Vt args  
+                                    o -> error $ "the result is " ++ (show o)  
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
 eval (Case n xs e)  = do
@@ -178,6 +224,10 @@ eval (Case n xs e)  = do
         _ -> undefined
       _ -> newScope (pure (n, v)) (eval e)
     Nothing -> undefined
+
+getNames :: [Expr] -> [Name] 
+getNames [] = [] 
+getNames (Ref r:exprs) = r : getNames exprs 
 
 -- | Run an 'Expr' in the given 'Env' and display the result
 --

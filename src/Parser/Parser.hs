@@ -87,12 +87,19 @@ atom =
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
   <|>
   (do
-      reserved "while"
+      {-reserved "while"
       e1 <- expr
       reserved "do"
       e2 <- expr
       i <- snd <$> Par.getState
       return $ While (Abs i e1) (Abs i e2) ((map Ref i))) <|>
+      -}
+      reserved "while" 
+      c <- identifier <* parens (commaSep1 identifier) 
+      reserved "do" 
+      e <- identifier <* parens (commaSep1 identifier)
+      i <- snd <$> Par.getState
+      return $ While (Ref c) (Ref e) ((map Ref i))) <|>
   Case <$> (reserved "case" *> identifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
 
 -- | Equations
@@ -145,16 +152,16 @@ xtype =
 
 -- |
 --
--- >>> parseAll ttype Nothing "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty]) 
+-- >>> parseAll ttype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty]) 
 -- True 
 --
--- >>> parseAll ttype Nothing "" "(Symbol,Board)"
+-- >>> parseAll ttype "" "(Symbol,Board)"
 -- Right (Symbol,Board) 
 --
--- >>> isLeft $ parseAll ttype Nothing "" "(Symbol)" 
+-- >>> isLeft $ parseAll ttype "" "(Symbol)" 
 -- True  
 --
--- >>> isLeft $ parseAll ttype Nothing "" "(3)" 
+-- >>> isLeft $ parseAll ttype "" "(3)" 
 -- True
 
 -- | Tuple types
@@ -205,7 +212,7 @@ valdef = do
 -- |
 -- note: Empty is currently parsed as a string in the grammar, not as a Name. Is it an issue? 
 -- >>> :{ 
---     parseAll valdef Nothing "" ex1 == 
+--     parseAll valdef "" ex1 == 
 --       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty])) 
 --       (Pext (X Booltype S.empty))))) (Feq "isValid" (Pars ["b", "p"]) 
 --       (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False)))) 
@@ -236,23 +243,23 @@ game =
   Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
 
 -- | Uses the parser p to parse all input, throws an error if anything is left over 
-parseAll p = runParser (p <* eof) 
+parseAll p = runParser (p <* eof) (Nothing, []) 
 
 -- | Read from the file, and parse
 parseFromFile p fname
    = do{ input <- readFile fname
-       ; return (parseAll p Nothing fname input)
+       ; return (parseAll p fname input)
        }
 
 -- | Parse a single line, displaying an error if there's a problem (used in REPL)
 parseLine :: String -> IO (Maybe Expr)
-parseLine s = case parseAll expr Nothing "" s of
+parseLine s = case parseAll expr "" s of
   Left e -> (putStrLn $ show e) >> return Nothing
   Right e -> return $ Just e
 
 -- | Read a single line and return the result (intended for brevity in test cases) 
 parseLine' :: Parser a -> String -> Either ParseError a 
-parseLine' p = parseAll p Nothing ""  
+parseLine' p = parseAll p ""  
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Maybe Game)
