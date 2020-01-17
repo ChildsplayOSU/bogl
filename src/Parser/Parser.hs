@@ -12,6 +12,8 @@ import Text.Parsec.Expr
 import qualified Text.Parsec as Par
 import Text.ParserCombinators.Parsec.Char
 import Text.Parsec.Combinator
+import qualified Data.Set as S
+
 -- FIXME why am I using both parsec2 and parsec3?
 
 import Data.Either
@@ -21,21 +23,27 @@ types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Posit
 -- | The lexer, using the reserved keywords and operation names
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
                                                             "let", "in", "if", "then", "else",
-                                                            "while", "do", "game", "type", "Grid", "of"
+                                                            "while", "do", "game", "type", "Grid", "of", "case"
                                                             -- "A", "B", "free", "place", "next", "isFull", "inARow",
                                                             -- "countBoard", "countColumn", "countRow" ]
                                                             ] ++ types,
-                                        P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->"]})
+                                        P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "<"]})
 
 
 -- | Operators (might want to fix the order of operations)
 operators = [[op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "mod" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
-             [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft]
+             [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft, op "<" (Binop Less) AssocLeft, op ">" (Binop Greater) AssocLeft]
             ]
               -- and so on
 
 -- | Parser for the 'Expr' datatype
+--
+-- >>> parseLine' expr "40 + 2" == Right (Binop Plus (I 40) (I 2))  
+-- True 
+--
+-- >>> isLeft $ parseLine' expr "40 + 2life,the universe, and everything" 
+-- True 
 expr :: Parser Expr
 expr = buildExpressionParser operators atom
 
@@ -84,7 +92,9 @@ atom =
       reserved "do"
       e2 <- expr
       i <- snd <$> Par.getState
-      return $ While (Abs i e1) (Abs i e2) ((map Ref i)))
+      return $ While (Abs i e1) (Abs i e2) ((map Ref i))) <|>
+  Case <$> (reserved "case" *> identifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
+
 -- | Equations
 equation :: Parser Equation
 equation =
@@ -103,7 +113,7 @@ boardeqn :: Parser BoardEq
 boardeqn =
   (try $ (RegDef <$> identifier <*> (parens expr) <*> (reservedOp "=" *> expr)))
   <|>
-  (try $ (PosDef <$> identifier <*> (char '(' *> integer) <*> (integer <* char ')') <*> (reservedOp "=" *> expr)))
+  (try $ (PosDef <$> identifier <*> (char '(' *> expr) <*> (comma *> expr <* char ')') <*> (reservedOp "=" *> expr)))
 
 -- | Atomic types
 btype :: Parser Btype
@@ -126,25 +136,25 @@ btype =
   <|>
   Symbol <$> capIdentifier
 
--- | Extended types: type safter the first are restricted to symbols
+-- | Extended types: types after the first are restricted to symbols
 xtype :: Parser Xtype
 xtype =
-  (try $ (X <$> btype <*> (many1 (reservedOp "|" *> (Symbol <$> capIdentifier)))))
+  (try $ (X <$> btype <*> (S.fromList <$> (many1 (reservedOp "|" *> capIdentifier)))))
   <|>
-  (\x -> X x []) <$> btype
+  (\x -> X x S.empty) <$> btype
 
 -- |
 --
--- >>> runParser ttype Nothing "" "(Board, Position)"
--- Right (Board,Position) 
+-- >>> parseAll ttype Nothing "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty]) 
+-- True 
 --
--- >>> runParser ttype Nothing "" "(Symbol,Board)"
+-- >>> parseAll ttype Nothing "" "(Symbol,Board)"
 -- Right (Symbol,Board) 
 --
--- >>> isLeft $ runParser ttype Nothing "" "(Symbol)" 
+-- >>> isLeft $ parseAll ttype Nothing "" "(Symbol)" 
 -- True  
 --
--- >>> isLeft $ runParser ttype Nothing "" "(3)" 
+-- >>> isLeft $ parseAll ttype Nothing "" "(3)" 
 -- True
 
 -- | Tuple types
@@ -189,15 +199,15 @@ valdef = do
   s <- sig
   b <- fst <$> getState
   case b of
-    Just (Plain (Pext (X Board []))) -> (BVal s) <$> (boardeqn)
+    Just (Plain (Pext (X Board set))) | S.null set  -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
 
 -- |
 -- note: Empty is currently parsed as a string in the grammar, not as a Name. Is it an issue? 
 -- >>> :{ 
---     runParser valdef Nothing "" ex1 == 
---       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board [], X Position []])) 
---       (Pext (X Booltype []))))) (Feq "isValid" (Pars ["b", "p"]) 
+--     parseAll valdef Nothing "" ex1 == 
+--       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty])) 
+--       (Pext (X Booltype S.empty))))) (Feq "isValid" (Pars ["b", "p"]) 
 --       (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False)))) 
 -- :}
 -- True 
@@ -225,16 +235,24 @@ game :: Parser Game
 game =
   Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
 
+-- | Uses the parser p to parse all input, throws an error if anything is left over 
+parseAll p = runParser (p <* eof) 
+
 -- | Read from the file, and parse
 parseFromFile p fname
    = do{ input <- readFile fname
-       ; return (runParser p Nothing fname input)
+       ; return (parseAll p Nothing fname input)
        }
+
 -- | Parse a single line, displaying an error if there's a problem (used in REPL)
 parseLine :: String -> IO (Maybe Expr)
-parseLine s = case runParser expr Nothing "" s of
+parseLine s = case parseAll expr Nothing "" s of
   Left e -> (putStrLn $ show e) >> return Nothing
   Right e -> return $ Just e
+
+-- | Read a single line and return the result (intended for brevity in test cases) 
+parseLine' :: Parser a -> String -> Either ParseError a 
+parseLine' p = parseAll p Nothing ""  
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Maybe Game)

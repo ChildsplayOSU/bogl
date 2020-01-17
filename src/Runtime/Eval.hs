@@ -4,6 +4,7 @@ module Runtime.Eval (run, bindings) where
 import Language.Syntax
 import Control.Monad
 import Data.Array
+import Data.List
 import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.Identity
@@ -17,8 +18,6 @@ type Env = [(Name, Val)]
 -- @type Eval a = ReaderT (Env, InputTape) (Identity) a@
 -- for the 'pure' evaluator
 type Eval a = ReaderT Env (Identity) a
-
--- | Either a simple expression (not a function) or a function. FIXME: this can be collapsed into a single type if the App rule and syntax is changed
 
 newScope :: Env -> Eval a -> Eval a
 newScope env = local (env++)
@@ -37,8 +36,17 @@ data Val = Vi Integer -- ^ Integer value
          | Vs Name -- ^ Symbol value
          | Vf [Name] Env Expr -- ^ Function value
          | Err String -- ^ Runtime error (I think the typechecker catches all these)
-         deriving (Show, Eq)
+         deriving (Eq)
 
+instance Show Val where
+  show (Vi i) = show i
+  show (Vb b) = show b
+  show (Vpos x) = show x
+  show (Vboard _) = "Board"
+  show (Vt xs) = intercalate " " $ map show xs
+  show (Vs s) = s
+  show (Vf xs _ e) = "\\" ++ show xs ++ " -> " ++ show e
+  show (Err s) = "ERR: " ++ s
 
 -- | Helper function to get the Bool out of a value.
 unpackBool :: Val -> Bool
@@ -46,19 +54,19 @@ unpackBool (Vb b) = b
 unpackBool _ = undefined
 
 -- | Produce all of the bindings from a list
+-- Note that this is a little bizarre: x is the list of all bindings in an empty enviroment,
+-- which is then used as the enviroment in a second pass.
 bindings :: [ValDef] -> Env
 bindings vs = map (bind x) vs
   where
     x = map (bind []) vs
 
--- | Bind an individual valdef to its name in the current Enviroment
+-- | Bind the value of a definition to its name in the current Enviroment
 bind :: Env -> ValDef -> (Name, Val)
 bind env (Val _ (Veq n e)) = (n, v)
   where
     v = runIdentity (runReaderT (eval e) env)
 bind env (Val _ (Feq n (Pars ls) e)) = (n, Vf ls env e)
--- bval?
--- builtins
 
 -- | Binary operation evaluation
 evalBinOp :: Op -> Expr -> Expr -> Eval Val 
@@ -110,19 +118,19 @@ evalBoolOp f l r = do
 -- | Evaluate an expression in the Eval Monad
 -- 
 -- >>> run [] (Binop Equiv (B False) (Binop And (B True) (B False)))
--- Result: Vb True 
+-- True 
 -- 
 -- >>> run [] (Binop Equiv (I 3) (I 4))
--- Result: Vb False 
+-- False 
 --
 -- >>> run [] (Binop Less (I 3) (I 4))
--- Result: Vb True 
+-- True 
 --
 -- >>> run [] (Binop Plus (Binop Minus (I 1) (I 1)) (Binop Times (I 2) (I 3)))
--- Result: Vi 6  
+-- 6  
 -- 
 -- >>> run [] (Binop Plus (B True) (Binop Times (I 2) (I 3)))
--- Result: Err ...  
+-- ERR: ...  
 eval :: Expr -> Eval Val
 eval (I i) = return $ Vi i
 eval (B b) = return $ Vb b
@@ -137,7 +145,7 @@ eval (App n es) = do
   args <- sequence $ map (eval) es
   f <- lookupName n
   case f of
-    Just (Vf params env' e) -> newScope ((zip params args) ++ env') (eval e) -- FIXME
+    Just (Vf params env' e) -> newScope ((zip params args) ++ env') (eval e)
     Nothing -> undefined -- check if its a builtin? TODO
 eval (Let n e1 e2) = do
   v <- eval e1
@@ -161,17 +169,26 @@ eval (While p f x) = do
     unpack (Tuple t) =  t
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
- 
+eval (Case n xs e)  = do
+  f <- lookupName n
+  case f of
+    Just v -> case v of
+      (Vs s) -> case lookup s xs of
+        Just e' -> newScope (pure (n, v)) (eval e')
+        _ -> undefined
+      _ -> newScope (pure (n, v)) (eval e)
+    Nothing -> undefined
 
-
--- | evaluate an expression and run it
--- >>> run [] (I 2)
--- Result: Vi 2
--- >>> run [] (Tuple [I 2, I 3, I 4])
--- Result: Vt [Vi 2,Vi 3,Vi 4]
--- >>> run [] (Let "x" (I 2) (Ref "x"))
--- Result: Vi 2
 -- | Run an 'Expr' in the given 'Env' and display the result
+--
+-- >>> run [] (I 2)
+-- 2
+--
+-- >>> run [] (Tuple [I 2, I 3, I 4])
+-- 2 3 4 
+--
+-- >>> run [] (Let "x" (I 2) (Ref "x"))
+-- 2
 run :: Env -> Expr -> IO ()
 run env e = let v = runIdentity (runReaderT (eval e) env) in
   (putStrLn . show) v
