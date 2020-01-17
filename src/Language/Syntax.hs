@@ -135,7 +135,9 @@ data Expr = I Integer -- ^ Integer expression
           | Binop Op Expr Expr -- ^ Binary operation of two expressions
           | Let Name Expr Expr -- ^ Let binding
           | If Expr Expr Expr -- ^ Conditional expression
-          | While Name Name Expr -- ^ While loop (could be While Expr Expr Expr if we make the App change suggested above)
+          | While Expr Expr [Expr] -- ^ While loop (could be While Expr Expr Expr if we make the App change suggested above)
+          | Abs [Name] Expr
+          | AppAbs [Expr] Expr
    deriving (Eq)
 instance Show Expr where
   show (I i) = show i

@@ -142,17 +142,23 @@ eval (App n es) = do
 eval (Let n e1 e2) = do
   v <- eval e1
   newScope (pure (n, v)) (eval e2)
- 
+eval (Abs ns e) = do
+  env <- ask
+  return $ Vf ns env e
+eval (AppAbs es e) = do
+  args <- mapM eval es
+  (Vf params env' e') <- eval e
+  newScope (zip params args ++ env') (eval e')
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   if b then eval e1 else eval e2
-
 eval (While p f x) = do
-  b <- eval (App p [x])
+  b <- eval (AppAbs x p)
   case b of
-    (Vb b) -> if b then eval (While p f (App f [x])) else eval x
+    (Vb b) -> if b then eval (While p f (unpack (AppAbs x f))) else eval (Tuple x)
     _ -> undefined
-   
+  where
+    unpack (Tuple t) =  t
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
  

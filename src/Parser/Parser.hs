@@ -14,8 +14,8 @@ import Text.ParserCombinators.Parsec.Char
 import Text.Parsec.Combinator
 -- FIXME why am I using both parsec2 and parsec3?
 
-import Data.Either 
-type Parser = Par.Parsec String (Maybe Type)
+import Data.Either
+type Parser = Par.Parsec String ((Maybe Type), [Name])
 -- | The 'Type' keywords
 types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
 -- | The lexer, using the reserved keywords and operation names
@@ -78,15 +78,26 @@ atom =
   <|>
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
   <|>
-  While <$> (reserved "while" *> identifier) <*> (reserved "do" *> identifier) <*> expr
-
+  (do
+      reserved "while"
+      e1 <- expr
+      reserved "do"
+      e2 <- expr
+      i <- snd <$> Par.getState
+      return $ While (Abs i e1) (Abs i e2) ((map Ref i)))
 -- | Equations
 equation :: Parser Equation
 equation =
   (try $ (Veq <$> identifier <*> (reservedOp "=" *> expr)))
   <|>
-  (try $ (Feq <$> identifier <*> (Pars <$> parens (commaSep1 (identifier))) <*> (reservedOp "=" *> expr)))
-
+  (try $ do
+    name <- identifier
+    params <- parens (commaSep1 identifier)
+    Par.modifyState (replaceSecond params)
+    reservedOp "="
+    e <- expr
+    return $ Feq name (Pars params) e)
+ 
 -- | Board equations
 boardeqn :: Parser BoardEq
 boardeqn =
@@ -149,18 +160,22 @@ ptype = (Pext <$> xtype <|> Pt <$> ttype)
 ftype :: Parser Ftype
 ftype = Ft <$> ptype <*> (reservedOp "->" *> ptype)
 
+replaceFirst x (a, b) = (x, b)
+replaceSecond x (a, b) = (a, x)
+
+
 -- | 'Type's
 typ :: Parser Type
 typ = 
   (try $ (do
       f <- ftype
-      Par.putState (Just $ Function f)
+      Par.modifyState (replaceFirst (Just $ Function f))
       return (Function f)
   ))
   <|>
   (try $ (do
             p <- ptype
-            Par.putState (Just $ Plain p)
+            Par.modifyState (replaceFirst $ Just $ Plain p)
             return (Plain p)))
    
 -- | Value signatures
@@ -172,7 +187,7 @@ sig =
 valdef :: Parser ValDef
 valdef = do
   s <- sig
-  b <- getState
+  b <- fst <$> getState
   case b of
     Just (Plain (Pext (X Board []))) -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
