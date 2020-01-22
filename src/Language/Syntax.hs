@@ -77,13 +77,21 @@ instance Show BoardEq where
 data Btype = Booltype -- ^ Boolean
            | Itype -- ^ Integer
            | Symbol Name -- ^ Symbols, or nullary constructors. Each symbol lives in its own unique type.
+           | AnySymbol -- ^ this is the type all symbols live in
            | Input -- ^ The input type specified at the top of the program
            | Board -- ^ A game board
            | Player -- ^ A player
            | Position -- ^ A position, specified by the board description
            | Positions -- ^ The list of all positions
            | Undef -- ^ Only occurs when typechecking. The user cannot define anything of this type. (I could use 'undefined' everywhere I use this, but one false move and the whole program crashes)
-   deriving (Eq, Data)
+   deriving (Data)
+instance Eq Btype where
+  (Symbol _) == AnySymbol = True
+  AnySymbol == (Symbol _) = True
+  Symbol n1 == Symbol n2 = n1 == n2
+  x == y = show x == show y -- ........
+
+
 
 instance Show Btype where
   show Booltype = "Bool"

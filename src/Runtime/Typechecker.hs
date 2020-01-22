@@ -239,7 +239,8 @@ getType n = do
 
 builtins = [
   ("input", Function (Ft (Pext (X Board S.empty)) (Pext (X Position S.empty)))),
-  ("positions", Plain (Pext (X Positions S.empty)))
+  ("positions", Plain (Pext (X Positions S.empty))),
+  ("place", Function (Ft (Pt (Tup [(X AnySymbol S.empty), (X Board S.empty), (X Position S.empty)]  )) (Pext (X Board S.empty))))
            ]
 
 
