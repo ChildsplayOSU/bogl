@@ -18,7 +18,7 @@ instance Show Game where
                          ++ intercalate ("\n\n\n") (map show vs)
 
 -- | Board definition: mxn board of type Type
-data BoardDef = BoardDef Integer Integer Type
+data BoardDef = BoardDef Int Int Type
   deriving (Data)
 
 instance Show BoardDef where

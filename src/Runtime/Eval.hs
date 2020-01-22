@@ -14,8 +14,16 @@ import Control.Monad.State
 import Control.Monad.Identity
 import Debug.Trace
 
+type EvalEnv = [(Name, Val)]
 -- | Call-by-value semantics
-type Env = [(Name, Val)]
+data Env = Env {
+  evalEnv :: EvalEnv  ,
+  boardSize :: (Int, Int)
+               }
+           deriving (Eq, Show)
+
+modifyEval :: ([(Name, Val)] -> [(Name, Val)]) -> Env -> Env
+modifyEval f (Env e b) = Env (f e) b
 -- | Input tape
 type Tape = [Val]
 -- | Exceptions
@@ -24,7 +32,7 @@ data Exception =
   Error String -- ^ Encountered a runtime error (shouldn't ever happen)
   deriving Show
 -- | Evaluation occurs in the Identity monad with these side effects:
--- ReaderT: Evaluation enviroment
+-- ReaderT: Evaluation enviroment, board size and piece type, and input type
 -- StateT: Input tape
 -- alternate definition:
 -- @type Eval a = ReaderT (Env, InputTape) (Identity) a@
@@ -36,13 +44,11 @@ type PreEval a = ReaderT Env (Identity)
 runEval :: Eval a -> Env -> Tape -> Either Exception a
 runEval x env tape  = runIdentity (runReaderT (runExceptT (evalStateT x tape)) env)
 
-newScope :: Env -> Eval a -> Eval a
-newScope env = local (env++)
+newScope :: EvalEnv -> Eval a -> Eval a
+newScope env = local (modifyEval (env++))
 
 lookupName :: Name -> Eval (Maybe Val)
-lookupName n = ask >>= (return . (lookup n))
-
-data Mode = Pre | Post
+lookupName n = (evalEnv <$> ask) >>= (return . (lookup n))
 
 waitForInput :: Eval a
 waitForInput = throwError $ NeedInput
@@ -61,7 +67,7 @@ data Val = Vi Integer -- ^ Integer value
          | Vboard (Array (Int,Int) Val) -- ^ Board value (displayed to user)
          | Vt [Val] -- ^ Tuple value
          | Vs Name -- ^ Symbol value
-         | Vf [Name] Env Expr -- ^ Function value
+         | Vf [Name] EvalEnv Expr -- ^ Function value
          | Err String -- ^ Runtime error (I think the typechecker catches all these)
          | Deferred -- ^ This needs an input.
          deriving (Eq)
@@ -84,10 +90,10 @@ unpackBool _ = undefined
 -- | Produce all of the bindings from a list
 -- Note that this is a little bizarre: x is the list of all bindings in an empty enviroment,
 -- which is then used as the enviroment in a second pass.
-bindings :: [ValDef] -> Env
-bindings vs = map (bind x) vs
+bindings :: (Int, Int) -> [ValDef] -> Env
+bindings sz vs = Env (map (bind (Env x sz)) vs) sz
   where
-    x = map (bind []) vs
+    x = map (bind (Env [] sz)) vs
 
 -- | Bind the value of a definition to its name in the current Enviroment
 -- asking for input has to be deferred...
@@ -99,10 +105,10 @@ bind env (Val _ (Veq n e)) = (n, v)
 --    where
 --     (v1, v2) = (fromRight Deferred (runWithTape env [] e1), fromRight Deferred (runWithTape env [] e2))
 --     v = fromRight Deferred (runWithTape env [] (e))
-bind env (Val _ (Feq n (Pars ls) e)) = (n, Vf ls env e)
-bind env (BVal _ (RegDef n e1 e2)) = (n, v)
+bind (Env env _) (Val _ (Feq n (Pars ls) e)) = (n, Vf ls env e)
+bind env@(Env _ sz) (BVal _ (RegDef n e1 e2)) = (n, v)
   where
-    v = Vboard $ array ((1,1), (3,3)) (zip ps (repeat value))
+    v = Vboard $ array ((1,1), sz) (zip ps (repeat value))
     ps = map dePos $ deTuple $ (fromRight Deferred (runWithTape env [] e1))
     value = fromRight Deferred (runWithTape env [] e2)
     dePos (Vpos (x,y)) = (x,y)
@@ -174,10 +180,13 @@ evalBoolOp f l r = do
 -- ERR: ...
 
 builtins :: [(Name,[Val] -> Eval Val)]
-builtins = [("input", \_ -> readTape)]
+builtins = [
+  ("input", \_ -> readTape),
+  ("place", \[piece, Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // [((x,y), piece)])
+  ]
 
-builtinRefs :: [(Name, Val)]
-builtinRefs = [("positions", Vt [Vpos (x,y) | x <- [1..3], y <- [1..3]])]
+builtinRefs :: [(Name, Eval Val)]
+builtinRefs = [("positions", (boardSize <$> ask) >>= \(szx, szy) -> return $ Vt [Vpos (x,y) | x <- [1..szx], y <- [1..szy]])]
 
 eval :: Expr -> Eval Val
 eval (I i) = return $ Vi i
@@ -189,7 +198,7 @@ eval (Ref n) = do
   case e of
         Just (v) -> return $ v
         Nothing -> case lookup n builtinRefs of
-          Just v -> return v
+          Just v -> v
           Nothing -> return $ Err $ "Variable " ++ n ++ " undefined"
 eval (App n es) = do
   args <- sequence $ map (eval) es

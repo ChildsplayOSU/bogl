@@ -206,8 +206,8 @@ ex2 = "outcome : (Board,Player) -> Player|Tie \
 board :: Parser BoardDef
 board =
   (reserved "type" *> reserved "Board" *> reservedOp "=") *>
-  (BoardDef <$> (reserved "Grid" *> (lexeme . char) '(' *> integer) <*>
-   ((lexeme . char) ',' *> integer <* (lexeme . char) ')') <*>
+  (BoardDef <$> (reserved "Grid" *> (lexeme . char) '(' *> (fromInteger <$> integer)) <*>
+   ((lexeme . char) ',' *> (fromInteger <$> integer) <* (lexeme . char) ')') <*>
    (reserved "of" *> typ)) -- fixme
 
 -- | Input definition
