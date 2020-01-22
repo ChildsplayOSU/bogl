@@ -28,5 +28,5 @@ repl g@(Game n i b _) = do
         case x of
           Just e -> do
             b <- tcexpr (environment i b vs) e
-            if b then run (bindings vs) e >> repl' g else repl' g
+            if b then runUntilComplete (bindings vs) e >> repl' g else repl' g
           Nothing -> repl' g

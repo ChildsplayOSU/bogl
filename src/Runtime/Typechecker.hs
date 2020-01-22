@@ -81,7 +81,18 @@ deftype (BVal (Sig n t) eqn) = do
   if eqt == t then return t else sigmismatch n t eqt
 
 beqntype :: Type -> BoardEq -> Typechecked Type
-beqntype t (PosDef n e1 e2 e3) = undefined
+beqntype t (PosDef n e1 e2 e3) = do
+  t1 <- exprtype e1
+  t2 <- exprtype e2
+  t3 <- exprtype e3
+  case (t1, t2, t3) of
+    (_, _, _) -> return $ Plain $ Pext (X Board S.empty) -- FIXME
+beqntype t (RegDef n e1 e2) = do
+  t1 <- exprtype e1
+  t2 <- exprtype e2
+  case t1 of
+    (Pext (X Positions s)) | s == S.empty -> return $ Plain (Pext (X Board S.empty))
+
 -- | Get the type of an equation
 eqntype :: Type -> Equation -> Typechecked Type
 eqntype _ (Veq _ e) = exprtype e >>= (return . Plain)
@@ -192,14 +203,14 @@ exprtype expr@(Case n xs e) = do
     retrieveSymbols (Pext (X (Symbol n) s)) = (S.singleton n) `S.union` s
     retrieveSymbols _ = S.empty
 -- while
-exprtype (While n1 n2 e) = do
-  exprT <- exprtype e
-  predT <- getType n1
-  modT  <- getType n2
-  case (exprT, predT, modT) of
-    (e', Function (Ft i (Pext (X Booltype s))), Function (Ft i2 o2)) | all (== e') [i, i2, o2] && s == S.empty -> return $ e'
-    (x, y, z) -> unknown "something's wrong..." -- pattern match on each of the failure types.
-
+-- exprtype (While n1 n2 e) = do
+--   exprT <- exprtype e
+--   predT <- getType n1
+--   modT  <- getType n2
+--   case (exprT, predT, modT) of
+--     (e', Function (Ft i (Pext (X Booltype s))), Function (Ft i2 o2)) | all (== e') [i, i2, o2] && s == S.empty -> return $ e'
+--     (x, y, z) -> unknown "something's wrong..." -- pattern match on each of the failure types.
+--
 
 getExtensions :: Ptype -> S.Set Name
 getExtensions (Pext (X _ exs)) = exs
@@ -226,10 +237,17 @@ getType n = do
     Just e -> return e
     Nothing -> notbound n
 
+builtins = [
+  ("input", Function (Ft (Pext (X Board S.empty)) (Pext (X Position S.empty)))),
+  ("positions", Plain (Pext (X Positions S.empty)))
+           ]
+
+
 -- | Produce the environment
 environment :: BoardDef -> InputDef -> [ValDef] -> Env
-environment (BoardDef _ _ t) (InputDef i) vs = Env (map f vs) i t
-  where f (Val (Sig n t) eq) = (n, t)
+environment (BoardDef _ _ t) (InputDef i) vs = Env (map f vs ++ builtins) i t
+  where f (Val (Sig n t1) eq) = (n, t1)
+        f (BVal (Sig n t1) eq) = (n, t1)
 
 -- | Run the typechecker on env and a list of ValDefs
 runTypeCheck :: Env -> ValDef -> Either TypeError Type
