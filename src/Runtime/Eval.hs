@@ -179,10 +179,29 @@ evalBoolOp f l r = do
 -- >>> run [] (Binop Plus (B True) (Binop Times (I 2) (I 3)))
 -- ERR: ...
 
+-- 🤔... this certainly isn't winning any prizes for efficiency.
+inARow :: Val -> [((Int, Int), Val)] -> [((Int, Int), Val)] -> (Int, Int) -> Int -> Bool
+inARow v state (s:st) d n = (inARow' state s d n) || inARow v state st d n
+  where
+    inARow' :: [((Int, Int), Val)] -> ((Int, Int), Val) -> (Int, Int) -> Int -> Bool
+    inARow' _ _ _ 1 = True
+    inARow' st ((x, y), c) (dx, dy) n = if v /= c then False else case lookup (x+dx, y+dy) st of
+      Nothing -> False
+      Just c' -> if v == c' then inARow' state ((x+dx, y+dy), c) (dx, dy) (n-1) else False
+inARow _ _ _ _ _ = False
+
+line :: Val -> [((Int, Int), Val)] -> Int -> Bool
+line v acc n = (inARow v acc acc (1,1) n) ||  (inARow v acc acc (0,1) n) ||  (inARow v acc acc (1,0) n)
+
+
+
 builtins :: [(Name,[Val] -> Eval Val)]
 builtins = [
   ("input", \_ -> readTape),
-  ("place", \[piece, Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // [((x,y), piece)])
+  ("place", \[piece, Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // [((x,y), piece)]),
+  ("remove", \[Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // pure ((x,y), Vs "Empty")),
+  ("isFull", \[Vboard arr] -> return $ Vb $ all (/= Vs "Empty") $ elems arr),
+  ("inARow", \[Vi i, v, Vboard arr] -> return $ Vb $ line v (assocs arr) (fromInteger i))
   ]
 
 builtinRefs :: [(Name, Eval Val)]
