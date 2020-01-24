@@ -4,6 +4,7 @@
 module Language.Syntax where
 import Data.List
 import Text.JSON.Generic
+import Data.Array
 import qualified Data.Set as S
 type Name = String
 
@@ -149,6 +150,29 @@ instance Show Type where
   show (Plain t) = show t
   show (Function f) = show f
 
+-- | Values
+data Val = Vi Integer -- ^ Integer value
+         | Vb Bool -- ^ Boolean value
+         | Vpos (Int, Int) -- ^ Position value
+         | Vboard (Array (Int,Int) Val) -- ^ Board value (displayed to user)
+         | Vt [Val] -- ^ Tuple value
+         | Vs Name -- ^ Symbol value
+         | Vf [Name] EvalEnv Expr -- ^ Function value
+         | Err String -- ^ Runtime error (I think the typechecker catches all these)
+         | Deferred -- ^ This needs an input.
+         deriving (Eq, Data)
+
+type EvalEnv = [(Name, Val)]
+
+instance Show Val where
+  show (Vi i) = show i
+  show (Vb b) = show b
+  show (Vpos x) = show x
+  show (Vboard b) = "Board: " ++ show b
+  show (Vt xs) = intercalate " " $ map show xs
+  show (Vs s) = s
+  show (Vf xs _ e) = "\\" ++ show xs ++ " -> " ++ show e
+  show (Err s) = "ERR: " ++ s
 -- | Expressions
 data Expr = I Integer -- ^ Integer expression
           | S Name -- ^ Symbol
@@ -161,6 +185,7 @@ data Expr = I Integer -- ^ Integer expression
           | If Expr Expr Expr -- ^ Conditional expression
           | While Name Name Expr -- ^ While loop (could be While Expr Expr Expr if we make the App change suggested above)
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
+          | Value Val -- ^ This is a hack for forcing values. This is because input is impure.
    deriving (Eq, Data)
 instance Show Expr where
   show (I i) = show i

@@ -203,13 +203,13 @@ exprtype expr@(Case n xs e) = do
     retrieveSymbols (Pext (X (Symbol n) s)) = (S.singleton n) `S.union` s
     retrieveSymbols _ = S.empty
 -- while
--- exprtype (While n1 n2 e) = do
---   exprT <- exprtype e
---   predT <- getType n1
---   modT  <- getType n2
---   case (exprT, predT, modT) of
---     (e', Function (Ft i (Pext (X Booltype s))), Function (Ft i2 o2)) | all (== e') [i, i2, o2] && s == S.empty -> return $ e'
---     (x, y, z) -> unknown "something's wrong..." -- pattern match on each of the failure types.
+exprtype (While n1 n2 e) = do
+  exprT <- exprtype e
+  predT <- getType n1
+  modT  <- getType n2
+  case (exprT, predT, modT) of
+    (e', Function (Ft i (Pext (X Booltype s))), Function (Ft i2 o2)) | all (== e') [i, i2, o2] && s == S.empty -> return $ e'
+    (x, y, z) -> unknown "something's wrong..." -- pattern match on each of the failure types.
 --
 
 getExtensions :: Ptype -> S.Set Name

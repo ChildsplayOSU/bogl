@@ -14,7 +14,6 @@ import Control.Monad.State
 import Control.Monad.Identity
 import Debug.Trace
 
-type EvalEnv = [(Name, Val)]
 -- | Call-by-value semantics
 data Env = Env {
   evalEnv :: EvalEnv  ,
@@ -28,7 +27,7 @@ modifyEval f (Env e b) = Env (f e) b
 type Tape = [Val]
 -- | Exceptions
 data Exception =
-  NeedInput | -- ^ Ran out of input
+  NeedInput Val | -- ^ Ran out of input, and here's the current board
   Error String -- ^ Encountered a runtime error (shouldn't ever happen)
   deriving Show
 -- | Evaluation occurs in the Identity monad with these side effects:
@@ -50,37 +49,16 @@ newScope env = local (modifyEval (env++))
 lookupName :: Name -> Eval (Maybe Val)
 lookupName n = (evalEnv <$> ask) >>= (return . (lookup n))
 
-waitForInput :: Eval a
-waitForInput = throwError $ NeedInput
+waitForInput :: Val -> Eval a
+waitForInput b = throwError $ NeedInput b
 
-readTape :: Eval (Val)
-readTape = do
+readTape :: Val -> Eval (Val)
+readTape v = do
   tape <- get
   case tape of
     (x:xs) -> (put xs) >> return x
-    [] -> waitForInput
+    [] -> waitForInput v
 
--- | Values
-data Val = Vi Integer -- ^ Integer value
-         | Vb Bool -- ^ Boolean value
-         | Vpos (Int, Int) -- ^ Position value
-         | Vboard (Array (Int,Int) Val) -- ^ Board value (displayed to user)
-         | Vt [Val] -- ^ Tuple value
-         | Vs Name -- ^ Symbol value
-         | Vf [Name] EvalEnv Expr -- ^ Function value
-         | Err String -- ^ Runtime error (I think the typechecker catches all these)
-         | Deferred -- ^ This needs an input.
-         deriving (Eq)
-
-instance Show Val where
-  show (Vi i) = show i
-  show (Vb b) = show b
-  show (Vpos x) = show x
-  show (Vboard b) = "Board: " ++ show b
-  show (Vt xs) = intercalate " " $ map show xs
-  show (Vs s) = s
-  show (Vf xs _ e) = "\\" ++ show xs ++ " -> " ++ show e
-  show (Err s) = "ERR: " ++ s
 
 -- | Helper function to get the Bool out of a value.
 unpackBool :: Val -> Bool
@@ -197,7 +175,7 @@ line v acc n = (inARow v acc acc (1,1) n) ||  (inARow v acc acc (0,1) n) ||  (in
 
 builtins :: [(Name,[Val] -> Eval Val)]
 builtins = [
-  ("input", \_ -> readTape),
+  ("input", \[v] -> readTape v),
   ("place", \[piece, Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // [((x,y), piece)]),
   ("remove", \[Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // pure ((x,y), Vs "Empty")),
   ("isFull", \[Vboard arr] -> return $ Vb $ all (/= Vs "Empty") $ elems arr),
@@ -234,12 +212,18 @@ eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   if b then eval e1 else eval e2
 
+--- While loops are weird.
 eval (While p f x) = do
   b <- eval (App p [x])
   case b of
-    (Vb b) -> if b then eval (While p f (App f [x])) else eval x
+    (Vb b) -> if b then (force $ (App f [x])) >>= (\e ->eval (While p f e)) else eval x
     _ -> undefined
-   
+  where
+    -- forces a value to occur, and then returns it to an expression... This is bad
+    force :: Expr -> Eval Expr
+    force e = Value <$> eval e
+
+eval (Value v)    = return v
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
 eval (Case n xs e)  = do
@@ -271,8 +255,10 @@ runUntilComplete env expr = runUntilComplete' []
   where
     runUntilComplete' tape = case runWithTape env tape expr of
       Right v -> (putStrLn . show) v
-      Left (NeedInput) -> do
+      Left (NeedInput b) -> do
         -- work out which type of input we want..
+        (putStrLn . show) tape
+        (putStrLn . show) b
         x <- read <$> getLine
         y <- read <$> getLine
         runUntilComplete' (tape ++ pure (Vpos (x, y)))
