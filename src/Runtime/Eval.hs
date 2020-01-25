@@ -230,9 +230,9 @@ eval (Case n xs e)  = do
   f <- lookupName n
   case f of
     Just v -> case v of
-      (Vs s) -> case lookup s xs of
+      (Vs s) -> case lookup s (xs) of
         Just e' -> newScope (pure (n, v)) (eval e')
-        Nothing -> (traceM $ "Strange: " ++ show v ++ show s ++ show xs) >> return undefined
+        Nothing -> newScope (pure (n, v)) (eval e) -- eh
       _ -> newScope (pure (n, v)) (eval e)
     Nothing -> undefined
 

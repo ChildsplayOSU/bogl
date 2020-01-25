@@ -1,0 +1,30 @@
+game TicTacToe
+
+type Board = Grid(3,3) of AnySymbol
+type Input = Position -- currently ignored anyways
+
+empty : Board
+empty(positions) = Empty
+
+endGame : Board -> Continue | XWins | OWins
+endGame(b) = if inARow(3, b, X) then XWins else if inARow(3,b,O) then OWins else Continue
+
+move : (X|O, Board) -> Board | Failed
+move(s, b) = let pos = input(b) in
+          if at(b, pos) == Empty then place(s, b, pos) else Failed
+
+doMove : (X|O, Board) -> Board
+doMove(s, b) = let x = move(s,b) in case x of
+          Failed -> doMove(s,b)
+          | x
+
+next : X | O -> X | O
+next(p) = if p == X then O else X
+
+gameLoopRec : (X|O, Board) -> Board | XWin | OWin
+gameLoopRec(player, b) = let nextB = doMove(player, b) in
+                         let x = endGame(nextB) in
+                         case x of
+                              XWins -> XWin
+                              OWins -> OWin
+                              | gameLoopRec(next(player), nextB)
