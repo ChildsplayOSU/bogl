@@ -179,7 +179,8 @@ builtins = [
   ("place", \[piece, Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // [((x,y), piece)]),
   ("remove", \[Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // pure ((x,y), Vs "Empty")),
   ("isFull", \[Vboard arr] -> return $ Vb $ all (/= Vs "Empty") $ elems arr),
-  ("inARow", \[Vi i, v, Vboard arr] -> return $ Vb $ line v (assocs arr) (fromInteger i))
+  ("inARow", \[Vi i, Vboard arr, v] -> return $ Vb $ line v (assocs arr) (fromInteger i)),
+  ("at", \[Vboard arr, Vpos (x,y)] -> return $ arr ! (x,y))
   ]
 
 builtinRefs :: [(Name, Eval Val)]
@@ -219,9 +220,8 @@ eval (While p f x) = do
     (Vb b) -> if b then (force $ (App f [x])) >>= (\e ->eval (While p f e)) else eval x
     _ -> undefined
   where
-    -- forces a value to occur, and then returns it to an expression... This is bad
     force :: Expr -> Eval Expr
-    force e = Value <$> eval e
+    force e = Value <$> eval e -- locks the evaluation in here, so it doesn't cost any side effects to evaluate again. kind of like program rewriting?
 
 eval (Value v)    = return v
 eval (Binop op e1 e2) = evalBinOp op e1 e2
@@ -232,7 +232,7 @@ eval (Case n xs e)  = do
     Just v -> case v of
       (Vs s) -> case lookup s xs of
         Just e' -> newScope (pure (n, v)) (eval e')
-        _ -> undefined
+        Nothing -> (traceM $ "Strange: " ++ show v ++ show s ++ show xs) >> return undefined
       _ -> newScope (pure (n, v)) (eval e)
     Nothing -> undefined
 

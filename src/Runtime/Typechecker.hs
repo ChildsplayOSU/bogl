@@ -240,7 +240,11 @@ getType n = do
 builtins = [
   ("input", Function (Ft (Pext (X Board S.empty)) (Pext (X Position S.empty)))),
   ("positions", Plain (Pext (X Positions S.empty))),
-  ("place", Function (Ft (Pt (Tup [(X AnySymbol S.empty), (X Board S.empty), (X Position S.empty)]  )) (Pext (X Board S.empty))))
+  ("place", Function (Ft (Pt (Tup [(X AnySymbol S.empty), (X Board S.empty), (X Position S.empty)]  )) (Pext (X Board S.empty)))),
+  ("remove", Function (Ft (Pt (Tup [(X Board S.empty), (X Position S.empty)])) (Pext (X Board S.empty)))),
+  ("inARow", Function (Ft (Pt (Tup [X Itype S.empty, X Board S.empty, X AnySymbol S.empty])) (Pext (X Booltype S.empty)))),
+  ("at", Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty])) (Pext (X AnySymbol S.empty))))
+  -- This should be polymorphic over all types instead of over all symbols.
            ]
 
 
