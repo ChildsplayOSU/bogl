@@ -1,6 +1,6 @@
 -- | Interpreter for Spiel
 
-module Runtime.Eval (runWithTape, runUntilComplete, bindings) where
+module Runtime.Eval where
 import Language.Syntax
 import Control.Monad
 import Data.Array
@@ -50,7 +50,7 @@ lookupName :: Name -> Eval (Maybe Val)
 lookupName n = (evalEnv <$> ask) >>= (return . (lookup n))
 
 waitForInput :: Val -> Eval a
-waitForInput b = throwError $ NeedInput b
+waitForInput v = throwError (NeedInput v)
 
 readTape :: Val -> Eval (Val)
 readTape v = do
@@ -232,7 +232,7 @@ eval (Case n xs e)  = do
     Just v -> case v of
       (Vs s) -> case lookup s (xs) of
         Just e' -> newScope (pure (n, v)) (eval e')
-        Nothing -> newScope (pure (n, v)) (eval e) -- eh
+        Nothing -> newScope (pure (n, v)) (eval e) -- hmm.
       _ -> newScope (pure (n, v)) (eval e)
     Nothing -> undefined
 
@@ -246,19 +246,24 @@ eval (Case n xs e)  = do
 --
 -- >>> run [] (Let "x" (I 2) (Ref "x"))
 -- 2
-runWithTape :: Env -> Tape -> Expr -> Either Exception Val
+runWithTape :: Env -> Tape -> Expr -> Either (Val, Tape) Val
 runWithTape env tape e = do
-  let v = runEval (eval e) env tape in v
+  let v = runEval (eval e) env tape in
+    case v of
+      Left (NeedInput b) -> Left (b, tape)
+      Right val -> Right val
+      _ -> undefined
 
 runUntilComplete :: Env -> Expr -> IO ()
 runUntilComplete env expr = runUntilComplete' []
   where
     runUntilComplete' tape = case runWithTape env tape expr of
       Right v -> (putStrLn . show) v
-      Left (NeedInput b) -> do
+      Left (b, t) -> do
         -- work out which type of input we want..
-        (putStrLn . show) tape
+        (putStrLn . show) t
         (putStrLn . show) b
         x <- read <$> getLine
         y <- read <$> getLine
         runUntilComplete' (tape ++ pure (Vpos (x, y)))
+

@@ -1,6 +1,6 @@
 -- | Parser for BOGL 
 
-module Parser.Parser (parseLine, parseGameFile, expr) where
+module Parser.Parser (parseLine, parseLine', parseGameFile, expr) where
 
 import Language.Syntax
 import Debug.Trace(trace)
@@ -229,15 +229,18 @@ parseFromFile p fname
        ; return (parseAll p Nothing fname input)
        }
 
+
+
 -- | Parse a single line, displaying an error if there's a problem (used in REPL)
-parseLine :: String -> IO (Maybe Expr)
-parseLine s = case parseAll expr Nothing "" s of
-  Left e -> (putStrLn $ show e) >> return Nothing
-  Right e -> return $ Just e
+parseLine :: String -> Either ParseError Expr
+parseLine = parseAll expr Nothing ""
 
 -- | Read a single line and return the result (intended for brevity in test cases) 
 parseLine' :: Parser a -> String -> Either ParseError a 
 parseLine' p = parseAll p Nothing ""  
+
+
+
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Maybe Game)

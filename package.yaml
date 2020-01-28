@@ -30,6 +30,7 @@ dependencies:
 - containers
 - extra
 - json
+- threepenny-gui
 library:
   source-dirs: src
 
