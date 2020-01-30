@@ -111,8 +111,9 @@ bindings sz vs = do
   vs' <- mapM bind vs
   return $ Env (vs') sz
 
--- | Bind the value of a definition to its name in the current Enviroment
+-- | Bind the value of a definition to its name in the current Environment
 -- asking for input has to be deferred...
+-- could have a seperate, declaration environment.
 bind :: ValDef -> Eval (Name, Val)
 bind (Val _ (Veq n e)) = do
   v <- eval e
@@ -295,6 +296,7 @@ eval (Case n xs e)  = do
 -- >>> run [] (Let "x" (I 2) (Ref "x"))
 -- 2
 emptyEnv = Env [] (3,3)
+
 produceEnv :: Eval Env -> Either Exception Env
 produceEnv e = runIdentity (runReaderT (runExceptT (evalStateT e [])) emptyEnv)
 

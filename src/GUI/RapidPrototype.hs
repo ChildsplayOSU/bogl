@@ -55,27 +55,27 @@ replReply g@(Game n i@(BoardDef szx szy p) b vs) w msgs replArea = do
             case runWithTape (bindings (szx, szy) vs) [] x of
               Right (x) -> element replArea #+ (pure $ makeValDisplay x msg)
               Left ((Vboard b), t) -> do
-                element replArea #+ (makeInteractiveBoard b t x msg)
+                element replArea #+ [UI.div #. "content" #+ [makeInteractiveBoard b t x msg]]
               Left (err) -> string $ show err
             UI.scrollToBottom replArea
             flushCallBuffer
           Left err -> do
-            element replArea #+ [UI.div #. "repl" #+ [UI.div #. "content" #+ [string $ show err]]]
+            element replArea #+ [UI.div #. "repl" #+ [UI.div #. "inprogress" #+ [string $ show err]]]
             UI.scrollToBottom replArea
             flushCallBuffer
     where
-      makeInteractiveBoard :: Array (Int,Int) Val -> [Val] -> Expr -> String -> [UI Element]
+      makeInteractiveBoard :: Array (Int,Int) Val -> [Val] -> Expr -> String -> UI Element
       makeInteractiveBoard arr t ex msg = do
-        (flip map) (assocs arr) $ \cell -> do
+        UI.div #. "board" #+ (map (\r -> UI.div #. "row" #+ r) $ (flip map) (toGrid arr) $ \row -> (flip map) row (\cell -> do
           b <- UI.button #. "click-cell" #+ [string ((show . snd) cell)]
           on UI.click b $ \_ -> do
-            case runWithTape (bindings (szx, szy) vs) (Vpos (fst cell):t) ex of
+            case runWithTape (bindings (szx, szy) vs) (t ++ (pure $ Vpos (fst cell))) ex of
               Right x -> element replArea #+ (pure $ makeValDisplay x msg)
-              Left ((Vboard b), t) -> element replArea #+ makeInteractiveBoard b t ex msg
+              Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg]]
               Left err -> element replArea #+ (pure $ string $ show err)
-          return b
+          return b))
       makeValDisplay x msg =
-        UI.div #. "repl" #+ [UI.div #. "content" #+ [string msg]] #+ [UI.div #. "content" #+ [case x of
+        UI.div #. "repl" #+ [UI.div #. "content" #+ [string ("> " ++ msg)]] #+ [UI.div #. "content" #+ [case x of
                                                                                                 (Vboard b) -> makeBoard b
                                                                                                 x -> string $ show x]]
 
@@ -86,7 +86,7 @@ makeinput i = do
   on UI.sendValue in_ $ (. trim) $ \content -> do
         element in_ # set value ""
         when (not (null content)) $ liftIO $ do
-          Chan.writeChan i content
+          Chan.writeChan i (content)
   UI.div #. "message-area" #+ [UI.div #. "send-area" #+ [element in_]]
 
 

@@ -18,6 +18,8 @@ doMove(s, b) = let x = move(s,b) in case x of
           Failed -> doMove(s,b)
           | x
 
+outoforder : X | O -> X | O
+outoforder(x) = next(next(x))
 next : X | O -> X | O
 next(p) = if p == X then O else X
 
