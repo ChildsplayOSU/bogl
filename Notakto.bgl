@@ -22,4 +22,4 @@ status : Board -> Bool
 status(b) = if inARow(3, b, X) then False else True
 
 gameLoop : Board -> Board
-gameLoop(b) = while status do doMove b
+gameLoop(b) = while status(b) do doMove(b)

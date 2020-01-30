@@ -161,7 +161,9 @@ data Expr = I Integer -- ^ Integer expression
           | Binop Op Expr Expr -- ^ Binary operation of two expressions
           | Let Name Expr Expr -- ^ Let binding
           | If Expr Expr Expr -- ^ Conditional expression
-          | While Name Name Expr -- ^ While loop (could be While Expr Expr Expr if we make the App change suggested above)
+          | While Expr Expr [Expr] --
+          | Abs [Name] Expr
+          | AppAbs [Expr] Expr
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
    deriving (Eq, Data)
 instance Show Expr where

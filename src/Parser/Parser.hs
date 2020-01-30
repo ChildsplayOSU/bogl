@@ -1,6 +1,6 @@
 -- | Parser for BOGL 
 
-module Parser.Parser (parseLine, parseLine', parseGameFile, expr) where
+module Parser.Parser (parseLine, parseGameFile, expr) where
 
 import Language.Syntax
 import Debug.Trace(trace)
@@ -16,8 +16,8 @@ import qualified Data.Set as S
 
 -- FIXME why am I using both parsec2 and parsec3?
 
-import Data.Either 
-type Parser = Par.Parsec String (Maybe Type)
+import Data.Either
+type Parser = Par.Parsec String ((Maybe Type), (Name, [Name]))
 -- | The 'Type' keywords
 types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
 -- | The lexer, using the reserved keywords and operation names
@@ -85,18 +85,35 @@ atom =
   Let <$> (reserved "let" *> identifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
   <|>
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
-  <|>
+  <|> -- a more robust macro system would be nice.
+  (do
+      reserved "while"
+      c <- identifier <* parens (commaSep1 identifier) 
+      reserved "do" 
+      e <- identifier <* parens (commaSep1 identifier)
+      recurse <- (fst . snd) <$> Par.getState
+      i <- (snd . snd) <$> Par.getState
+      let args = map Ref i
+      let args' = case args of
+            [x] -> x
+            xs -> Tuple xs
+      return $ If (App c args) (App recurse [(App e args)]) (args')) -- that list is going to break things.
+        <|>
   Case <$> (reserved "case" *> identifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
-  <|>
-  While <$> (reserved "while" *> identifier) <*> (reserved "do" *> identifier) <*> expr
 
 -- | Equations
 equation :: Parser Equation
 equation =
   (try $ (Veq <$> identifier <*> (reservedOp "=" *> expr)))
   <|>
-  (try $ (Feq <$> identifier <*> (Pars <$> parens (commaSep1 (identifier))) <*> (reservedOp "=" *> expr)))
-
+  (try $ do
+    name <- identifier
+    params <- parens (commaSep1 identifier)
+    Par.modifyState (replaceSecond (name, params))
+    reservedOp "="
+    e <- expr
+    return $ Feq name (Pars params) e)
+ 
 -- | Board equations
 boardeqn :: Parser BoardEq
 boardeqn =
@@ -134,16 +151,16 @@ xtype =
 
 -- |
 --
--- >>> parseAll ttype Nothing "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty]) 
+-- >>> parseAll ttype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty]) 
 -- True 
 --
--- >>> parseAll ttype Nothing "" "(Symbol,Board)"
+-- >>> parseAll ttype "" "(Symbol,Board)"
 -- Right (Symbol,Board) 
 --
--- >>> isLeft $ parseAll ttype Nothing "" "(Symbol)" 
+-- >>> isLeft $ parseAll ttype "" "(Symbol)" 
 -- True  
 --
--- >>> isLeft $ parseAll ttype Nothing "" "(3)" 
+-- >>> isLeft $ parseAll ttype "" "(3)" 
 -- True
 
 -- | Tuple types
@@ -159,18 +176,22 @@ ptype = (Pext <$> xtype <|> Pt <$> ttype)
 ftype :: Parser Ftype
 ftype = Ft <$> ptype <*> (reservedOp "->" *> ptype)
 
+replaceFirst x (a, b) = (x, b)
+replaceSecond x (a, b) = (a, x)
+
+
 -- | 'Type's
 typ :: Parser Type
 typ = 
   (try $ (do
       f <- ftype
-      Par.putState (Just $ Function f)
+      Par.modifyState (replaceFirst (Just $ Function f))
       return (Function f)
   ))
   <|>
   (try $ (do
             p <- ptype
-            Par.putState (Just $ Plain p)
+            Par.modifyState (replaceFirst $ Just $ Plain p)
             return (Plain p)))
    
 -- | Value signatures
@@ -182,7 +203,7 @@ sig =
 valdef :: Parser ValDef
 valdef = do
   s <- sig
-  b <- getState
+  b <- fst <$> getState
   case b of
     Just (Plain (Pext (X Board set))) | S.null set  -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
@@ -190,7 +211,7 @@ valdef = do
 -- |
 -- note: Empty is currently parsed as a string in the grammar, not as a Name. Is it an issue? 
 -- >>> :{ 
---     parseAll valdef Nothing "" ex1 == 
+--     parseAll valdef "" ex1 == 
 --       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty])) 
 --       (Pext (X Booltype S.empty))))) (Feq "isValid" (Pars ["b", "p"]) 
 --       (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False)))) 
@@ -220,27 +241,20 @@ game :: Parser Game
 game =
   Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
 
--- | Uses the parser p to parse all input, throws an error if anything is left over 
-parseAll p = runParser (p <* eof) 
+-- | Uses the parser p to parse all input, throws an error if anything is left over
+parseAll p = runParser (p <* eof) (Nothing, ("", []))
 
 -- | Read from the file, and parse
 parseFromFile p fname
    = do{ input <- readFile fname
-       ; return (parseAll p Nothing fname input)
+       ; return (parseAll p fname input)
        }
-
-
-
--- | Parse a single line, displaying an error if there's a problem (used in REPL)
 parseLine :: String -> Either ParseError Expr
-parseLine = parseAll expr Nothing ""
+parseLine = parseAll expr  ""
 
--- | Read a single line and return the result (intended for brevity in test cases) 
-parseLine' :: Parser a -> String -> Either ParseError a 
-parseLine' p = parseAll p Nothing ""  
-
-
-
+-- | Read a single line and return the result (intended for brevity in test cases)
+parseLine' :: Parser a -> String -> Either ParseError a
+parseLine' p = parseAll p ""
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Maybe Game)
