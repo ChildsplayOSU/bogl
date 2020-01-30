@@ -114,11 +114,11 @@ instance Eq Xtype where
   (X k@(Symbol s) bs) == (X t1 xs) = s `S.member` xs || k == t1
   -- (X t1 xs) == (X (Symbol s) bs) | not . S.null $ xs= s `S.member` xs
   -- (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
-  --  (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
+  -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
   (X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
 
 instance Show Xtype where
-  show (X b xs) | S.null xs = show b
+  show (X b xs) | S.null xs = show b ++ "(no extension)"
                 | otherwise = show b ++ "|" ++ intercalate ("|") (map show (S.toList xs))
 
 -- | Tuples can only contain Xtypes (no sub-tuples)
@@ -151,29 +151,6 @@ instance Show Type where
   show (Plain t) = show t
   show (Function f) = show f
 
--- | Values
-data Val = Vi Integer -- ^ Integer value
-         | Vb Bool -- ^ Boolean value
-         | Vpos (Int, Int) -- ^ Position value
-         | Vboard (Array (Int,Int) Val) -- ^ Board value (displayed to user)
-         | Vt [Val] -- ^ Tuple value
-         | Vs Name -- ^ Symbol value
-         | Vf [Name] EvalEnv Expr -- ^ Function value
-         | Err String -- ^ Runtime error (I think the typechecker catches all these)
-         | Deferred -- ^ This needs an input.
-         deriving (Eq, Data)
-
-type EvalEnv = [(Name, Val)]
-
-instance Show Val where
-  show (Vi i) = show i
-  show (Vb b) = show b
-  show (Vpos x) = show x
-  show (Vboard b) = "Board: " ++ show b
-  show (Vt xs) = intercalate " " $ map show xs
-  show (Vs s) = s
-  show (Vf xs _ e) = "\\" ++ show xs ++ " -> " ++ show e
-  show (Err s) = "ERR: " ++ s
 -- | Expressions
 data Expr = I Integer -- ^ Integer expression
           | S Name -- ^ Symbol
@@ -186,7 +163,6 @@ data Expr = I Integer -- ^ Integer expression
           | If Expr Expr Expr -- ^ Conditional expression
           | While Name Name Expr -- ^ While loop (could be While Expr Expr Expr if we make the App change suggested above)
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
-          | Value Val -- ^ This is a hack for forcing values. This is because input is impure.
    deriving (Eq, Data)
 instance Show Expr where
   show (I i) = show i

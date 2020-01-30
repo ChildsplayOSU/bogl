@@ -166,7 +166,7 @@ exprtype e@(If e1 e2 e3) = do
   case (t1, t2, t3) of
     (Pext (X Booltype empty), Pext (X (Symbol s) s1), Pext (X t3' s2)) | S.null empty -> return $ Pext (X t3' $ S.unions [s1, s2, S.fromList [s]])
     (Pext (X Booltype empty), Pext ((X t2' s1)), Pext (X (Symbol s) s2)) | S.null empty -> return $ Pext (X t2' $ S.unions [s1, s2, S.fromList [s]])
-    (Pext (X Booltype empty), y, z) | S.null empty -> mismatch (Plain y) (Plain z) e
+    (Pext (X Booltype empty), y, z) | S.null empty -> if y /= z then mismatch (Plain y) (Plain z) e else return $ (y)
     (x, _, _) -> mismatch (Plain $ Pext $ (X Booltype S.empty)) (Plain x) e
 
 -- case (FIXME)

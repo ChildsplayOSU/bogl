@@ -28,3 +28,6 @@ gameLoopRec(player, b) = let nextB = doMove(player, b) in
                               XWins -> XWin
                               OWins -> OWin
                               | gameLoopRec(next(player), nextB)
+
+recTest : Int -> Int
+recTest(x) = if x == 0 then 1 else x * recTest(x-1)
