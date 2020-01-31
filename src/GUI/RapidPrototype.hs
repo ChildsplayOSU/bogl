@@ -1,6 +1,4 @@
--- | "Dinanzi a me non fuor cose create
---  se non etterne, e io etterno duro.
---  Lasciate ogne speranza, voi ch'entrate."
+-- | quick prototype REPL.
 
 module GUI.RapidPrototype where
 
