@@ -16,6 +16,8 @@ addPlusOne(x,y) = succ(add(x,y))
 example :  Int
 example = addPlusOne(3,2)
 
+getInput : Board -> Position
+getInput(b) = input(b)
 
 safeDivide : (Int, Int) -> Int|Nothing
 safeDivide (x, y) = if y == 0 then Nothing else x / y
@@ -40,7 +42,3 @@ addMoreExt(x) = case x of
 lessThanTen : Int -> Bool
 lessThanTen(x) = x < 10
 
-whileLoopEx : Int -> Int
-whileLoopEx(x) = while lessThanTen
-              do succ
-              x

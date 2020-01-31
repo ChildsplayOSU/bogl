@@ -4,6 +4,7 @@
 module Language.Syntax where
 import Data.List
 import Text.JSON.Generic
+import Data.Array
 import qualified Data.Set as S
 type Name = String
 
@@ -18,7 +19,7 @@ instance Show Game where
                          ++ intercalate ("\n\n\n") (map show vs)
 
 -- | Board definition: mxn board of type Type
-data BoardDef = BoardDef Integer Integer Type
+data BoardDef = BoardDef Int Int Type
   deriving (Data)
 
 instance Show BoardDef where
@@ -77,13 +78,21 @@ instance Show BoardEq where
 data Btype = Booltype -- ^ Boolean
            | Itype -- ^ Integer
            | Symbol Name -- ^ Symbols, or nullary constructors. Each symbol lives in its own unique type.
+           | AnySymbol -- ^ this is the type all symbols live in
            | Input -- ^ The input type specified at the top of the program
            | Board -- ^ A game board
            | Player -- ^ A player
            | Position -- ^ A position, specified by the board description
            | Positions -- ^ The list of all positions
            | Undef -- ^ Only occurs when typechecking. The user cannot define anything of this type. (I could use 'undefined' everywhere I use this, but one false move and the whole program crashes)
-   deriving (Eq, Data)
+   deriving (Data)
+instance Eq Btype where
+  (Symbol _) == AnySymbol = True
+  AnySymbol == (Symbol _) = True
+  Symbol n1 == Symbol n2 = n1 == n2
+  x == y = show x == show y -- ........
+
+
 
 instance Show Btype where
   show Booltype = "Bool"
@@ -94,6 +103,7 @@ instance Show Btype where
   show Player = "Player"
   show Position = "Position"
   show Positions = "Positions"
+  show AnySymbol = "AnySymbol"
   show Undef = "?"
 
 -- | Xtypes are sum types, but restricted by the semantics to only contain Symbols after the atomic type.
@@ -101,14 +111,14 @@ data Xtype = X Btype (S.Set Name)
   deriving (Data)
 
 instance Eq Xtype where
-  -- (X (Symbol s) bs) == (X t1 xs) | not . S.null $ xs= s `S.member` xs
+  (X k@(Symbol s) bs) == (X t1 xs) = s `S.member` xs || k == t1
   -- (X t1 xs) == (X (Symbol s) bs) | not . S.null $ xs= s `S.member` xs
   -- (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
   -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
   (X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
 
 instance Show Xtype where
-  show (X b xs) | S.null xs = show b
+  show (X b xs) | S.null xs = show b ++ "(no extension)"
                 | otherwise = show b ++ "|" ++ intercalate ("|") (map show (S.toList xs))
 
 -- | Tuples can only contain Xtypes (no sub-tuples)
@@ -151,7 +161,9 @@ data Expr = I Integer -- ^ Integer expression
           | Binop Op Expr Expr -- ^ Binary operation of two expressions
           | Let Name Expr Expr -- ^ Let binding
           | If Expr Expr Expr -- ^ Conditional expression
-          | While Name Name Expr -- ^ While loop (could be While Expr Expr Expr if we make the App change suggested above)
+          | While Expr Expr [Expr] --
+          | Abs [Name] Expr
+          | AppAbs [Expr] Expr
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
    deriving (Eq, Data)
 instance Show Expr where

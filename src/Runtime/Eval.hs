@@ -1,52 +1,104 @@
 -- | Interpreter for Spiel
 
-module Runtime.Eval (run, bindings) where
+module Runtime.Eval where
 import Language.Syntax
 import Control.Monad
 import Data.Array
 import Data.List
+
+import Data.Either
+
 import Control.Monad.Reader
 import Control.Monad.Except
+import Control.Monad.State
 import Control.Monad.Identity
 import Debug.Trace
-
--- | Call-by-value semantics
-type Env = [(Name, Val)]
-
--- | Evaluation occurs in the IO monad with an enviroment to read from.
--- alternate definition:
--- @type Eval a = ReaderT (Env, InputTape) (Identity) a@
--- for the 'pure' evaluator
-type Eval a = ReaderT Env (Identity) a
-
-newScope :: Env -> Eval a -> Eval a
-newScope env = local (env++)
-
-lookupName :: Name -> Eval (Maybe Val)
-lookupName n = ask >>= (return . (lookup n))
-
-
 
 -- | Values
 data Val = Vi Integer -- ^ Integer value
          | Vb Bool -- ^ Boolean value
          | Vpos (Int, Int) -- ^ Position value
-         | Vboard (Array Int Val) -- ^ Board value (displayed to user)
+         | Vboard (Array (Int,Int) Val) -- ^ Board value (displayed to user)
          | Vt [Val] -- ^ Tuple value
          | Vs Name -- ^ Symbol value
-         | Vf [Name] Env Expr -- ^ Function value
+         | Vf [Name] EvalEnv Expr -- ^ Function value
          | Err String -- ^ Runtime error (I think the typechecker catches all these)
-         deriving (Eq)
+         | Deferred -- ^ This needs an input.
+
+
+-- Can't compare two function
+
+instance Eq Val where
+  (Vi x) == (Vi y) = x == y
+  (Vb b1) == (Vb b2) = b1 == b2
+  (Vpos x) == (Vpos y) = x == y
+  (Vboard b1) == (Vboard b2) = b1 == b2
+  (Vt x) == (Vt y) = x == y
+  (Vs n) == (Vs n2) = n == n2
+  _ == _ = False
+
+
+type EvalEnv = [(Name, Val)]
 
 instance Show Val where
   show (Vi i) = show i
   show (Vb b) = show b
   show (Vpos x) = show x
-  show (Vboard _) = "Board"
+  show (Vboard b) = "Board: " ++ show b
   show (Vt xs) = intercalate " " $ map show xs
   show (Vs s) = s
-  show (Vf xs _ e) = "\\" ++ show xs ++ " -> " ++ show e
+  show (Vf xs env' e) = "\\" ++ show xs ++ " -> " ++ show e
   show (Err s) = "ERR: " ++ s
+-- | Call-by-value semantics
+data Env = Env {
+  evalEnv :: EvalEnv  ,
+  boardSize :: (Int, Int)
+               }
+
+modifyEval :: (EvalEnv -> EvalEnv) -> Env -> Env
+modifyEval f (Env e b) = Env (f e) b
+-- | Input tape
+type Tape = [Val]
+-- | Exceptions
+data Exception =
+  NeedInput Val | -- ^ Ran out of input, and here's the current board
+  Error String -- ^ Encountered a runtime error (shouldn't ever happen)
+  deriving Show
+-- | Evaluation occurs in the Identity monad with these side effects:
+-- ReaderT: Evaluation enviroment, board size and piece type, and input type
+-- StateT: Input tape
+-- alternate definition:
+-- @type Eval a = ReaderT (Env, InputTape) (Identity) a@
+-- for the 'pure' evaluator
+type Eval a = StateT Tape (ExceptT Exception (ReaderT Env (Identity))) a
+
+type PreEval a = ReaderT Env (Identity)
+
+runEval :: Eval a -> Env -> Tape -> Either Exception a
+runEval x env tape  = runIdentity (runReaderT (runExceptT (evalStateT x tape)) env)
+
+newScope :: EvalEnv -> Eval a -> Eval a
+newScope env = local (modifyEval (env++))
+
+lookupName :: Name -> Eval (Maybe Val)
+lookupName n = do
+  env <- (evalEnv <$> ask)
+  case lookup n env of
+    Just v -> (return . Just) v
+    Nothing -> return Nothing
+
+
+waitForInput :: Val -> Eval a
+waitForInput v = throwError (NeedInput v)
+
+readTape :: Eval (Val) -> Eval (Val)
+readTape v = do
+  tape <- get
+  v' <- v
+  case tape of
+    (x:xs) -> (put xs) >> return x
+    [] -> waitForInput v'
+
 
 -- | Helper function to get the Bool out of a value.
 unpackBool :: Val -> Bool
@@ -54,19 +106,35 @@ unpackBool (Vb b) = b
 unpackBool _ = undefined
 
 -- | Produce all of the bindings from a list
--- Note that this is a little bizarre: x is the list of all bindings in an empty enviroment,
--- which is then used as the enviroment in a second pass.
-bindings :: [ValDef] -> Env
-bindings vs = map (bind x) vs
-  where
-    x = map (bind []) vs
+bindings :: (Int, Int) -> [ValDef] -> Eval Env
+bindings sz vs = do
+  vs' <- mapM bind vs
+  return $ Env (vs') sz
 
--- | Bind the value of a definition to its name in the current Enviroment
-bind :: Env -> ValDef -> (Name, Val)
-bind env (Val _ (Veq n e)) = (n, v)
-  where
-    v = runIdentity (runReaderT (eval e) env)
-bind env (Val _ (Feq n (Pars ls) e)) = (n, Vf ls env e)
+-- | Bind the value of a definition to its name in the current Environment
+-- asking for input has to be deferred...
+-- could have a seperate, declaration environment.
+bind :: ValDef -> Eval (Name, Val)
+bind (Val _ (Veq n e)) = do
+  v <- eval e
+  return (n, v)
+-- bind env (BVal _ (PosDef n e1 e2 e)) = (n, v) -- wrong!
+--    where
+--     (v1, v2) = (fromRight Deferred (runWithTape env [] e1), fromRight Deferred (runWithTape env [] e2))
+--     v = fromRight Deferred (runWithTape env [] (e))
+bind  (Val _ (Feq n (Pars ls) e)) = do
+  env <- evalEnv <$> ask
+  return (n, Vf ls env e)
+
+bind (BVal _ (RegDef n e1 e2)) = do
+      sz <- boardSize <$> ask
+      v <- ((map dePos) . deTuple) <$> eval e1
+      value <- (eval e2)
+      return $ (n, Vboard $ array ((1,1), sz) (zip v (repeat value)))
+    where
+    dePos (Vpos (x,y)) = (x,y)
+    deTuple (Vt xs) = xs -- hmm
+
 
 -- | Binary operation evaluation
 evalBinOp :: Op -> Expr -> Expr -> Eval Val 
@@ -130,7 +198,52 @@ evalBoolOp f l r = do
 -- 6  
 -- 
 -- >>> run [] (Binop Plus (B True) (Binop Times (I 2) (I 3)))
--- ERR: ...  
+-- ERR: ...
+
+-- 🤔... this certainly isn't winning any prizes for efficiency.
+inARow :: Val -> [((Int, Int), Val)] -> [((Int, Int), Val)] -> (Int, Int) -> Int -> Bool
+inARow v state (s:st) d n = (inARow' state s d n) || inARow v state st d n
+  where
+    inARow' :: [((Int, Int), Val)] -> ((Int, Int), Val) -> (Int, Int) -> Int -> Bool
+    inARow' _ _ _ 1 = True
+    inARow' st ((x, y), c) (dx, dy) n = if v /= c then False else case lookup (x+dx, y+dy) st of
+      Nothing -> False
+      Just c' -> if v == c' then inARow' state ((x+dx, y+dy), c) (dx, dy) (n-1) else False
+inARow _ _ _ _ _ = False
+
+line :: Val -> [((Int, Int), Val)] -> Int -> Bool
+line v acc n = (inARow v acc acc (1,1) n) ||  (inARow v acc acc (0,1) n) ||  (inARow v acc acc (1,0) n)
+
+
+-- maybe [Eval Val] -> Eval Val, for symmetry with others?
+builtins :: [(Name, [Expr] -> Eval Val)]
+builtins = [
+  ("input", \[v] -> readTape (eval v)),
+  ("place", \xs -> do
+      xs' <- mapM eval xs
+      case xs' of
+        [v, Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // [((x,y), v)]),
+  ("remove", \xs -> do
+      xs' <- mapM eval xs
+      case xs' of
+        [Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // pure ((x,y), Vs "Empty")),
+  ("isFull", \xs -> do
+      xs' <- mapM eval xs
+      case xs' of
+        [Vboard arr] -> return $ Vb $ all (/= Vs "Empty") $ elems arr),
+  ("inARow", \xs -> do
+      xs' <- mapM eval xs
+      case xs' of
+        [Vi i, Vboard arr, v] -> return $ Vb $ line v (assocs arr) (fromInteger i)),
+  ("at", \xs -> do
+      xs' <- mapM eval xs
+      case xs' of
+        [Vboard arr, Vpos (x,y)] -> return $ arr ! (x,y))
+  ]
+
+builtinRefs :: [(Name, Eval Val)]
+builtinRefs = [("positions", (boardSize <$> ask) >>= \(szx, szy) -> return $ Vt [Vpos (x,y) | x <- [1..szx], y <- [1..szy]])]
+
 eval :: Expr -> Eval Val
 eval (I i) = return $ Vi i
 eval (B b) = return $ Vb b
@@ -140,36 +253,35 @@ eval (Ref n) = do
   e <- lookupName n
   case e of
         Just (v) -> return $ v
-        _ -> return $ Err $ "Variable " ++ n ++ " undefined"
+        Nothing -> case lookup n builtinRefs of
+          Just v -> v
+          Nothing -> return $ Err $ "Variable " ++ n ++ " undefined"
 eval (App n es) = do
-  args <- sequence $ map (eval) es
+  args <- mapM eval es
   f <- lookupName n
+  traceM "APP !"
   case f of
-    Just (Vf params env' e) -> newScope ((zip params args) ++ env') (eval e)
-    Nothing -> undefined -- check if its a builtin? TODO
+    Just (Vf params env' e) -> newScope (zip params args ++ env') (eval e)
+    Nothing -> case lookup n builtins of
+      Just f -> do
+        f es
+      Nothing -> undefined
 eval (Let n e1 e2) = do
   v <- eval e1
   newScope (pure (n, v)) (eval e2)
- 
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   if b then eval e1 else eval e2
 
-eval (While p f x) = do
-  b <- eval (App p [x])
-  case b of
-    (Vb b) -> if b then eval (While p f (App f [x])) else eval x
-    _ -> undefined
-   
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
 eval (Case n xs e)  = do
   f <- lookupName n
   case f of
     Just v -> case v of
-      (Vs s) -> case lookup s xs of
+      (Vs s) -> case lookup s (xs) of
         Just e' -> newScope (pure (n, v)) (eval e')
-        _ -> undefined
+        Nothing -> newScope (pure (n, v)) (eval e) -- hmm.
       _ -> newScope (pure (n, v)) (eval e)
     Nothing -> undefined
 
@@ -183,7 +295,30 @@ eval (Case n xs e)  = do
 --
 -- >>> run [] (Let "x" (I 2) (Ref "x"))
 -- 2
-run :: Env -> Expr -> IO ()
-run env e = let v = runIdentity (runReaderT (eval e) env) in
-  (putStrLn . show) v
+emptyEnv = Env [] (3,3)
+
+produceEnv :: Eval Env -> Either Exception Env
+produceEnv e = runIdentity (runReaderT (runExceptT (evalStateT e [])) emptyEnv)
+
+runWithTape :: Eval Env -> Tape -> Expr -> Either (Val, Tape) Val
+runWithTape env tape e = do
+  let Right env' = produceEnv env
+  let v = runEval (eval e) env' tape in
+    case v of
+      Left (NeedInput b) -> Left (b, tape)
+      Right val -> Right val
+      _ -> undefined
+
+runUntilComplete :: Eval Env -> Expr -> IO ()
+runUntilComplete env expr = runUntilComplete' []
+  where
+    runUntilComplete' tape = case runWithTape env tape expr of
+      Right v -> (putStrLn . show) v
+      Left (b, t) -> do
+        -- work out which type of input we want..
+        (putStrLn . show) t
+        (putStrLn . show) b
+        x <- read <$> getLine
+        y <- read <$> getLine
+        runUntilComplete' (tape ++ pure (Vpos (x, y)))
 

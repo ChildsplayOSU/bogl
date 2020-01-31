@@ -23,10 +23,15 @@ repl g@(Game n i b _) = do
   putStrLn $ "Game: " ++ n
   repl' g
   where
-      repl' g@(Game _ _ _ vs)= do
-        x <- (getLine) >>= parseLine
+      repl' g@(Game n (BoardDef szx szy p) _ vs)= do
+        x <- parseLine <$> getLine
         case x of
-          Just e -> do
-            b <- tcexpr (environment i b vs) e
-            if b then run (bindings vs) e >> repl' g else repl' g
-          Nothing -> repl' g
+          Right e -> do
+            case tcexpr (environment i b vs) e of
+              Right t -> runUntilComplete (bindings (szx,szy) vs) e >> repl' g
+              Left err -> putStrLn (show err) >> repl' g
+
+
+          Left err -> do
+            putStrLn (show err)
+            repl' g
