@@ -27,8 +27,9 @@ repl g@(Game n i b _) = do
         x <- parseLine <$> getLine
         case x of
           Right e -> do
-            b <- tcexpr (environment i b vs) e
-            if b then runUntilComplete (bindings (szx,szy) vs) e >> repl' g else repl' g
+            case tcexpr (environment i b vs) e of
+              Right t -> runUntilComplete (bindings (szx,szy) vs) e >> repl' g
+              Left err -> putStrLn (show err) >> repl' g
           Left err -> do
             putStrLn (show err)
             repl' g

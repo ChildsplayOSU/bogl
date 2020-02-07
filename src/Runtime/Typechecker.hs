@@ -259,9 +259,5 @@ tc (Game _ b i vs) = if all (isRight) (checked) then return True else ((putStrLn
     checked = map (runTypeCheck env) vs
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
-tcexpr :: Env -> Expr -> IO Bool
-tcexpr e x = either (\t -> (putStrLn . show $ t) >> return False)  (\_ -> return True) t
-  where
-    t = runIdentity $ runExceptT $ runReaderT (exprtype x) e
-
-
+tcexpr :: Env -> Expr -> Either TypeError Ptype
+tcexpr e x = runIdentity $ runExceptT $ runReaderT (exprtype x) e
