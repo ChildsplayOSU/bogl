@@ -24,6 +24,7 @@ data Val = Vi Integer -- ^ Integer value
          | Vf [Name] EvalEnv Expr -- ^ Function value
          | Err String -- ^ Runtime error (I think the typechecker catches all these)
          | Deferred -- ^ This needs an input.
+         | ValD Expr
 
 
 -- Can't compare two function
@@ -54,6 +55,7 @@ data Env = Env {
   evalEnv :: EvalEnv  ,
   boardSize :: (Int, Int)
                }
+  deriving Show
 
 modifyEval :: (EvalEnv -> EvalEnv) -> Env -> Env
 modifyEval f (Env e b) = Env (f e) b
@@ -116,8 +118,7 @@ bindings sz vs = do
 -- could have a seperate, declaration environment.
 bind :: ValDef -> Eval (Name, Val)
 bind (Val _ (Veq n e)) = do
-  v <- eval e
-  return (n, v)
+  return (n, ValD e)
 -- bind env (BVal _ (PosDef n e1 e2 e)) = (n, v) -- wrong!
 --    where
 --     (v1, v2) = (fromRight Deferred (runWithTape env [] e1), fromRight Deferred (runWithTape env [] e2))
@@ -252,6 +253,7 @@ eval (Tuple es) = (sequence (map eval es)) >>= (return . Vt)
 eval (Ref n) = do
   e <- lookupName n
   case e of
+        Just (ValD e) -> eval e
         Just (v) -> return $ v
         Nothing -> case lookup n builtinRefs of
           Just v -> v
@@ -265,7 +267,11 @@ eval (App n es) = do
     Nothing -> case lookup n builtins of
       Just f -> do
         f es
-      Nothing -> undefined
+      Nothing -> do
+        env <- ask
+        traceM (show env)
+        traceM ("couldn't find " ++ n)
+        return $ Err $ "Couldn't find" ++ n
 eval (Let n e1 e2) = do
   v <- eval e1
   newScope (pure (n, v)) (eval e2)
@@ -274,7 +280,6 @@ eval (If p e1 e2) = do
   if b then eval e1 else eval e2
 
 eval (Binop op e1 e2) = evalBinOp op e1 e2
-
 eval (Case n xs e)  = do
   f <- lookupName n
   case f of
