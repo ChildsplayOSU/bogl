@@ -1,6 +1,4 @@
--- | "Dinanzi a me non fuor cose create
---  se non etterne, e io etterno duro.
---  Lasciate ogne speranza, voi ch'entrate."
+-- | quick prototype REPL.
 
 module GUI.RapidPrototype where
 
@@ -51,14 +49,20 @@ replReply g@(Game n i@(BoardDef szx szy p) b vs) w msgs replArea = do
         case parseLine msg of
           Right x -> do
             case tcexpr (environment i b vs) x of
-              Right _ -> case runWithTape (bindings (szx, szy) vs) [] x of
-                Right (x) -> element replArea #+ (pure $ makeValDisplay x msg)
-                Left ((Vboard b), t) -> do
-                  element replArea #+ [UI.div #. "content" #+ [makeInteractiveBoard b t x msg]]
-                Left (err) -> string $ show err
-              Left err -> element replArea #+ [UI.div #. "content" #+ [string (show err)]]
-            UI.scrollToBottom replArea
-            flushCallBuffer
+              Right t -> do
+                case runWithTape (bindings (szx, szy) vs) [] x of
+                  Right (x) -> element replArea #+ (pure $ makeValDisplay x msg)
+                  Left ((Vboard b), t) -> do
+                    element replArea #+ [UI.div #. "content" #+ [makeInteractiveBoard b t x msg]]
+                  Left (err) -> string $ show err
+                UI.scrollToBottom replArea
+                flushCallBuffer
+              Left err -> do
+                element replArea #+ (pure $ (string $ show err))
+                UI.scrollToBottom replArea
+                flushCallBuffer
+
+
           Left err -> do
             element replArea #+ [UI.div #. "repl" #+ [UI.div #. "inprogress" #+ [string $ show err]]]
             UI.scrollToBottom replArea
