@@ -81,7 +81,11 @@ deftype (BVal (Sig n t) eqn) = do
   if eqt == t then return t else sigmismatch n t eqt
 
 beqntype :: Type -> BoardEq -> Typechecked Type
-beqntype t (PosDef n e1 e2 e3) = do
+beqntype t (PosDef _ _ _ e) = do 
+   t1 <- exprtype e 
+   case t1 of 
+      _ -> return $ Plain $ Pext (X Board S.empty)  
+{-beqntype t (PosDef n e1 e2 e3) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   t3 <- exprtype e3
@@ -92,6 +96,8 @@ beqntype t (RegDef n e1 e2) = do
   t2 <- exprtype e2
   case t1 of
     (Pext (X Positions s)) | s == S.empty -> return $ Plain (Pext (X Board S.empty))
+-} 
+-- TODO: 
 
 -- | Get the type of an equation
 eqntype :: Type -> Equation -> Typechecked Type
@@ -202,6 +208,8 @@ exprtype expr@(Case n xs e) = do
 
     retrieveSymbols (Pext (X (Symbol n) s)) = (S.singleton n) `S.union` s
     retrieveSymbols _ = S.empty
+exprtype (While c e args) = exprtype args -- TODO
+exprtype bug = do error (show bug) 
 -- while
 --
 

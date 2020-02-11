@@ -14,11 +14,13 @@ import Control.Monad.State
 import Control.Monad.Identity
 import Debug.Trace
 
+type Board = Array (Int, Int) Val 
+
 -- | Values
 data Val = Vi Integer -- ^ Integer value
          | Vb Bool -- ^ Boolean value
          | Vpos (Int, Int) -- ^ Position value
-         | Vboard (Array (Int,Int) Val) -- ^ Board value (displayed to user)
+         | Vboard Board -- ^ Board value (displayed to user)
          | Vt [Val] -- ^ Tuple value
          | Vs Name -- ^ Symbol value
          | Vf [Name] EvalEnv Expr -- ^ Function value
@@ -127,14 +129,44 @@ bind  (Val _ (Feq n (Pars ls) e)) = do
   env <- evalEnv <$> ask
   return (n, Vf ls env e)
 
-bind (BVal _ (RegDef n e1 e2)) = do
+-- look up the board and update it if it exists 
+bind (BVal _ (PosDef n xp yp e2)) = do
       sz <- boardSize <$> ask
-      v <- ((map dePos) . deTuple) <$> eval e1
-      value <- (eval e2)
-      return $ (n, Vboard $ array ((1,1), sz) (zip v (repeat value)))
+      value <- eval e2 
+      maybeBoard <- lookupName n  
+      case maybeBoard of 
+         Nothing -> let board = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) in return (n, Vboard board) 
+         Just (Vboard b) -> return $ (n, Vboard b) 
+         _ -> error "TODO"  
+      
+
+
+      --v <- ((map dePos) . deTuple) <$> eval e1
+      --return $ (n, Vboard $ array ((1,1), sz) (zip v (repeat value)))
     where
     dePos (Vpos (x,y)) = (x,y)
     deTuple (Vt xs) = xs -- hmm
+
+
+--bind (BVal _ (RegDef n e1 e2)) = do
+--      sz <- boardSize <$> ask
+--      v <- ((map dePos) . deTuple) <$> eval e1
+--      value <- (eval e2)
+--      return $ (n, Vboard $ array ((1,1), sz) (zip v (repeat value)))
+--    where
+--    dePos (Vpos (x,y)) = (x,y)
+--    deTuple (Vt xs) = xs -- hmm
+
+--updateBoard :: Board -> (Int, Int) -> Pos -> Pos -> Val -> Board 
+--updateBoard b sz xp yp v = let indices = range b ((1,1), (sz,sz)) in
+--                              filter (posMatches xp yp)   
+
+-- | Check if a Pos matches a coordinate pair  
+posMatches :: Pos -> Pos -> (Int, Int) -> Bool 
+posMatches xp yp (x, y) = match xp x && match yp y 
+   where  
+      match ForAll _        = True 
+      match (Index ix) i = ix == i 
 
 
 -- | Binary operation evaluation

@@ -65,13 +65,16 @@ instance Show Equation where
   show (Feq n p e) = n ++ show p ++ " = " ++ show e
 
 -- | Board equations can either be
-data BoardEq = PosDef Name Expr Expr Expr -- ^ Position defition: an assignment to a specific position
-             | RegDef Name Expr Expr -- ^ A region definition, an assignment to multiple positions
+--data BoardEq = PosDef Name Expr Expr Expr -- ^ Position defition: an assignment to a specific position
+--             | RegDef Name Expr Expr -- ^ A region definition, an assignment to multiple positions
+data BoardEq = PosDef Name Pos Pos Expr 
    deriving (Eq, Data)
 
-instance Show BoardEq where
-  show (PosDef n i1 i2 e) = n ++ "(" ++ show i1 ++ ", " ++ show i2 ++ ")" ++ "=" ++ show e
-  show (RegDef n e1 e2) = n ++ "(" ++ show e1 ++ ")" ++ "=" ++ show e2
+instance Show BoardEq where 
+   show (PosDef n x y e) = n ++ "(" ++ show x ++ ", " ++ show y ++ ")" ++ " = " ++ show e 
+--instance Show BoardEq where
+--  show (PosDef n i1 i2 e) = n ++ "(" ++ show i1 ++ ", " ++ show i2 ++ ")" ++ "=" ++ show e
+--  show (RegDef n e1 e2) = n ++ "(" ++ show e1 ++ ")" ++ "=" ++ show e2
 
 -- Types
 -- | Atomic types
@@ -151,7 +154,11 @@ instance Show Type where
   show (Plain t) = show t
   show (Function f) = show f
 
--- | Expressions
+data Pos = Index Int 
+         | ForAll      
+         deriving (Eq, Show, Data) 
+
+ -- | Expressions
 data Expr = I Integer -- ^ Integer expression
           | S Name -- ^ Symbol
           | B Bool -- ^ Boolean
@@ -161,7 +168,7 @@ data Expr = I Integer -- ^ Integer expression
           | Binop Op Expr Expr -- ^ Binary operation of two expressions
           | Let Name Expr Expr -- ^ Let binding
           | If Expr Expr Expr -- ^ Conditional expression
-          | While Expr Expr [Expr] --
+          | While Expr Expr Expr --
           | Abs [Name] Expr
           | AppAbs [Expr] Expr
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
@@ -190,6 +197,7 @@ data Op = Plus
         | Less
         | Xor
         | Greater
+        | Get           -- Gets contents from a position on a board 
    deriving (Eq, Data)
 instance Show Op where
   show Plus = " + "

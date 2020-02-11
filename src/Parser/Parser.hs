@@ -33,7 +33,8 @@ lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True"
 -- | Operators (might want to fix the order of operations)
 operators = [[op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "mod" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
-             [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft, op "<" (Binop Less) AssocLeft, op ">" (Binop Greater) AssocLeft]
+             [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft, op "<" (Binop Less) AssocLeft, op ">" (Binop Greater) AssocLeft],
+             [op "!" (Binop Get) AssocLeft] 
             ]
               -- and so on
 
@@ -62,7 +63,6 @@ reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
 comma = P.comma lexer 
 
-
 -- | Atomic expressions
 atom :: Parser Expr
 atom =
@@ -88,16 +88,20 @@ atom =
   <|> -- a more robust macro system would be nice.
   (do
       reserved "while"
-      c <- identifier <* parens (commaSep1 identifier) 
+      --c <- identifier <* parens (commaSep1 identifier) 
+      c <- atom
       reserved "do" 
-      e <- identifier <* parens (commaSep1 identifier)
+      e <- atom 
+      --e <- identifier <* parens (commaSep1 identifier)
       recurse <- (fst . snd) <$> Par.getState
       i <- (snd . snd) <$> Par.getState
       let args = map Ref i
       let args' = case args of
             [x] -> x
             xs -> Tuple xs
-      return $ If (App c args) (App recurse [(App e args)]) (args')) -- that list is going to break things.
+      return $ While c e args') 
+      -- Let "is" =  
+      --return $ If (App c args) (App recurse [(App e args)]) (args')) -- that list is going to break things.
         <|>
   Case <$> (reserved "case" *> identifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
 
@@ -113,13 +117,23 @@ equation =
     reservedOp "="
     e <- expr
     return $ Feq name (Pars params) e)
- 
+
+position :: Parser Pos 
+position = 
+   Index <$> fromIntegral <$> integer -- TODO: better way?  
+   <|>
+   identifier *> pure ForAll
+--   do 
+--      identifier >> pure ForAll 
+
 -- | Board equations
 boardeqn :: Parser BoardEq
 boardeqn =
-  (try $ (RegDef <$> identifier <*> (parens expr) <*> (reservedOp "=" *> expr)))
-  <|>
-  (try $ (PosDef <$> identifier <*> (char '(' *> expr) <*> (comma *> expr <* char ')') <*> (reservedOp "=" *> expr)))
+   (try $ (PosDef <$> identifier <*> (lexeme (char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
+   --(try $ (PosDef <$> identifier <*> (parens (position <* comma *> position)) <*> (reservedOp "=" *> expr)))
+--  (try $ (RegDef <$> identifier <*> (parens expr) <*> (reservedOp "=" *> expr)))
+--  <|>
+--  (try $ (PosDef <$> identifier <*> (char '(' *> expr) <*> (comma *> expr <* char ')') <*> (reservedOp "=" *> expr)))
 
 -- | Atomic types
 btype :: Parser Btype
