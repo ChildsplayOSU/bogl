@@ -4,8 +4,10 @@ type Board = Grid(3,3) of AnySymbol
 type Input = Position
 
 empty : Board
---empty(positions) = Empty
-empty(x,y) = Fake 
+empty(x,y) = Empty 
+
+empty : Board 
+empty(x,1) = X
 
 -- This is kind of frustrating. Potential builtin, or a language pragma that prevents you from placing on a spot that already has pieces would be cool.
 move : Board -> Board | Failed
@@ -24,3 +26,9 @@ status(b) = if inARow(3, b, X) then False else True
 
 gameLoop : Board -> Board
 gameLoop(b) = while status(b) do doMove(b)
+
+identity : Bool -> Bool 
+identity(b) = b && b  
+
+contrivedGameLoop : Board -> Board
+contrivedGameLoop(b) = while identity(status(b)) do doMove(b) 

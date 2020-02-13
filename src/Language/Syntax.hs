@@ -168,10 +168,12 @@ data Expr = I Integer -- ^ Integer expression
           | Binop Op Expr Expr -- ^ Binary operation of two expressions
           | Let Name Expr Expr -- ^ Let binding
           | If Expr Expr Expr -- ^ Conditional expression
-          | While Expr Expr Expr --
           | Abs [Name] Expr
           | AppAbs [Expr] Expr
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
+          -- condition, body, names of arguments from the wrapper function, (tuple of) expression(s) which referenc(es) the name(s). 
+          -- the last Expr can always be constructed from the [Name], but it makes the code cleaner to do that only once while parsing 
+          | While Expr Expr [Name] Expr
    deriving (Eq, Data)
 instance Show Expr where
   show (I i) = show i
@@ -183,7 +185,7 @@ instance Show Expr where
   show (Binop o e1 e2) = show e1 ++ show o ++ show e2
   show (Let n e1 e2) = "Let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
   show (If e1 e2 e3) = "If " ++ show e1 ++ " Then " ++ show e2 ++ " Else " ++ show e3
-  show (While e1 e2 x) = "While " ++ show e1 ++ " do " ++ show e2 ++ " to " ++ show x
+  show (While c b n e ) = "While " ++ show c ++ " do " ++ show b ++ "(with names, values from wrapper: " ++ show n ++ ", " ++ show e ++ ")" 
   show (Case n xs e) = "case " ++ n ++ " of" ++ (intercalate "\n" (map show xs)) ++ "otherwise: " ++ show e
 -- | Binary operations
 data Op = Plus

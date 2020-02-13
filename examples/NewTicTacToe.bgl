@@ -23,8 +23,8 @@ gameOver(b) = or(threeInARow(b),isFull(b))
 
 outcome : (Board,Player) -> Player|Tie
 outcome(b,p) = if inARow(3,A,b) then A else
-               if inARow(3,B,b) then B else
-               if isFull(b)     then Tie
+               if inARow(3,B,b) then B else Tie 
+               --if isFull(b)     then Tie
 
 threeInARow : Board -> Bool
 threeInARow(b) = or(inARow(3,A,b),inARow(3,B,b))

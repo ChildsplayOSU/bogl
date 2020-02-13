@@ -85,24 +85,20 @@ atom =
   Let <$> (reserved "let" *> identifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
   <|>
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
-  <|> -- a more robust macro system would be nice.
+  <|>
   (do
       reserved "while"
-      --c <- identifier <* parens (commaSep1 identifier) 
       c <- atom
       reserved "do" 
       e <- atom 
-      --e <- identifier <* parens (commaSep1 identifier)
       recurse <- (fst . snd) <$> Par.getState
-      i <- (snd . snd) <$> Par.getState
-      let args = map Ref i
-      let args' = case args of
+      names <- (snd . snd) <$> Par.getState -- get the names of the parameters to the function which wraps this while 
+      let exprs = map Ref names
+      let exprs' = case exprs of
             [x] -> x
             xs -> Tuple xs
-      return $ While c e args') 
-      -- Let "is" =  
-      --return $ If (App c args) (App recurse [(App e args)]) (args')) -- that list is going to break things.
-        <|>
+      return $ While c e names exprs') 
+   <|>
   Case <$> (reserved "case" *> identifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
 
 -- | Equations

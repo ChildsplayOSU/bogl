@@ -208,10 +208,7 @@ exprtype expr@(Case n xs e) = do
 
     retrieveSymbols (Pext (X (Symbol n) s)) = (S.singleton n) `S.union` s
     retrieveSymbols _ = S.empty
-exprtype (While c e args) = exprtype args -- TODO
-exprtype bug = do error (show bug) 
--- while
---
+exprtype (While c b n e) = exprtype e -- TODO 
 
 getExtensions :: Ptype -> S.Set Name
 getExtensions (Pext (X _ exs)) = exs

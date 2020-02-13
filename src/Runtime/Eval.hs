@@ -1,4 +1,4 @@
--- | Interpreter for Spiel
+--- | Interpreter for Spiel
 
 module Runtime.Eval where
 import Language.Syntax
@@ -52,6 +52,7 @@ instance Show Val where
   show (Vs s) = s
   show (Vf xs env' e) = "\\" ++ show xs ++ " -> " ++ show e
   show (Err s) = "ERR: " ++ s
+
 -- | Call-by-value semantics
 data Env = Env {
   evalEnv :: EvalEnv  ,
@@ -109,7 +110,7 @@ unpackBool :: Val -> Bool
 unpackBool (Vb b) = b
 unpackBool _ = undefined
 
--- | Produce all of the bindings from a list
+--- | Produce all of the bindings from a list
 bindings :: (Int, Int) -> [ValDef] -> Eval Env
 bindings sz vs = do
   vs' <- mapM bind vs
@@ -135,18 +136,10 @@ bind (BVal _ (PosDef n xp yp e2)) = do
       value <- eval e2 
       maybeBoard <- lookupName n  
       case maybeBoard of 
-         Nothing -> let board = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) in return (n, Vboard board) 
-         Just (Vboard b) -> return $ (n, Vboard b) 
+         Nothing -> let board = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) in do  -- TODO: replace ? with a new Val? 
+            return (n, Vboard (updateBoard board sz xp yp value)) 
+         Just (Vboard b) -> return $ (n, Vboard (updateBoard b sz xp yp value)) 
          _ -> error "TODO"  
-      
-
-
-      --v <- ((map dePos) . deTuple) <$> eval e1
-      --return $ (n, Vboard $ array ((1,1), sz) (zip v (repeat value)))
-    where
-    dePos (Vpos (x,y)) = (x,y)
-    deTuple (Vt xs) = xs -- hmm
-
 
 --bind (BVal _ (RegDef n e1 e2)) = do
 --      sz <- boardSize <$> ask
@@ -157,9 +150,9 @@ bind (BVal _ (PosDef n xp yp e2)) = do
 --    dePos (Vpos (x,y)) = (x,y)
 --    deTuple (Vt xs) = xs -- hmm
 
---updateBoard :: Board -> (Int, Int) -> Pos -> Pos -> Val -> Board 
---updateBoard b sz xp yp v = let indices = range b ((1,1), (sz,sz)) in
---                              filter (posMatches xp yp)   
+updateBoard :: Board -> (Int, Int) -> Pos -> Pos -> Val -> Board 
+updateBoard b sz xp yp v = let indices = range ((1,1), sz) in
+                              b // zip (filter (posMatches xp yp) indices) (repeat v)    
 
 -- | Check if a Pos matches a coordinate pair  
 posMatches :: Pos -> Pos -> (Int, Int) -> Bool 
@@ -283,6 +276,7 @@ eval (B b) = return $ Vb b
 eval (S s) = return $ Vs s
 eval (Tuple es) = (sequence (map eval es)) >>= (return . Vt)
 eval (Ref n) = do
+  traceM ("looking up variable " ++ n) 
   e <- lookupName n
   case e of
         Just (ValD e) -> eval e
@@ -293,7 +287,7 @@ eval (Ref n) = do
 eval (App n es) = do
   args <- mapM eval es
   f <- lookupName n
-  traceM "APP !"
+  traceM "APP !"  
   case f of
     Just (Vf params env' e) -> newScope (zip params args ++ env') (eval e)
     Nothing -> case lookup n builtins of
@@ -321,6 +315,18 @@ eval (Case n xs e)  = do
         Nothing -> newScope (pure (n, v)) (eval e) -- hmm.
       _ -> newScope (pure (n, v)) (eval e)
     Nothing -> undefined
+eval (While c b names exprs) = do
+   c' <- unpackBool <$> eval c   -- evaluate the condition 
+   case c' of 
+      True  -> do 
+         env <- evalEnv <$> ask                                 -- get the current environment 
+         result <- eval b                                       -- evaluate the body  
+         case result of                                         -- update the variables in the environment w/ new values and recurse: 
+            (Vt vs) -> newScope ((zip names vs) ++ env) recurse 
+            r       -> newScope ((head names, r) : env) recurse -- that head should never fail...famous last words 
+      False -> eval exprs 
+   where 
+      recurse = eval (While c b names exprs)    
 
 -- | Run an 'Expr' in the given 'Env' and display the result
 --
