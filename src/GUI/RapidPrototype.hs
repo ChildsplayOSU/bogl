@@ -58,6 +58,7 @@ replReply g@(Game n i@(BoardDef szx szy p) b vs) w msgs replArea = do
                 UI.scrollToBottom replArea
                 flushCallBuffer
               Left err -> do
+                element replArea #+ [UI.div #+ [string $ "> " ++ msg]]
                 element replArea #+ (pure $ (string $ show err))
                 UI.scrollToBottom replArea
                 flushCallBuffer
@@ -73,6 +74,7 @@ replReply g@(Game n i@(BoardDef szx szy p) b vs) w msgs replArea = do
         UI.div #. "board" #+ (map (\r -> UI.div #. "row" #+ r) $ (flip map) (toGrid arr) $ \row -> (flip map) row (\cell -> do
           b <- UI.button #. "click-cell" #+ [string ((show . snd) cell)]
           on UI.click b $ \_ -> do
+            element replArea #+ [string $ "Move: " ++ show (fst cell)]
             case runWithTape (bindings (szx, szy) vs) (t ++ (pure $ Vpos (fst cell))) ex of
               Right x -> element replArea #+ (pure $ makeValDisplay x msg)
               Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg]]
