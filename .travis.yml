@@ -19,4 +19,7 @@ before_install:
 
 install: stack setup && stack build
 
-script: stack --no-terminal --skip-ghc-check test
+script: stack --no-terminal --skip-ghc-check test --coverage
+
+after_success:
+- bash <(curl -s https://codecov.io/bash)

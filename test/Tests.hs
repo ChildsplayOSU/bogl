@@ -7,6 +7,6 @@ import EvalTests
 spielTests :: Test
 spielTests = TestList [parserTests,evalTests]
 
--- |
+-- run all tests in the suite
 main :: IO Counts
 main = runTestTT spielTests

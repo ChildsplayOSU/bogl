@@ -100,3 +100,19 @@ testParseLongExpr = TestCase (
     Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty]))
     (Pext (X Booltype S.empty))))) (Feq "isValid" (Pars ["b", "p"])
     (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False))))))
+
+
+{--
+checkGameParse :: IO (Maybe Game) -> IO Bool
+checkGameParse a = do
+    q <- a
+    case q of
+      Just _  -> return (True)
+      Nothing -> return (False)
+
+-- tests the initial example file we have
+testExampleFile1 :: Test
+testExampleFile1 = TestCase (
+  assertBool "Tests that example file 1 can be loaded"
+  (checkGameParse (parseGameFile "../examples/example1.bgl")))
+--}
