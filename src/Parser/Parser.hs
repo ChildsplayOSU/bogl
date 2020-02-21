@@ -1,6 +1,6 @@
--- | Parser for BOGL 
+-- | Parser for BOGL
 
-module Parser.Parser (parseLine, parseGameFile, expr) where
+module Parser.Parser (parseLine, parseGameFile, expr, isLeft, parseAll, ttype, valdef, Parser) where
 
 import Language.Syntax
 import Debug.Trace(trace)
@@ -38,12 +38,6 @@ operators = [[op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "
               -- and so on
 
 -- | Parser for the 'Expr' datatype
---
--- >>> parseLine' expr "40 + 2" == Right (Binop Plus (I 40) (I 2))  
--- True 
---
--- >>> isLeft $ parseLine' expr "40 + 2life,the universe, and everything" 
--- True 
 expr :: Parser Expr
 expr = buildExpressionParser operators atom
 
@@ -60,7 +54,7 @@ capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
-comma = P.comma lexer 
+comma = P.comma lexer
 
 
 -- | Atomic expressions
@@ -88,8 +82,8 @@ atom =
   <|> -- a more robust macro system would be nice.
   (do
       reserved "while"
-      c <- identifier <* parens (commaSep1 identifier) 
-      reserved "do" 
+      c <- identifier <* parens (commaSep1 identifier)
+      reserved "do"
       e <- identifier <* parens (commaSep1 identifier)
       recurse <- (fst . snd) <$> Par.getState
       i <- (snd . snd) <$> Par.getState
@@ -113,7 +107,7 @@ equation =
     reservedOp "="
     e <- expr
     return $ Feq name (Pars params) e)
- 
+
 -- | Board equations
 boardeqn :: Parser BoardEq
 boardeqn =
@@ -149,20 +143,6 @@ xtype =
   <|>
   (\x -> X x S.empty) <$> btype
 
--- |
---
--- >>> parseAll ttype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty]) 
--- True 
---
--- >>> parseAll ttype "" "(Symbol,Board)"
--- Right (Symbol,Board) 
---
--- >>> isLeft $ parseAll ttype "" "(Symbol)" 
--- True  
---
--- >>> isLeft $ parseAll ttype "" "(3)" 
--- True
-
 -- | Tuple types
 ttype :: Parser Tuptype
 --ttype = Tup <$> parens (commaSep1 xtype) -- this should only work for k>=2.
@@ -182,7 +162,7 @@ replaceSecond x (a, b) = (a, x)
 
 -- | 'Type's
 typ :: Parser Type
-typ = 
+typ =
   (try $ (do
       f <- ftype
       Par.modifyState (replaceFirst (Just $ Function f))
@@ -193,7 +173,7 @@ typ =
             p <- ptype
             Par.modifyState (replaceFirst $ Just $ Plain p)
             return (Plain p)))
-   
+
 -- | Value signatures
 sig :: Parser Signature
 sig =
@@ -208,21 +188,7 @@ valdef = do
     Just (Plain (Pext (X Board set))) | S.null set  -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
 
--- |
--- note: Empty is currently parsed as a string in the grammar, not as a Name. Is it an issue? 
--- >>> :{ 
---     parseAll valdef "" ex1 == 
---       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty])) 
---       (Pext (X Booltype S.empty))))) (Feq "isValid" (Pars ["b", "p"]) 
---       (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False)))) 
--- :}
--- True 
-ex1 = "isValid : (Board,Position) -> Bool\n  isValid(b,p) = if b(p) == Empty then True else False"
 
-ex2 = "outcome : (Board,Player) -> Player|Tie \
-\ outcome(b,p) = if inARow(3,A,b) then A else \
-               \ if inARow(3,B,b) then B else \
-               \ if isFull(b)     then Tie"
 -- | Board definition
 board :: Parser BoardDef
 board =
@@ -251,10 +217,6 @@ parseFromFile p fname
        }
 parseLine :: String -> Either ParseError Expr
 parseLine = parseAll expr  ""
-
--- | Read a single line and return the result (intended for brevity in test cases)
-parseLine' :: Parser a -> String -> Either ParseError a
-parseLine' p = parseAll p ""
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Maybe Game)

@@ -57,4 +57,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - Spiel-Lang
-    - doctest
+    #- doctest
+    - HUnit
