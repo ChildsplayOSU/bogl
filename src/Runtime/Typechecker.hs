@@ -34,10 +34,10 @@ localEnv :: (Monad m) => ([(Name, Type)] -> [(Name, Type)]) -> ReaderT Env m a -
 localEnv f e = local (\(Env a b c) -> Env (f a) b c) e
 
 -- | Encoding the different type errors as types should let us do interesting things with them
-data TypeError = Mismatch Type Type Expr -- ^ Couldn't match two types in an expression
-               | NotBound Name -- ^ Name isn't bound in the enviroment
-               | SigMismatch Name Type Type -- ^ couldn't match the type of an equation with its signature
-               | Unknown String -- ^ Errors that "shouldn't happen"
+data TypeError = Mismatch Type Type Expr     -- ^ Couldn't match two types in an expression
+               | NotBound Name               -- ^ Name isn't bound in the enviroment
+               | SigMismatch Name Type Type  -- ^ couldn't match the type of an equation with its signature
+               | Unknown String              -- ^ Errors that "shouldn't happen"
                | BadOp Op Type Type Expr
 
 -- | smart constructors for type errors
@@ -52,18 +52,15 @@ unknown s = throwError $ Unknown s
 badop :: Op -> Type -> Type -> Expr -> Typechecked a
 badop o t1 t2 e = throwError $ BadOp o t1 t2 e
 
-
-
-
-
 instance Show TypeError where
   show (Mismatch t1 t2 e) = "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
   show (NotBound n) = "Variable " ++ n ++ " not bound in the enviroment!"
-  show (SigMismatch n sig t) = "Signature for defition " ++ n ++ ": " ++ show sig ++ "\n does not match inferred type: " ++ show t
+  show (SigMismatch n sig t) = "Signature for definition " ++ n ++ ": " ++ show sig ++ "\n does not match inferred type: " ++ show t
   show (Unknown s) = s
   show (BadOp o t1 t2 e) = "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
 
--- | Things are typechecked with an enviroment ('ReaderT') and the possibility of failure ('ExceptT'). The typechecker is non-interactive so we do not need IO.
+-- | Things are typechecked with an enviroment ('ReaderT') and the possibility of failure ('ExceptT'). 
+--   The typechecker is non-interactive so we do not need IO.
 type Typechecked a =  (ReaderT Env (ExceptT TypeError Identity)) a
 
 -- | Deconstruct a tuple type into a list of types
@@ -81,23 +78,11 @@ deftype (BVal (Sig n t) eqn) = do
   if eqt == t then return t else sigmismatch n t eqt
 
 beqntype :: Type -> BoardEq -> Typechecked Type
-beqntype t (PosDef _ _ _ e) = do 
-   t1 <- exprtype e 
+beqntype t (PosDef _ xp yp e) = do 
+   -- bounds checking on x and y positions?  
+   t1 <- exprtype e     -- TODO: I think this needs to match the type of Board. Do I need to pass that in to the function or can I access it in some other way?  
    case t1 of 
       _ -> return $ Plain $ Pext (X Board S.empty)  
-{-beqntype t (PosDef n e1 e2 e3) = do
-  t1 <- exprtype e1
-  t2 <- exprtype e2
-  t3 <- exprtype e3
-  case (t1, t2, t3) of
-    (_, _, _) -> return $ Plain $ Pext (X Board S.empty) -- FIXME
-beqntype t (RegDef n e1 e2) = do
-  t1 <- exprtype e1
-  t2 <- exprtype e2
-  case t1 of
-    (Pext (X Positions s)) | s == S.empty -> return $ Plain (Pext (X Board S.empty))
--} 
--- TODO: 
 
 -- | Get the type of an equation
 eqntype :: Type -> Equation -> Typechecked Type

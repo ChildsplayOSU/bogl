@@ -2,10 +2,12 @@
 -- | Abstract syntax for BOGL
 
 module Language.Syntax where
+
 import Data.List
 import Text.JSON.Generic
 import Data.Array
 import qualified Data.Set as S
+
 type Name = String
 
 -- | Game datatype
@@ -56,8 +58,8 @@ instance Show Parlist where
   show (Pars xs) = "(" ++ intercalate (" , ") (xs) ++ ")"
 
 -- | Equations can either be
-data Equation = Veq Name Expr -- ^ Value equations (a mapping from 'Name' to 'Expr')
-              | Feq Name Parlist Expr -- ^ Function equations (a 'Name', list of params 'Parlist', and the 'Expr' that may possibly use those parameters.
+data Equation = Veq Name Expr         -- ^ Value equations (a mapping from 'Name' to 'Expr')
+              | Feq Name Parlist Expr -- ^ Function equations (a 'Name', list of params 'Parlist', and the 'Expr' that may use them
    deriving (Eq, Data)
 
 instance Show Equation where
@@ -72,30 +74,26 @@ data BoardEq = PosDef Name Pos Pos Expr
 
 instance Show BoardEq where 
    show (PosDef n x y e) = n ++ "(" ++ show x ++ ", " ++ show y ++ ")" ++ " = " ++ show e 
---instance Show BoardEq where
---  show (PosDef n i1 i2 e) = n ++ "(" ++ show i1 ++ ", " ++ show i2 ++ ")" ++ "=" ++ show e
---  show (RegDef n e1 e2) = n ++ "(" ++ show e1 ++ ")" ++ "=" ++ show e2
 
 -- Types
 -- | Atomic types
-data Btype = Booltype -- ^ Boolean
-           | Itype -- ^ Integer
-           | Symbol Name -- ^ Symbols, or nullary constructors. Each symbol lives in its own unique type.
-           | AnySymbol -- ^ this is the type all symbols live in
-           | Input -- ^ The input type specified at the top of the program
-           | Board -- ^ A game board
-           | Player -- ^ A player
-           | Position -- ^ A position, specified by the board description
-           | Positions -- ^ The list of all positions
-           | Undef -- ^ Only occurs when typechecking. The user cannot define anything of this type. (I could use 'undefined' everywhere I use this, but one false move and the whole program crashes)
+data Btype = Booltype      -- ^ Boolean
+           | Itype         -- ^ Integer
+           | Symbol Name   -- ^ Symbols, or nullary constructors. Each symbol lives in its own unique type.
+           | AnySymbol     -- ^ this is the type all symbols live in
+           | Input         -- ^ The input type specified at the top of the program
+           | Board         -- ^ A game board
+           | Player        -- ^ A player
+           | Position      -- ^ A position, specified by the board description
+           | Positions     -- ^ The list of all positions
+           | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type. 
    deriving (Data)
+
 instance Eq Btype where
   (Symbol _) == AnySymbol = True
   AnySymbol == (Symbol _) = True
   Symbol n1 == Symbol n2 = n1 == n2
   x == y = show x == show y -- ........
-
-
 
 instance Show Btype where
   show Booltype = "Bool"
@@ -159,22 +157,23 @@ data Pos = Index Int
          deriving (Eq, Show, Data) 
 
  -- | Expressions
-data Expr = I Integer -- ^ Integer expression
-          | S Name -- ^ Symbol
-          | B Bool -- ^ Boolean
-          | Ref Name -- ^ Reference to a variable
-          | Tuple [Expr] -- ^ Tuple of 'Expr'
-          | App Name [Expr] -- ^ Application of the function called Name to the list of arguments (Note: this could also be App Expr Expr, which would be cleaner.)
-          | Binop Op Expr Expr -- ^ Binary operation of two expressions
-          | Let Name Expr Expr -- ^ Let binding
-          | If Expr Expr Expr -- ^ Conditional expression
+data Expr = I Integer                     -- ^ Integer expression
+          | S Name                        -- ^ Symbol
+          | B Bool                        -- ^ Boolean
+          | Ref Name                      -- ^ Reference to a variable
+          | Tuple [Expr]                  -- ^ Tuple of 'Expr'
+          | App Name [Expr]               -- ^ Application of the function called Name to the list of arguments (Note: this could also be App Expr Expr, which would be cleaner.)
+          | Binop Op Expr Expr            -- ^ Binary operation of two expressions
+          | Let Name Expr Expr            -- ^ Let binding
+          | If Expr Expr Expr             -- ^ Conditional expression
           | Abs [Name] Expr
           | AppAbs [Expr] Expr
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
-          -- condition, body, names of arguments from the wrapper function, (tuple of) expression(s) which referenc(es) the name(s). 
-          -- the last Expr can always be constructed from the [Name], but it makes the code cleaner to do that only once while parsing 
           | While Expr Expr [Name] Expr
+          -- While: condition, body, names of arguments from the wrapper function, (tuple of) expression(s) which referenc(es) the name(s). 
+          -- the last Expr can always be constructed from the [Name], but it makes the code cleaner to do that only once while parsing 
    deriving (Eq, Data)
+
 instance Show Expr where
   show (I i) = show i
   show (S s) = s
@@ -187,6 +186,7 @@ instance Show Expr where
   show (If e1 e2 e3) = "If " ++ show e1 ++ " Then " ++ show e2 ++ " Else " ++ show e3
   show (While c b n e ) = "While " ++ show c ++ " do " ++ show b ++ "(with names, values from wrapper: " ++ show n ++ ", " ++ show e ++ ")" 
   show (Case n xs e) = "case " ++ n ++ " of" ++ (intercalate "\n" (map show xs)) ++ "otherwise: " ++ show e
+
 -- | Binary operations
 data Op = Plus
         | Minus
@@ -201,15 +201,17 @@ data Op = Plus
         | Greater
         | Get           -- Gets contents from a position on a board 
    deriving (Eq, Data)
+
 instance Show Op where
-  show Plus = " + "
-  show Minus = " - "
-  show Times = " * "
-  show Div = " / "
-  show Mod = " % "
-  show Equiv = " == "
-  show Or = " or "
-  show And = " and "
-  show Less = " < "
-  show Greater = " > "
-  show Xor = " xor "
+  show Plus     = " + "
+  show Minus    = " - "
+  show Times    = " * "
+  show Div      = " / "
+  show Mod      = " % "
+  show Equiv    = " == "
+  show Or       = " or "
+  show And      = " and "
+  show Less     = " < "
+  show Xor      = " xor "
+  show Greater  = " > "
+  show Get      = " ! " 
