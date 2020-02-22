@@ -1,6 +1,5 @@
 game TicTacToe
 
-
 -- Board and input type definitions
 --
 type Board = Grid (3,3) of Player|Empty
@@ -19,7 +18,9 @@ goFirst = A
 -- Game ending: game-over condition and game outcome
 --
 gameOver : Board -> Bool
-gameOver(b) = or(threeInARow(b),isFull(b))
+--gameOver(b) = or(threeInARow(b),isFull(b))
+gameOver(b) = threeInARow(b) || isFull(b)
+
 
 outcome : (Board,Player) -> Player|Tie
 outcome(b,p) = if inARow(3,A,b) then A else
@@ -27,14 +28,15 @@ outcome(b,p) = if inARow(3,A,b) then A else
                --if isFull(b)     then Tie
 
 threeInARow : Board -> Bool
-threeInARow(b) = or(inARow(3,A,b),inARow(3,B,b))
+--threeInARow(b) = or(inARow(3,A,b),inARow(3,B,b))
+threeInARow(b) = inARow(3,A,b) || inARow(3,B,b)
 
 
 -- Predefined operations
 --
 isValid : (Board,Position) -> Bool
-isValid(b,p) = if b!p == Empty then True else False
-
+isValid(b,p) = if (b!p) == Empty then True else False
+-- TODO: fix precedence 
 
 -- Game loop
 --

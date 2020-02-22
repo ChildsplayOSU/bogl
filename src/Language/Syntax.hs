@@ -89,10 +89,16 @@ data Btype = Booltype      -- ^ Boolean
            | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type. 
    deriving (Data)
 
+-- smart constructor to wrap up a btype 
+wrap :: Btype -> Ptype 
+wrap b = Pext (X b S.empty) 
+
 instance Eq Btype where
   (Symbol _) == AnySymbol = True
   AnySymbol == (Symbol _) = True
+  Player == AnySymbol = True     -- TODO: check? 
   Symbol n1 == Symbol n2 = n1 == n2
+  Position == Symbol ("Empty") = True -- TODO: check ??? 
   x == y = show x == show y -- ........
 
 instance Show Btype where
@@ -116,7 +122,8 @@ instance Eq Xtype where
   -- (X t1 xs) == (X (Symbol s) bs) | not . S.null $ xs= s `S.member` xs
   -- (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
   -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
-  (X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
+  --(X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
+  (X a1 b1) == (X a2 b2) = a1 == a2 && (S.isSubsetOf b1 b2 || S.isSubsetOf b2 b1) -- TODO ???  
 
 instance Show Xtype where
   show (X b xs) | S.null xs = show b ++ "(no extension)"

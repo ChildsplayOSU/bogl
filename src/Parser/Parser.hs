@@ -24,6 +24,7 @@ types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Posit
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
                                                             "let", "in", "if", "then", "else",
                                                             "while", "do", "game", "type", "Grid", "of", "case"
+                                                            --"place", "remove", "isFull", "inARow", "at"
                                                             -- "A", "B", "free", "place", "next", "isFull", "inARow",
                                                             -- "countBoard", "countColumn", "countRow" ]
                                                             ] ++ types,
@@ -56,7 +57,9 @@ integer = P.integer lexer
 reserved = P.reserved lexer
 parens = P.parens lexer
 builtin = choice (map (lexeme) [string "or", string "inARow"])
-identifier = P.identifier lexer
+identifier = choice ((map (try . lexeme) [string "or", string "inARow"]) ++ [P.identifier lexer])
+--identifier = (builtin <|> P.identifier lexer)
+newIdentifier = P.identifier lexer                             -- must not be a built in identifier (e.g. in a let expr) 
 capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
@@ -82,7 +85,7 @@ atom =
   <|>
   Tuple <$> parens (commaSep1 expr)
   <|>
-  Let <$> (reserved "let" *> identifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
+  Let <$> (reserved "let" *> newIdentifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
   <|>
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
   <|>
@@ -99,16 +102,16 @@ atom =
             xs -> Tuple xs
       return $ While c e names exprs') 
    <|>
-  Case <$> (reserved "case" *> identifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
+  Case <$> (reserved "case" *> newIdentifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
 
 -- | Equations
 equation :: Parser Equation
 equation =
-  (try $ (Veq <$> identifier <*> (reservedOp "=" *> expr)))
+  (try $ (Veq <$> newIdentifier <*> (reservedOp "=" *> expr)))
   <|>
   (try $ do
-    name <- identifier
-    params <- parens (commaSep1 identifier)
+    name <- newIdentifier
+    params <- parens (commaSep1 newIdentifier)
     Par.modifyState (replaceSecond (name, params))
     reservedOp "="
     e <- expr
@@ -118,18 +121,12 @@ position :: Parser Pos
 position = 
    Index <$> fromIntegral <$> integer -- TODO: better way?  
    <|>
-   identifier *> pure ForAll
---   do 
---      identifier >> pure ForAll 
+   newIdentifier *> pure ForAll
 
 -- | Board equations
 boardeqn :: Parser BoardEq
 boardeqn =
-   (try $ (PosDef <$> identifier <*> (lexeme (char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
-   --(try $ (PosDef <$> identifier <*> (parens (position <* comma *> position)) <*> (reservedOp "=" *> expr)))
---  (try $ (RegDef <$> identifier <*> (parens expr) <*> (reservedOp "=" *> expr)))
---  <|>
---  (try $ (PosDef <$> identifier <*> (char '(' *> expr) <*> (comma *> expr <* char ')') <*> (reservedOp "=" *> expr)))
+   (try $ (PosDef <$> newIdentifier <*> (lexeme (char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
 
 -- | Atomic types
 btype :: Parser Btype
@@ -207,7 +204,7 @@ typ =
 -- | Value signatures
 sig :: Parser Signature
 sig =
-  Sig <$> identifier <*> (reservedOp ":" *> typ)
+  Sig <$> newIdentifier <*> (reservedOp ":" *> typ)
 
 -- | Value definitions
 valdef :: Parser ValDef
@@ -249,7 +246,7 @@ input =
 -- | Game definition
 game :: Parser Game
 game =
-  Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
+  Game <$> (reserved "game" *> newIdentifier) <*> board <*> input <*> (many valdef)
 
 -- | Uses the parser p to parse all input, throws an error if anything is left over
 parseAll p = runParser (p <* eof) (Nothing, ("", []))

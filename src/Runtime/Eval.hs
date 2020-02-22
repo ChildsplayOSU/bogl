@@ -174,7 +174,15 @@ evalBinOp Or l r    = evalBoolOp (||) l r
 evalBinOp Less l r  = evalCompareOp (<) l r 
 evalBinOp And l r   = evalBoolOp (&&) l r 
 evalBinOp Xor l r   = evalBoolOp (/=) l r
+evalBinOp Get l r   = do
+                        board <- eval l 
+                        pos   <- eval r 
+                        case (board, pos) of   
+                           (Vboard arr, Vpos (x,y)) -> return $ arr ! (x,y) 
+                           _ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r" 
+                           -- not a great error message, but this should be caught in the typechecker anyways  
 
+        --[Vboard arr, Vpos (x,y)] -> return $ arr ! (x,y))
 -- | evaluates the == operation  
 evalEquiv :: Expr -> Expr -> Eval Val 
 evalEquiv l r = do
@@ -260,7 +268,7 @@ builtins = [
   ("inARow", \xs -> do
       xs' <- mapM eval xs
       case xs' of
-        [Vi i, Vboard arr, v] -> return $ Vb $ line v (assocs arr) (fromInteger i)),
+        [Vi i, v, Vboard arr] -> return $ Vb $ line v (assocs arr) (fromInteger i)),
   ("at", \xs -> do
       xs' <- mapM eval xs
       case xs' of

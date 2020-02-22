@@ -99,6 +99,8 @@ eqntype _ _ = throwError (Unknown "Enviroment corrupted.") -- this should never 
 -- Get the type of an expression
 exprtype :: Expr -> Typechecked Ptype
 exprtype (I _) = return $ (Pext (X Itype S.empty))
+exprtype (S "A") = return $ (Pext (X (Player) S.empty)) -- TODO: manage this more elegantly? 
+exprtype (S "B") = return $ (Pext (X (Player) S.empty))
 exprtype (S s) = return $ (Pext (X (Symbol s) S.empty))
 exprtype (B _) = return $ (Pext (X Booltype S.empty))
 exprtype (Let n e1 e2) = do
@@ -132,7 +134,12 @@ exprtype e@(Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   if (t1 == t2) then return (Pext (X Booltype S.empty)) else badop Equiv (Plain t1) (Plain t2) e
-
+exprtype e@(Binop Get e1 e2) = do 
+  t1 <- exprtype e1
+  t2 <- exprtype e2
+  if t1 == wrap Board && t2 == wrap Position  
+   then return $ wrap Position 
+   else badop Get (Plain t1) (Plain t2) e -- TODO: bounds check?  
 exprtype e@(Binop x e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
@@ -210,6 +217,7 @@ xtype e y = mismatch (Plain (Pext (X Undef S.empty))) (Plain y) e
 
 -- | Extract a type
 extract (Pext x) = x
+extract a = error $ "Error occurs here, not 100% what to do with this function " ++ show a  
 extract _ = undefined
 
 -- | Get the type of a reference in the enviroment
@@ -225,7 +233,8 @@ builtins = [
   ("positions", Plain (Pext (X Positions S.empty))),
   ("place", Function (Ft (Pt (Tup [(X AnySymbol S.empty), (X Board S.empty), (X Position S.empty)]  )) (Pext (X Board S.empty)))),
   ("remove", Function (Ft (Pt (Tup [(X Board S.empty), (X Position S.empty)])) (Pext (X Board S.empty)))),
-  ("inARow", Function (Ft (Pt (Tup [X Itype S.empty, X Board S.empty, X AnySymbol S.empty])) (Pext (X Booltype S.empty)))),
+  ("inARow", Function (Ft (Pt (Tup [X Itype S.empty, X AnySymbol S.empty, X Board S.empty])) (Pext (X Booltype S.empty)))),
+  ("isFull", Function (Ft (Pext (X Board S.empty)) (Pext (X Booltype S.empty)))),    
   ("at", Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty])) (Pext (X AnySymbol S.empty))))
   -- This should be polymorphic over all types instead of over all symbols.
            ]
