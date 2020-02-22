@@ -1,5 +1,4 @@
 module Main where
-import Runtime.Repl
 import GUI.RapidPrototype
 import System.Environment
 -- nothing
