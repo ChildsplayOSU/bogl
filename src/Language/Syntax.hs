@@ -11,7 +11,13 @@ import qualified Data.Set as S
 type Name = String
 
 -- | Game datatype
-data Game = Game Name BoardDef InputDef [ValDef]
+data Game = Game
+  {
+    name  :: Name
+  , board :: BoardDef
+  , input :: InputDef
+  , defns ::[ValDef]
+  }
   deriving (Data)
 
 instance Show Game where
@@ -21,11 +27,16 @@ instance Show Game where
                          ++ intercalate ("\n\n\n") (map show vs)
 
 -- | Board definition: mxn board of type Type
-data BoardDef = BoardDef Int Int Type
+data BoardDef = BoardDef
+  {
+    size  :: (Int, Int)
+  , piece :: Type
+  }
   deriving (Data)
 
 instance Show BoardDef where
-  show (BoardDef i1 i2 t) = "Board : Grid(" ++ show i1 ++ "," ++ show i2 ++ ") of " ++ show t
+  show (BoardDef (i1, i2) t)
+    = "Board : Grid(" ++ show i1 ++ "," ++ show i2 ++ ") of " ++ show t
 
 -- | Input definition: Player inputs must be an accepted type
 data InputDef = InputDef Type
@@ -69,7 +80,7 @@ instance Show Equation where
 -- | Board equations can either be
 --data BoardEq = PosDef Name Expr Expr Expr -- ^ Position defition: an assignment to a specific position
 --             | RegDef Name Expr Expr -- ^ A region definition, an assignment to multiple positions
-data BoardEq = PosDef Name Pos Pos Expr 
+data BoardEq = PosDef Name Pos Pos Expr
    deriving (Eq, Data)
 
 instance Show BoardEq where 
@@ -89,17 +100,20 @@ data Btype = Booltype      -- ^ Boolean
            | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type. 
    deriving (Data)
 
--- smart constructor to wrap up a btype 
-wrap :: Btype -> Ptype 
-wrap b = Pext (X b S.empty) 
 
 instance Eq Btype where
   (Symbol _) == AnySymbol = True
-  AnySymbol == (Symbol _) = True
-  Player == AnySymbol = True     -- TODO: check? 
+  AnySymbol == (Symbol _) = True -- polymorphism?
+  Player == AnySymbol = True     -- TODO: Fix this in parser. A and B should parse as players.
   Symbol n1 == Symbol n2 = n1 == n2
-  Position == Symbol ("Empty") = True -- TODO: check ??? 
-  x == y = show x == show y -- ........
+  Itype == Itype = True
+  Booltype == Booltype = True
+  Board == Board = True
+  Input == Input = True
+  Player == Player = True
+  Position == Position = True
+  Positions == Positions = True
+  _ == _ = False
 
 instance Show Btype where
   show Booltype = "Bool"
@@ -113,8 +127,12 @@ instance Show Btype where
   show AnySymbol = "AnySymbol"
   show Undef = "?"
 
--- | Xtypes are sum types, but restricted by the semantics to only contain Symbols after the atomic type.
-data Xtype = X Btype (S.Set Name)
+-- | Convert a btype to an unextended Xtype
+ext :: Btype -> Xtype
+ext b = (X b S.empty)
+
+-- | Xtypes are sum types (or tuples of sum types), but restricted by the semantics to only contain Symbols after the atomic type.
+data Xtype = X Btype (S.Set Name) | Tup [Xtype]
   deriving (Data)
 
 instance Eq Xtype where
@@ -123,42 +141,31 @@ instance Eq Xtype where
   -- (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
   -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
   --(X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
-  (X a1 b1) == (X a2 b2) = a1 == a2 && (S.isSubsetOf b1 b2 || S.isSubsetOf b2 b1) -- TODO ???  
+  (X a1 b1) == (X a2 b2) = a1 == a2 && (S.isSubsetOf b1 b2 || S.isSubsetOf b2 b1) -- TODO ???
+
 
 instance Show Xtype where
   show (X b xs) | S.null xs = show b ++ "(no extension)"
                 | otherwise = show b ++ "|" ++ intercalate ("|") (map show (S.toList xs))
-
--- | Tuples can only contain Xtypes (no sub-tuples)
-data Tuptype = Tup [Xtype]
-   deriving (Eq, Data)
-
-instance Show Tuptype where
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
 
--- | A plain type is either a tuple, or an extended type
-data Ptype = Pext Xtype | Pt Tuptype
-   deriving (Eq, Data)
-
-instance Show Ptype where
-  show (Pext x) = show x
-  show (Pt t) = show t
 
 -- | A function type can be from a plain type to a plain type (no curried functions)
-data Ftype = Ft Ptype Ptype
+data Ftype = Ft Xtype Xtype
    deriving (Eq, Data)
 
 instance Show Ftype where
   show (Ft t1 t2) = show t1 ++ " -> " ++ show t2
 
 -- | A type is either a plain type or a function.
-data Type = Plain Ptype | Function Ftype
+data Type = Plain Xtype | Function Ftype
    deriving (Eq, Data)
 
 instance Show Type where
   show (Plain t) = show t
   show (Function f) = show f
 
+-- | Positions are either
 data Pos = Index Int 
          | ForAll      
          deriving (Eq, Show, Data) 
@@ -176,8 +183,7 @@ data Expr = I Integer                     -- ^ Integer expression
           | Abs [Name] Expr
           | AppAbs [Expr] Expr
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
-          | While Expr Expr [Name] Expr
-          -- While: condition, body, names of arguments from the wrapper function, (tuple of) expression(s) which referenc(es) the name(s). 
+          | While Expr Expr [Name] Expr   -- ^ While: condition, body, names of arguments from the wrapper function, (tuple of) expression(s) which referenc(es) the name(s).
           -- the last Expr can always be constructed from the [Name], but it makes the code cleaner to do that only once while parsing 
    deriving (Eq, Data)
 
