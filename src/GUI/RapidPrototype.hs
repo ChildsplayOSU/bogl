@@ -100,6 +100,6 @@ makeBoard arr = UI.div #. "boardState" #+ map (\x -> UI.div #. "cell" #+ [(strin
 
 
 
-  
+
 
 toGrid x = (groupBy (\x y -> (fst . fst) x == (fst . fst) y) (assocs x))
