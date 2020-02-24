@@ -97,7 +97,7 @@ data Btype = Booltype      -- ^ Boolean
            | Player        -- ^ A player
            | Position      -- ^ A position, specified by the board description
            | Positions     -- ^ The list of all positions
-           | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type. 
+           | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type.
    deriving (Data)
 
 
@@ -126,6 +126,7 @@ instance Show Btype where
   show Positions = "Positions"
   show AnySymbol = "AnySymbol"
   show Undef = "?"
+
 
 -- | Convert a btype to an unextended Xtype
 ext :: Btype -> Xtype
@@ -160,6 +161,9 @@ instance Show Ftype where
 -- | A type is either a plain type or a function.
 data Type = Plain Xtype | Function Ftype
    deriving (Eq, Data)
+
+p :: Btype -> Type
+p b = Plain $ X b S.empty
 
 instance Show Type where
   show (Plain t) = show t
