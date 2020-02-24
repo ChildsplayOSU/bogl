@@ -2,7 +2,7 @@
 
 module Parser.Parser (parseLine, parseGameFile, expr) where
 
-import Language.Syntax
+import Language.Syntax hiding (input)
 import Debug.Trace(trace)
 
 import Text.ParserCombinators.Parsec hiding (Parser)
@@ -32,10 +32,11 @@ lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True"
 
 
 -- | Operators (might want to fix the order of operations)
-operators = [[op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "mod" (Binop Mod) AssocLeft],
+operators = [
+             [op "!" (Binop Get) AssocLeft],
+             [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "mod" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
-             [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft, op "<" (Binop Less) AssocLeft, op ">" (Binop Greater) AssocLeft],
-             [op "!" (Binop Get) AssocLeft] 
+             [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft, op "<" (Binop Less) AssocLeft, op ">" (Binop Greater) AssocLeft]
             ]
               -- and so on
 
