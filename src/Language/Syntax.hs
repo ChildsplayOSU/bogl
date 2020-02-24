@@ -172,7 +172,12 @@ instance Show Type where
 -- | Positions are either
 data Pos = Index Int 
          | ForAll      
-         deriving (Eq, Show, Data) 
+         deriving (Eq, Show, Data)
+
+instance Ord Pos where
+  compare (Index i) (Index j) = compare i j
+  compare (ForAll) (_) = LT
+  compare (_) (ForAll) = GT
 
  -- | Expressions
 data Expr = I Integer                     -- ^ Integer expression

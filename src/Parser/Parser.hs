@@ -2,7 +2,7 @@
 
 module Parser.Parser (parseLine, parseGameFile, expr) where
 
-import Language.Syntax hiding (input)
+import Language.Syntax hiding (input, board)
 import Debug.Trace(trace)
 
 import Text.ParserCombinators.Parsec hiding (Parser)
@@ -155,7 +155,9 @@ xtype :: Parser Xtype
 xtype =
   (try $ (X <$> btype <*> (S.fromList <$> (many1 (reservedOp "|" *> capIdentifier)))))
   <|>
-  (\x -> X x S.empty) <$> btype
+  (try $ (\x -> X x S.empty) <$> btype)
+  <|>
+  Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
 
 -- |
 --
@@ -171,18 +173,9 @@ xtype =
 -- >>> isLeft $ parseAll ttype "" "(3)" 
 -- True
 
--- | Tuple types
-ttype :: Parser Tuptype
---ttype = Tup <$> parens (commaSep1 xtype) -- this should only work for k>=2.
-ttype = Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
-
--- | Plain types
-ptype :: Parser Ptype
-ptype = (Pext <$> xtype <|> Pt <$> ttype)
-
 -- | Function types
 ftype :: Parser Ftype
-ftype = Ft <$> ptype <*> (reservedOp "->" *> ptype)
+ftype = Ft <$> xtype <*> (reservedOp "->" *> xtype)
 
 replaceFirst x (a, b) = (x, b)
 replaceSecond x (a, b) = (a, x)
@@ -198,7 +191,7 @@ typ =
   ))
   <|>
   (try $ (do
-            p <- ptype
+            p <- xtype
             Par.modifyState (replaceFirst $ Just $ Plain p)
             return (Plain p)))
    
@@ -213,7 +206,7 @@ valdef = do
   s <- sig
   b <- fst <$> getState
   case b of
-    Just (Plain (Pext (X Board set))) | S.null set  -> (BVal s) <$> (boardeqn)
+    Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
 
 -- |
@@ -235,9 +228,10 @@ ex2 = "outcome : (Board,Player) -> Player|Tie \
 board :: Parser BoardDef
 board =
   (reserved "type" *> reserved "Board" *> reservedOp "=") *>
-  (BoardDef <$> (reserved "Grid" *> (lexeme . char) '(' *> (fromInteger <$> integer)) <*>
-   ((lexeme . char) ',' *> (fromInteger <$> integer) <* (lexeme . char) ')') <*>
-   (reserved "of" *> typ)) -- fixme
+  (BoardDef <$>
+    ((,) <$> (reserved "Grid" *> (lexeme . char) '(' *> (fromInteger <$> integer)) <*>
+     ((lexeme . char) ',' *> (fromInteger <$> integer) <* (lexeme . char) ')')) <*>
+  (reserved "of" *> typ)) -- fixme
 
 -- | Input definition
 input :: Parser InputDef

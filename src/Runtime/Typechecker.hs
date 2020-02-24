@@ -2,7 +2,9 @@
 
 module Runtime.Typechecker (tc, tcexpr, environment) where
 
-import Language.Syntax hiding (input, piece)
+import Runtime.Builtins
+import Language.Syntax hiding (input, piece, size)
+
 import Control.Monad.Reader
 import Control.Monad.Identity
 import Control.Monad.Except
@@ -12,6 +14,9 @@ import Data.Either
 import Data.Maybe
 import Data.Bifunctor
 import Data.List
+
+
+
 import qualified Data.Set as S
 
 type TypeEnv = [(Name, Type)]
@@ -43,7 +48,7 @@ data TypeError = Mismatch Type Type Expr     -- ^ Couldn't match two types in an
                | SigMismatch Name Type Type  -- ^ couldn't match the type of an equation with its signature
                | Unknown String              -- ^ Errors that "shouldn't happen"
                | BadOp Op Type Type Expr     -- ^ Can't perform a primitive operation
-               | OutOfBounds (Int,Int) (Int,Int)
+               | OutOfBounds Pos Pos
 
 -- | smart constructors for type errors
 mismatch :: Type -> Type -> Expr -> Typechecked a
@@ -56,7 +61,7 @@ unknown :: String -> Typechecked a
 unknown s = throwError $ Unknown s
 badop :: Op -> Type -> Type -> Expr -> Typechecked a
 badop o t1 t2 e = throwError $ BadOp o t1 t2 e
-outofbounds :: (Int, Int) -> (Int, Int) -> Typechecked a
+outofbounds :: Pos -> Pos -> Typechecked a
 outofbounds p sz = throwError $ OutOfBounds p sz
 
 instance Show TypeError where
@@ -70,10 +75,8 @@ instance Show TypeError where
 --   The typechecker is non-interactive so we do not need IO.
 type Typechecked a =  (ReaderT Env (ExceptT TypeError Identity)) a
 
--- | Deconstruct a tuple type into a list of types. Partial function, probably should be removed DEPRECATED
-detuple :: Type -> [Type]
-detuple (Tup ts) = map Plain (map Pext ts)
-detuple x = (trace $ show x) $ undefined
+
+
 
 -- | Get the type of a valDef. Check the expression's type with the signature's. If they don't match, throw exception.
 deftype :: ValDef -> Typechecked Type
@@ -90,22 +93,32 @@ deftype (BVal (Sig n t) eqn) = do
     else sigmismatch n t eqt
 
 beqntype :: Type -> BoardEq -> Typechecked Type
-beqntype t (PosDef _ xp yp e) = do 
+beqntype t (PosDef _ xp yp e) = do
    -- bounds checking on x and y positions?  
    t1 <- exprtype e     -- TODO: I think this needs to match the type of Board. Do I need to pass that in to the function or can I access it in some other way?
    b <- getPiece
    sz <- getSize
-   case (t1 == b, sz >= (xp,yp)) of
-     (True, True) -> return $ Plain $ Pext (X Board S.empty)
-     (False, _) -> mismatch b t1
-     (_, False) -> outofbounds (xp, yp) sz
-
+   case ((Plain t1) == b, toPos sz >= (xp,yp)) of
+     (True, True) -> return $ Plain (X Board S.empty)
+     (False, _) -> mismatch b (Plain t1) e
+     (_, False) -> outofbounds xp yp
+   where
+     toPos (x,y) = (Index x, Index y) -- fixme
 -- | Get the type of an equation
 eqntype :: Type -> Equation -> Typechecked Type
 eqntype _ (Veq _ e) = exprtype e >>= (return . Plain)
 eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
-    e' <- localEnv ((++) (zip params (i))) (exprtype e)
-    return $ Function (Ft inputs (e'))
+  case inputs of
+    (Tup inputs') -> do
+      e' <- localEnv ((++) (zip params (map Plain inputs'))) (exprtype e)
+      return $ Function (Ft inputs e')
+    (input') -> do
+      e' <- localEnv ((++) (zip params (pure (Plain input')))) (exprtype e)
+      return $ Function (Ft inputs e')
+  where
+    demote :: Type -> Typechecked Xtype
+    demote (Plain t) = return t
+    demote (_) = throwError (Unknown "Environment corrupted.")
 eqntype _ _ = throwError (Unknown "Environment corrupted.") -- this should never happen?
 
 t :: Btype -> Typechecked Xtype
@@ -133,14 +146,12 @@ exprtype e@(App n es) = do
   t <- getType n
   case t of
     (Function (Ft (Tup i) o)) -> if es' == i then return o else do
-      ts <- mapM (xtype e) es'
-      mismatch (Plain $ Tup ts) (Plain (Tup i)) e
+      mismatch (Plain $ Tup es') (Plain (Tup i)) e
     (Function (Ft i o)) -> if es' == [i] then return o else do
-      ts <- mapM (xtype e) es'
-      mismatch (Plain $ Tup ts) (Plain i) e
+      mismatch (Plain $ Tup es') (Plain i) e
     _ -> do
-      ts <- mapM (xtype e) es'
-      mismatch (Function $ (Ft (Pt (Tup ts)) (Pext (X Undef S.empty)))) t e -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
+      mismatch (Function $ (Ft (Tup es')) (X Undef S.empty)) t e -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
+
 
 exprtype e@(Binop Equiv e1 e2) = do
   t1 <- exprtype e1
@@ -150,7 +161,7 @@ exprtype e@(Binop Get e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   if t1 == ext Board && t2 == ext Position
-   then return $ wrap Position 
+   then t Position
    else badop Get (Plain t1) (Plain t2) e -- TODO: bounds check?  can't at typechecking without dependent types, I think. might be worth looking into.
 exprtype e@(Binop x e1 e2) = do
   t1 <- exprtype e1
@@ -162,7 +173,7 @@ exprtype e@(Binop x e1 e2) = do
                                                    then t Booltype
                                                    else badop x (Plain t1) (Plain t2) e
     ((X Booltype s1), (X Booltype s2)) -> if x `elem` [And, Or, Xor] && S.null s1 && S.null s2
-                                                    then p Booltype
+                                                    then t Booltype
                                                     else badop x (Plain t1) (Plain t2) e
     _ -> badop x (Plain t1) (Plain t2) e
 
@@ -176,7 +187,7 @@ exprtype e@(If e1 e2 e3) = do
     ((X Booltype empty), (X (Symbol s) s1), (X t3' s2)) | S.null empty -> return $ (X t3' $ S.unions [s1, s2, S.singleton s])
     ((X Booltype empty), (X t2' s1), (X (Symbol s) s2)) | S.null empty -> return $ (X t2' $ S.unions [s1, s2, S.singleton s])
     ((X Booltype empty), y, z) | S.null empty -> if y /= z then mismatch (Plain y) (Plain z) e else return $ (y)
-    (x, _, _) -> mismatch (Plain $ Pext $ (X Booltype S.empty)) (Plain x) e
+    (x, _, _) -> mismatch (Plain $ (X Booltype S.empty)) (Plain x) e
 
 -- case (FIXME)
 exprtype expr@(Case n xs e) = do
@@ -194,16 +205,16 @@ exprtype expr@(Case n xs e) = do
       types <- mapM (fakeType n) (ts')
       (atom, extension) <- partitionM notSymbol types
       case atom of
-        [(X x exten')] -> return $ (Pext (X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
-        h@((X x exten):xs) | all (== h) xs -> let exten' = (S.unions . map getExtensions)  (h:xs)
-                                in return $ (Pext (X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
+        [(X x exten')] -> return $ ((X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
+        h@(X x exten):xs | all (== h) xs -> let exten' = (S.unions . map getExtensions)  (h:xs)
+                                in return $ ((X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
         xs -> unknown $ "Cannot construct the type: " ++ ((intercalate "|") $ show <$> xs) ++ "\n produced by: " ++ (show expr)
       where
         ts' = e:(map (first singletonSymbol) xs)
 
 
     notSymbol ((X (Symbol _) _)) = return False
-    notSymbol (X _) = return True
+    notSymbol (X _ _) = return True
     notSymbol (_) = unknown "this is a function. I don't know what to do."
    
     fakeType :: Name -> (Type, Expr) -> Typechecked Xtype
@@ -222,7 +233,7 @@ atomicType :: Type -> Type
 atomicType (Plain (X t _)) = Plain (X t S.empty)
 
 singletonSymbol :: Name -> Type
-singletonSymbol n = Plain (Pext $ X (Symbol n) S.empty)
+singletonSymbol n = Plain (X (Symbol n) S.empty)
 
 
 -- | Get the type of a reference in the enviroment
@@ -233,21 +244,11 @@ getType n = do
     Just e -> return e
     Nothing -> notbound n
 
-builtins = [
-  ("input", Function (Ft (Pext (X Board S.empty)) (Pext (X Position S.empty)))),
-  ("positions", Plain (Pext (X Positions S.empty))),
-  ("place", Function (Ft (Pt (Tup [(X AnySymbol S.empty), (X Board S.empty), (X Position S.empty)]  )) (Pext (X Board S.empty)))),
-  ("remove", Function (Ft (Pt (Tup [(X Board S.empty), (X Position S.empty)])) (Pext (X Board S.empty)))),
-  ("inARow", Function (Ft (Pt (Tup [X Itype S.empty, X AnySymbol S.empty, X Board S.empty])) (Pext (X Booltype S.empty)))),
-  ("isFull", Function (Ft (Pext (X Board S.empty)) (Pext (X Booltype S.empty)))),    
-  ("at", Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty])) (Pext (X AnySymbol S.empty))))
-  -- This should be polymorphic over all types instead of over all symbols.
-           ]
 
 
 -- | Produce the environment
 environment :: BoardDef -> InputDef -> [ValDef] -> Env
-environment (BoardDef _ _ t) (InputDef i) vs = Env (map f vs ++ builtins) i t
+environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ builtinT) i t sz
   where f (Val (Sig n t1) eq) = (n, t1)
         f (BVal (Sig n t1) eq) = (n, t1)
 
