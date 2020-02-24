@@ -12,10 +12,9 @@ import Data.Array
 import Data.List
 import Data.Either
 
-import Control.Monad.Reader
-import Control.Monad.Except
-import Control.Monad.State
-import Control.Monad.Identity
+import Control.Monad.Writer
+
+
 
 import Debug.Trace
 
@@ -24,25 +23,25 @@ import Debug.Trace
 
 
 
--- | Produce all of the bindings from a list of value definitions. This is done sequentially.
-bindings :: (Int, Int) -> [ValDef] -> Env
+-- | Produce all of the bindings from a list of value definitions. This is done sequentially. Errors are reported as they're found.
+bindings :: (Int, Int) -> [ValDef] -> Writer [Exception] Env
 bindings sz vs = e
   where
-    e = foldr (\(n, v) env -> case runEval env [] v of
-                                Right v -> modifyEval ((n, v):) env
-                                Left err -> env)
+    e = foldM (\env (n, v) -> case runEval env [] v of
+                                Right v' -> return $ modifyEval ((n, v'):) env
+                                Left err -> (tell [err]) >> return env)
         (emptyEnv sz)
         (map bind vs)
 
-
+bindings_ x y = (fst . runWriter) (bindings x y)
 
 bind :: ValDef -> (Name, Eval Val)
 bind (Val _ (Veq n e)) = (n, eval e)
 bind  (Val _ (Feq n (Pars ls) e)) = (n, do
-                                        env <- evalEnv <$> ask
+                                        env <- getEnv
                                         return $ Vf ls env e)
 bind (BVal _ (PosDef n xp yp e2)) = (n, do
-      sz <- boardSize <$> ask
+      sz <- getBounds
       value <- eval e2
       maybeBoard <- lookupName n
       case maybeBoard of
@@ -191,7 +190,7 @@ eval (While c b names exprs) = do
    c' <- unpackBool <$> eval c   -- evaluate the condition 
    case c' of 
       True  -> do 
-         env <- evalEnv <$> ask                                 -- get the current environment 
+         env <- getEnv                          -- get the current environment
          result <- eval b                                       -- evaluate the body  
          case result of                                         -- update the variables in the environment w/ new values and recurse: 
             (Vt vs) -> extScope ((zip names vs) ++ env) recurse

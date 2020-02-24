@@ -6,13 +6,13 @@ import qualified Graphics.UI.Threepenny       as UI
 import           Graphics.UI.Threepenny.Core
 
 import Runtime.Eval
+import Runtime.Values
 import Data.Array
 import Data.List
 
 import Runtime.Typechecker
 import Control.Monad
 import Language.Syntax
-import Runtime.Repl
 import Parser.Parser
 import Data.List.Extra
 import Control.Concurrent
@@ -23,7 +23,7 @@ import qualified Control.Concurrent.Chan as Chan
 runPrototype :: String -> IO ()
 runPrototype f = do
   Just g <- parseGameFile f
-  True <- tc g
+  let (env, errs) = tc g
   replIn <- Chan.newChan
   startGUI defaultConfig
     { jsPort       = Just 8023
@@ -41,7 +41,7 @@ prototype g@(Game n i b _) replIn window = do
 
 
 replReply :: Game -> Window -> Chan String -> Element -> IO ()
-replReply g@(Game n i@(BoardDef szx szy p) b vs) w msgs replArea = do
+replReply g@(Game n i@(BoardDef (szx, szy) p) b vs) w msgs replArea = do
   reply <- Chan.getChanContents msgs
   forM_ reply $ \msg ->
     do
@@ -50,7 +50,7 @@ replReply g@(Game n i@(BoardDef szx szy p) b vs) w msgs replArea = do
           Right x -> do
             case tcexpr (environment i b vs) x of
               Right t -> do
-                case runWithTape (bindings (szx, szy) vs) [] x of
+                case runWithBuffer (bindings_ (szx, szy) vs) [] x of
                   Right (x) -> element replArea #+ (pure $ makeValDisplay x msg)
                   Left ((Vboard b), t) -> do
                     element replArea #+ [UI.div #. "content" #+ [makeInteractiveBoard b t x msg]]
@@ -75,7 +75,7 @@ replReply g@(Game n i@(BoardDef szx szy p) b vs) w msgs replArea = do
           b <- UI.button #. "click-cell" #+ [string ((show . snd) cell)]
           on UI.click b $ \_ -> do
             element replArea #+ [string $ "Move: " ++ show (fst cell)]
-            case runWithTape (bindings (szx, szy) vs) (t ++ (pure $ Vpos (fst cell))) ex of
+            case runWithBuffer (bindings_ (szx, szy) vs) (t ++ (pure $ Vpos (fst cell))) ex of
               Right x -> element replArea #+ (pure $ makeValDisplay x msg)
               Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg]]
               Left err -> element replArea #+ (pure $ string $ show err)

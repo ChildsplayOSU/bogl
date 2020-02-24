@@ -1,6 +1,6 @@
 -- | Typechecker.
 
-module Runtime.Typechecker (tc, tcexpr, environment) where
+module Runtime.Typechecker (tcexpr, environment, runTypeCheck, tc) where
 
 import Runtime.Builtins
 import Language.Syntax hiding (input, piece, size)
@@ -9,6 +9,8 @@ import Control.Monad.Reader
 import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Extra
+import Control.Monad.Writer
+
 import Debug.Trace
 import Data.Either
 import Data.Maybe
@@ -26,6 +28,12 @@ data Env = Env {
   piece :: Type,
   size  :: (Int, Int)
                }
+
+initEnv i p s = Env [] i p s
+
+extendEnv :: Env -> (Name, Type) -> Env
+extendEnv (Env t i p s) v = Env (v:t) i p s
+
 -- monadReader m =>
 getEnv :: (Monad m) => ReaderT Env m TypeEnv
 getEnv = types <$> ask
@@ -75,7 +83,8 @@ instance Show TypeError where
 --   The typechecker is non-interactive so we do not need IO.
 type Typechecked a =  (ReaderT Env (ExceptT TypeError Identity)) a
 
-
+typecheck :: Env -> Typechecked a -> Either TypeError a
+typecheck e a = runIdentity $ runExceptT $ runReaderT a e
 
 
 -- | Get the type of a valDef. Check the expression's type with the signature's. If they don't match, throw exception.
@@ -252,17 +261,17 @@ environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ builtinT) i t sz
   where f (Val (Sig n t1) eq) = (n, t1)
         f (BVal (Sig n t1) eq) = (n, t1)
 
--- | Run the typechecker on env and a list of ValDefs
-runTypeCheck :: Env -> ValDef -> Either TypeError Type
-runTypeCheck e v = runIdentity $ runExceptT $ runReaderT (deftype v) e
 
--- | Run the typechecker on a 'Game' and report any errors to the console.
-tc :: Game -> IO Bool
-tc (Game _ b i vs) = if all (isRight) (checked) then return True else ((putStrLn . (intercalate "\n\n\n") . (map show)) $ lefts checked) >> return False
-  where
-    env = environment b i vs
-    checked = map (runTypeCheck env) vs
+runTypeCheck :: BoardDef -> InputDef -> [ValDef] -> Writer [TypeError] Env
+runTypeCheck (BoardDef sz t) (InputDef i) vs = foldM (\env v -> case typecheck env (deftype v) of
+                                Right t -> return $ extendEnv env (ident v, t)
+                                Left err -> (tell . pure $ err) >> return env)
+                                    (initEnv t i sz)
+                                    vs
+
+tc :: Game -> (Env, [TypeError])
+tc (Game n b i v) = runWriter (runTypeCheck b i v)
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
 tcexpr :: Env -> Expr -> Either TypeError Xtype
-tcexpr e x = runIdentity $ runExceptT $ runReaderT (exprtype x) e
+tcexpr e x = typecheck e (exprtype x)

@@ -54,6 +54,10 @@ instance Show ValDef where
   show (Val s e) = show s ++ "\n" ++ show e
   show (BVal s e) = show s ++ "\n" ++ show e
 
+ident :: ValDef -> Name
+ident (Val (Sig n _) _) = n
+ident (BVal (Sig n _) _) = n
+
 -- | Signatures are a product of name and type.
 data Signature = Sig Name Type
    deriving (Eq, Data)
