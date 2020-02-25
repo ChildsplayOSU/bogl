@@ -102,6 +102,7 @@ data Btype = Booltype      -- ^ Boolean
            | Position      -- ^ A position, specified by the board description
            | Positions     -- ^ The list of all positions
            | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type.
+           | B_ Btype    --
    deriving (Data)
 
 
@@ -137,16 +138,19 @@ ext :: Btype -> Xtype
 ext b = (X b S.empty)
 
 -- | Xtypes are sum types (or tuples of sum types), but restricted by the semantics to only contain Symbols after the atomic type.
-data Xtype = X Btype (S.Set Name) | Tup [Xtype]
+data Xtype = X Btype (S.Set Name) | Tup [Xtype] | X_ Xtype
   deriving (Data)
 
 instance Eq Xtype where
   (X k@(Symbol s) bs) == (X t1 xs) = s `S.member` xs || k == t1
+  (X t1 xs) == (X k@(Symbol s) bs) = s `S.member` xs || k == t1
+  (Tup xs) == (Tup ys) = all (id) (zipWith (==) xs ys)
   -- (X t1 xs) == (X (Symbol s) bs) | not . S.null $ xs= s `S.member` xs
   -- (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
   -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
   --(X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
   (X a1 b1) == (X a2 b2) = a1 == a2 && (S.isSubsetOf b1 b2 || S.isSubsetOf b2 b1) -- TODO ???
+  _ == _ = False
 
 
 instance Show Xtype where
@@ -197,6 +201,7 @@ data Expr = I Integer                     -- ^ Integer expression
           | AppAbs [Expr] Expr
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
           | While Expr Expr [Name] Expr   -- ^ While: condition, body, names of arguments from the wrapper function, (tuple of) expression(s) which referenc(es) the name(s).
+          | Hole
           -- the last Expr can always be constructed from the [Name], but it makes the code cleaner to do that only once while parsing 
    deriving (Eq, Data)
 

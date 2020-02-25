@@ -16,6 +16,7 @@ import Language.Syntax
 import Parser.Parser
 import Data.List.Extra
 import Control.Concurrent
+import Debug.Trace
 import qualified Control.Concurrent.Chan as Chan
 
 -- | run an interactive game, with graphics
@@ -24,6 +25,7 @@ runPrototype :: String -> IO ()
 runPrototype f = do
   Just g <- parseGameFile f
   let (env, errs) = tc g
+  forM errs (\(x, y) -> traceM ("error in " ++ show x ++ "\n" ++ show y))
   replIn <- Chan.newChan
   startGUI defaultConfig
     { jsPort       = Just 8023

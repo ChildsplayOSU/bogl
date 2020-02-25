@@ -62,7 +62,7 @@ data TypeError = Mismatch Type Type Expr     -- ^ Couldn't match two types in an
 mismatch :: Type -> Type -> Expr -> Typechecked a
 mismatch t1 t2 e = throwError $ Mismatch t1 t2 e
 notbound :: Name -> Typechecked a
-notbound n = throwError $ NotBound n
+notbound n  = throwError $ NotBound n
 sigmismatch :: Name -> Type -> Type -> Typechecked a
 sigmismatch n t1 t2= throwError $ SigMismatch n t1 t2
 unknown :: String -> Typechecked a
@@ -90,7 +90,7 @@ typecheck e a = runIdentity $ runExceptT $ runReaderT a e
 -- | Get the type of a valDef. Check the expression's type with the signature's. If they don't match, throw exception.
 deftype :: ValDef -> Typechecked Type
 deftype (Val (Sig n t) eqn) = do
-  eqt <- eqntype t eqn
+  eqt <- localEnv ((n, t):) (eqntype t eqn)
   if eqt == t
     then return t
     else sigmismatch n t eqt
@@ -103,7 +103,7 @@ deftype (BVal (Sig n t) eqn) = do
 
 beqntype :: Type -> BoardEq -> Typechecked Type
 beqntype t (PosDef _ xp yp e) = do
-   -- bounds checking on x and y positions?  
+   -- bounds checking on x and y positions?
    t1 <- exprtype e     -- TODO: I think this needs to match the type of Board. Do I need to pass that in to the function or can I access it in some other way?
    b <- getPiece
    sz <- getSize
@@ -125,10 +125,11 @@ eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
       e' <- localEnv ((++) (zip params (pure (Plain input')))) (exprtype e)
       return $ Function (Ft inputs e')
   where
-    demote :: Type -> Typechecked Xtype
-    demote (Plain t) = return t
-    demote (_) = throwError (Unknown "Environment corrupted.")
 eqntype _ _ = throwError (Unknown "Environment corrupted.") -- this should never happen?
+
+demote :: Type -> Typechecked Xtype
+demote (Plain t) = return t
+demote (_) = throwError (Unknown "Environment corrupted.")
 
 t :: Btype -> Typechecked Xtype
 t b = (return . ext) b
@@ -169,8 +170,9 @@ exprtype e@(Binop Equiv e1 e2) = do
 exprtype e@(Binop Get e1 e2) = do 
   t1 <- exprtype e1
   t2 <- exprtype e2
+  p <- getPiece
   if t1 == ext Board && t2 == ext Position
-   then t Position
+   then demote p
    else badop Get (Plain t1) (Plain t2) e -- TODO: bounds check?  can't at typechecking without dependent types, I think. might be worth looking into.
 exprtype e@(Binop x e1 e2) = do
   t1 <- exprtype e1
@@ -245,13 +247,13 @@ singletonSymbol :: Name -> Type
 singletonSymbol n = Plain (X (Symbol n) S.empty)
 
 
--- | Get the type of a reference in the enviroment
 getType :: String -> Typechecked Type
 getType n = do
   env <- getEnv
-  case lookup n env of
-    Just e -> return e
-    Nothing -> notbound n
+  case (lookup n env, lookup n builtinT) of
+    (Just e, _) -> return e
+    (_, Just e) -> return e
+    _ -> notbound n
 
 
 
@@ -261,15 +263,15 @@ environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ builtinT) i t sz
   where f (Val (Sig n t1) eq) = (n, t1)
         f (BVal (Sig n t1) eq) = (n, t1)
 
-
-runTypeCheck :: BoardDef -> InputDef -> [ValDef] -> Writer [TypeError] Env
+-- recursion is not allowed by this.
+runTypeCheck :: BoardDef -> InputDef -> [ValDef] -> Writer [(ValDef, TypeError)] Env
 runTypeCheck (BoardDef sz t) (InputDef i) vs = foldM (\env v -> case typecheck env (deftype v) of
                                 Right t -> return $ extendEnv env (ident v, t)
-                                Left err -> (tell . pure $ err) >> return env)
-                                    (initEnv t i sz)
-                                    vs
+                                Left err -> (tell . pure $ (v, err)) >> return env)
+                                    (initEnv i t sz)
+                                    (vs)
 
-tc :: Game -> (Env, [TypeError])
+tc :: Game -> (Env, [(ValDef, TypeError)])
 tc (Game n b i v) = runWriter (runTypeCheck b i v)
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.

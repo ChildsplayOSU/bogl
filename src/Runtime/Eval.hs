@@ -31,7 +31,7 @@ bindings sz vs = e
                                 Right v' -> return $ modifyEval ((n, v'):) env
                                 Left err -> (tell [err]) >> return env)
         (emptyEnv sz)
-        (map bind vs)
+        (reverse $ map bind vs)
 
 bindings_ x y = (fst . runWriter) (bindings x y)
 
