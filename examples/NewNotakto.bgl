@@ -7,14 +7,9 @@ empty : Board
 empty(x,y) = Empty 
 
 -- This is kind of frustrating. Potential builtin, or a language pragma that prevents you from placing on a spot that already has pieces would be cool.
-move : Board -> Board | Failed
+move : Board -> Board
 move(b) = let pos = input(b) in
-          if b ! pos == Empty then place(X, b, pos) else Failed
-
-doMove : Board -> Board
-doMove(b) = let x = move(b) in case x of
-          Failed -> doMove(b) -- recursion just works for some reason.
-          | x
+          if b ! pos == Empty then place(X, b, pos) else move(b)
 
 -- anyways.
 
@@ -22,10 +17,10 @@ status : Board -> Bool
 status(b) = if inARow(3, X, b) then False else True
 
 gameLoop : Board -> Board
-gameLoop(b) = while status(b) do doMove(b)
+gameLoop(b) = while status(b) do move(b)
 
 identity : Bool -> Bool 
 identity(b) = b && b  
 
 contrivedGameLoop : Board -> Board
-contrivedGameLoop(b) = while identity(status(b)) do doMove(b) 
+contrivedGameLoop(b) = while identity(status(b)) do move(b)

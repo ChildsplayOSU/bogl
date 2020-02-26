@@ -72,6 +72,18 @@ badop o t1 t2 e = throwError $ BadOp o t1 t2 e
 outofbounds :: Pos -> Pos -> Typechecked a
 outofbounds p sz = throwError $ OutOfBounds p sz
 
+-- | Retrieve the extensions from an Xtype
+extensions :: Xtype -> Typechecked (S.Set Name)
+extensions (X _ xs) = return xs
+extensions a = throwError (Unknown $ "TYPE ERROR! CANT GET EXTENSIONS FROM " ++ show a)
+
+-- | Attempt to unify two xtypes into a single type. If it's not possible, throw an error.
+mergeX :: Xtype -> Xtype -> Typechecked Xtype
+mergeX a@(X x xs) b@(X y ys) = if x == y && (xs `S.isSubsetOf` ys || ys `S.isSubsetOf` xs) then
+                             return (X x (xs `S.union` ys))
+                             else unknown $ "Couldn't merge: " ++ show a ++ show b
+
+
 instance Show TypeError where
   show (Mismatch t1 t2 e) = "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
   show (NotBound n) = "Variable " ++ n ++ " not bound in the enviroment!"
@@ -136,9 +148,7 @@ t b = (return . ext) b
 -- Get the type of an expression
 exprtype :: Expr -> Typechecked Xtype
 exprtype (I _) = t Itype
-exprtype (S "A") = return $ (X (Player) S.empty) -- TODO: manage this more elegantly?
-exprtype (S "B") = return $ (X (Player) S.empty)
-exprtype (S s) = t (Symbol s)
+exprtype (S s) = return $ X Top (S.singleton s)
 exprtype (B _) = t Booltype
 exprtype (Let n e1 e2) = do
   t <- exprtype e1
@@ -195,56 +205,28 @@ exprtype e@(If e1 e2 e3) = do
   t2 <- exprtype e2
   t3 <- exprtype e3
   case (t1, t2, t3) of
-    ((X Booltype empty), (X (Symbol s) s1), (X t3' s2)) | S.null empty -> return $ (X t3' $ S.unions [s1, s2, S.singleton s])
-    ((X Booltype empty), (X t2' s1), (X (Symbol s) s2)) | S.null empty -> return $ (X t2' $ S.unions [s1, s2, S.singleton s])
-    ((X Booltype empty), y, z) | S.null empty -> if y /= z then mismatch (Plain y) (Plain z) e else return $ (y)
-    (x, _, _) -> mismatch (Plain $ (X Booltype S.empty)) (Plain x) e
+    ((X Booltype empty), (X Top s1), (X t3' s2)) | S.null empty -> return $ (X t3' $ S.unions [s1, s2])
+    ((X Booltype empty), (X t2' s1), (X Top s2)) | S.null empty -> return $ (X t2' $ S.unions [s1, s2])
+    ((X Booltype empty), t1@(X y s1), t2@(X z s2)) | S.null empty -> if y /= z then mismatch (Plain t1) (Plain t2) e else return $ X y (S.union s1 s2)
+    ((X Booltype empty), (Tup xs), (Tup ys)) | S.null empty -> do
+                                                 result <- forM (zip xs ys) (\(x, y) -> mergeX x y)
+                                                 return (Tup result)
 
--- case (FIXME)
-exprtype expr@(Case n xs e) = do
-  t1 <- getType n
-  case t1 of
-    Plain (X t' xs') | xs' /= S.empty -> if xs' == (S.fromList patterns) then compileCases n xs (t1, e) else unknown $ "Incomplete pattern match in "
-                                                                                                   ++ show expr
-                                                                                                   ++ " please match cases: "
-                                                                                                   ++ (concat . S.toList) (xs' `S.difference` (S.fromList patterns))-- TODO: a better error
-    _ -> unknown $ show t1 ++ " is not an extended type, so you can't pattern-match on it."
-  where
-    (patterns, exprs) = (map fst xs, map snd xs)
-    compileCases :: Name -> [(Name, Expr)] -> (Type, Expr) -> Typechecked Xtype
-    compileCases n xs e = do
-      types <- mapM (fakeType n) (ts')
-      (atom, extension) <- partitionM notSymbol types
-      case atom of
-        [(X x exten')] -> return $ ((X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
-        h@(X x exten):xs | all (== h) xs -> let exten' = (S.unions . map getExtensions)  (h:xs)
-                                in return $ ((X x (exten' `S.union` (S.unions (map retrieveSymbols extension)))))
-        xs -> unknown $ "Cannot construct the type: " ++ ((intercalate "|") $ show <$> xs) ++ "\n produced by: " ++ (show expr)
-      where
-        ts' = e:(map (first singletonSymbol) xs)
+    (x, y, z) -> traceM (show x ++ " " ++ show y ++ show z) >> (mismatch (Plain $ (X Booltype S.empty)) (Plain x) e)
 
 
-    notSymbol ((X (Symbol _) _)) = return False
-    notSymbol (X _ _) = return True
-    notSymbol (_) = unknown "this is a function. I don't know what to do."
-   
-    fakeType :: Name -> (Type, Expr) -> Typechecked Xtype
-    fakeType n (t, e) = localEnv ((n, atomicType t):) (exprtype e)
+exprtype e'@(While c b n e) = do
+  et <- exprtype e
+  ct <- exprtype c
+  bt <- exprtype b
+  case (ct, bt) of
+    ((X Booltype s), y) | S.null s && y == et -> return et
+    (a, b) -> if b == et
+              then mismatch (Plain b) (Plain (X Booltype S.empty)) e'
+              else mismatch (Plain a) (Plain et) e'
 
-    retrieveSymbols (X (Symbol n) s) = (S.singleton n) `S.union` s
-    retrieveSymbols _ = S.empty
+    
 
-exprtype (While c b n e) = exprtype e -- TODO 
-
-getExtensions :: Xtype -> S.Set Name
-getExtensions (X _ exs) = exs
-getExtensions _ = S.empty
-
-atomicType :: Type -> Type
-atomicType (Plain (X t _)) = Plain (X t S.empty)
-
-singletonSymbol :: Name -> Type
-singletonSymbol n = Plain (X (Symbol n) S.empty)
 
 
 getType :: String -> Typechecked Type

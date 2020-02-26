@@ -2,7 +2,7 @@ game TicTacToe
 
 -- Board and input type definitions
 --
-type Board = Grid (3,3) of Player|Empty
+type Board = Grid (3,3) of X|O|Empty
 type Input = Position
 
 
@@ -11,21 +11,21 @@ type Input = Position
 initialBoard : Board
 initialBoard(x,y) = Empty
 
-goFirst : Player
-goFirst = A
+goFirst : X|O
+goFirst = X
 
 -- Game ending: game-over condition and game outcome
 --
 --gameOver(b) = or(threeInARow(b),isFull(b))
 
 
-outcome : (Board,Player) -> Player|Tie
-outcome(b,p) = if inARow(3,A,b) then A else
-               if inARow(3,B,b) then B else Tie 
+outcome : (X|O, Board) -> X|O|Tie
+outcome(b,p) = if inARow(3,X,b) then X else
+               if inARow(3,O,b) then O else Tie
                --if isFull(b)     then Tie
 
 threeInARow : Board -> Bool
-threeInARow(b) = inARow(3,A,b) || inARow(3,B,b)
+threeInARow(b) = inARow(3,X,b) || inARow(3,O,b)
 
 gameOver : Board -> Bool
 gameOver(b) = threeInARow(b) || isFull(b)
@@ -38,17 +38,17 @@ isValid(b,p) = if (b!p) == Empty then True else False
 
 -- Game loop
 --
-tryMove : (Player,Board) -> (Board,Player)
+tryMove : (X|O,Board) -> (X|O, Board)
 tryMove(p,b) = let pos = input(b) in
-                   if isValid(b,pos) then (place(p,b,pos),next(p))
-                                     else (b,p)
+                   if isValid(b,pos) then (next(p), place(p,b,pos))
+                                     else (p, b)
 
-loop : (Player,Board) -> (Player,Board)
+loop : (X|O,Board) -> (X|O,Board)
 loop(p,b) = while not(gameOver(b)) do tryMove(p,b)
 
-play : (Player,Board) -> Player|Tie
-play(a,b) = outcome(loop(a,b))
+play : (X|O,Board) -> X|O|Tie
+play(a,b) = outcome(loop(a, b))
 -- play(a,b) = outcome(while not(gameOver(b)) do tryMove(p,b))
 
-result : Player|Tie
+result : X|O|Tie
 result = play(initialBoard,goFirst)

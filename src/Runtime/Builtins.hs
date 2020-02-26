@@ -10,6 +10,9 @@ import Runtime.Values
 import qualified Data.Set as S
 import Data.Array
 
+
+
+
 builtinT = [
   ("input", Function (Ft (X Board S.empty) (X Position S.empty))),
   ("positions", Plain (X Positions S.empty)),
@@ -17,8 +20,8 @@ builtinT = [
   ("remove", Function (Ft (Tup [(X Board S.empty), (X Position S.empty)]) (X Board S.empty))),
   ("inARow", Function (Ft (Tup [X Itype S.empty, X AnySymbol S.empty, X Board S.empty]) (X Booltype S.empty))),
   ("isFull", Function (Ft (X Board S.empty) (X Booltype S.empty))),
-  ("next", Function (Ft (X (Symbol "A") (S.singleton "B")) (X (Symbol "A") (S.singleton "B"))))
-
+  ("next", Function (Ft (X Top (S.fromList ["X", "O"])) (X Top (S.fromList ["X", "O"])))),
+  ("not", Function (Ft (X Booltype S.empty) (X Booltype S.empty)))
   -- This should be polymorphic over all types instead of over all symbols.
            ]
 
@@ -29,7 +32,8 @@ builtins = [
   ("remove", \[Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // pure ((x,y), Vs "Empty")),
   ("isFull", \[Vboard arr] -> return $ Vb $ all (/= Vs "Empty") $ elems arr),
   ("inARow", \[Vi i, v, Vboard arr] -> return $ Vb $ line v (assocs arr) (fromInteger i)),
-  ("next", \[Vs s] -> return $ if s == "A" then Vs "B" else Vs "A")
+  ("next", \[Vs s] -> return $ if s == "X" then Vs "O" else Vs "X"),
+  ("not", \[Vb b] -> return $ Vb (not b))
   ]
 
 builtinRefs :: [(Name, Eval Val)]

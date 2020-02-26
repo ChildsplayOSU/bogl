@@ -94,36 +94,36 @@ instance Show BoardEq where
 -- | Atomic types
 data Btype = Booltype      -- ^ Boolean
            | Itype         -- ^ Integer
-           | Symbol Name   -- ^ Symbols, or nullary constructors. Each symbol lives in its own unique type.
            | AnySymbol     -- ^ this is the type all symbols live in
            | Input         -- ^ The input type specified at the top of the program
            | Board         -- ^ A game board
            | Player        -- ^ A player
            | Position      -- ^ A position, specified by the board description
            | Positions     -- ^ The list of all positions
+           | Top
            | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type.
-           | B_ Btype    --
    deriving (Data)
 
-
 instance Eq Btype where
-  (Symbol _) == AnySymbol = True
-  AnySymbol == (Symbol _) = True -- polymorphism?
-  Player == AnySymbol = True     -- TODO: Fix this in parser. A and B should parse as players.
-  Symbol n1 == Symbol n2 = n1 == n2
-  Itype == Itype = True
+  Top == _ = True
+  _ == Top = True
   Booltype == Booltype = True
-  Board == Board = True
+  Itype == Itype = True
   Input == Input = True
+  Board == Board = True
   Player == Player = True
   Position == Position = True
   Positions == Positions = True
+  Undef == Undef = True
   _ == _ = False
+
+
+
 
 instance Show Btype where
   show Booltype = "Bool"
   show Itype = "Int"
-  show (Symbol s) = s
+  show Top = "T"
   show Input = "Input"
   show Board = "Board"
   show Player = "Player"
@@ -142,14 +142,14 @@ data Xtype = X Btype (S.Set Name) | Tup [Xtype] | X_ Xtype
   deriving (Data)
 
 instance Eq Xtype where
-  (X k@(Symbol s) bs) == (X t1 xs) = s `S.member` xs || k == t1
-  (X t1 xs) == (X k@(Symbol s) bs) = s `S.member` xs || k == t1
+  (X AnySymbol _) == (X Top s) = True
+  (X Top s) == (X AnySymbol _) = True
+  (X k s) == (X k' s') = k == k' && (s `S.isSubsetOf` s' || s' `S.isSubsetOf` s)
   (Tup xs) == (Tup ys) = all (id) (zipWith (==) xs ys)
   -- (X t1 xs) == (X (Symbol s) bs) | not . S.null $ xs= s `S.member` xs
   -- (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
   -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
   --(X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
-  (X a1 b1) == (X a2 b2) = a1 == a2 && (S.isSubsetOf b1 b2 || S.isSubsetOf b2 b1) -- TODO ???
   _ == _ = False
 
 

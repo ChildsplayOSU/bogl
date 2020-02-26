@@ -19,7 +19,7 @@ import qualified Data.Set as S
 import Data.Either
 type Parser = Par.Parsec String ((Maybe Type), (Name, [Name]))
 -- | The 'Type' keywords
-types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
+types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Player", "Position", "Positions"]
 -- | The lexer, using the reserved keywords and operation names
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
                                                             "let", "in", "if", "then", "else",
@@ -132,7 +132,7 @@ boardeqn =
 -- | Atomic types
 btype :: Parser Btype
 btype =
-  (reserved "Bool" *> pure Booltype
+  reserved "Bool" *> pure Booltype
   <|>
   reserved "Int" *> pure Itype
   <|>
@@ -146,16 +146,19 @@ btype =
   <|>
   reserved "Position" *> pure Position
   <|>
-  reserved "Positions" *> pure Positions)
+  reserved "Positions" *> pure Positions
   <|>
-  Symbol <$> capIdentifier
+  reserved "AnySymbol" *> pure AnySymbol
+
 
 -- | Extended types: types after the first are restricted to symbols
 xtype :: Parser Xtype
 xtype =
-  (try $ (X <$> btype <*> (S.fromList <$> (many1 (reservedOp "|" *> capIdentifier)))))
+  (try $ (X <$> btype <*> (S.fromList <$> many1 (reservedOp "|" *> capIdentifier))))
   <|>
   (try $ (\x -> X x S.empty) <$> btype)
+  <|>
+  (try $ (pure $ X Top) <*> (S.union <$> (S.singleton <$> capIdentifier) <*> (S.fromList <$> many (reservedOp "|" *> capIdentifier))))
   <|>
   Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
 

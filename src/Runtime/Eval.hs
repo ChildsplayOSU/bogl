@@ -162,6 +162,7 @@ eval (App n es) = do
     Just (Vf params env' e) -> extScope (zip params args ++ env') (eval e)
     Nothing -> case lookup n builtins of
       Just f -> do
+        traceM $  "Calling function " ++ n ++ " with arguments " ++ (concatMap show args)
         f args
       Nothing -> do
         return $ Err $ "Couldn't find " ++ n ++ " in environment!"
