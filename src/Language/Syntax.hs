@@ -7,7 +7,6 @@ import Data.List
 import Text.JSON.Generic
 import Data.Array
 import qualified Data.Set as S
-
 type Name = String
 
 -- | Game datatype
@@ -30,7 +29,7 @@ instance Show Game where
 data BoardDef = BoardDef
   {
     size  :: (Int, Int)
-  , piece :: Type
+  , piece :: Xtype
   }
   deriving (Data)
 
@@ -39,7 +38,7 @@ instance Show BoardDef where
     = "Board : Grid(" ++ show i1 ++ "," ++ show i2 ++ ") of " ++ show t
 
 -- | Input definition: Player inputs must be an accepted type
-data InputDef = InputDef Type
+data InputDef = InputDef Xtype
   deriving (Data)
 
 instance Show InputDef where
@@ -100,23 +99,14 @@ data Btype = Booltype      -- ^ Boolean
            | Player        -- ^ A player
            | Position      -- ^ A position, specified by the board description
            | Positions     -- ^ The list of all positions
-           | Top
+           | Top           -- ^ Really this is bottom FIXME
            | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type.
-   deriving (Data)
+   deriving (Data, Eq)
 
-instance Eq Btype where
-  Top == _ = True
-  _ == Top = True
-  Booltype == Booltype = True
-  Itype == Itype = True
-  Input == Input = True
-  Board == Board = True
-  Player == Player = True
-  Position == Position = True
-  Positions == Positions = True
-  Undef == Undef = True
-  _ == _ = False
 
+instance Ord Btype where
+  Top <= _ = True
+  x <= y   = x == y
 
 
 
@@ -139,29 +129,27 @@ ext b = (X b S.empty)
 
 -- | Xtypes are sum types (or tuples of sum types), but restricted by the semantics to only contain Symbols after the atomic type.
 data Xtype = X Btype (S.Set Name) | Tup [Xtype] | X_ Xtype
-  deriving (Data)
+  deriving (Data, Eq)
 
-instance Eq Xtype where
-  (X AnySymbol _) == (X Top s) = True
-  (X Top s) == (X AnySymbol _) = True
-  (X k s) == (X k' s') = k == k' && (s `S.isSubsetOf` s' || s' `S.isSubsetOf` s)
-  (Tup xs) == (Tup ys) = all (id) (zipWith (==) xs ys)
-  -- (X t1 xs) == (X (Symbol s) bs) | not . S.null $ xs= s `S.member` xs
-  -- (X t1 empty) == (X t2 bs) | S.null empty = t2 == t1 -- type promotion (maybe remove?)
-  -- (X t2 bs) == (X t1 empty) | S.null empty = t2 == t1 -- type demotion
-  --(X a1 b1) == (X a2 b2) = a1 == a2 && b1 == b2
-  _ == _ = False
+instance Ord Xtype where
+  (X Top _) <= (X AnySymbol _) = True -- A set of symbols is the subtype of AnySymbols
+  (X k x) <= (X k' x') = (k <= k') && (x `S.isSubsetOf` x') -- If k is a subtype of k' (they either match or one is Top), and x is a subset
+  (Tup xs) <= (Tup xs') = all (id) (zipWith (<=) xs xs')
+  _ <= _ = False
 
 
 instance Show Xtype where
   show (X b xs) | S.null xs = show b ++ "(no extension)"
                 | otherwise = show b ++ "|" ++ intercalate ("|") (map show (S.toList xs))
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
+  show _ = undefined
 
 
 -- | A function type can be from a plain type to a plain type (no curried functions)
 data Ftype = Ft Xtype Xtype
    deriving (Eq, Data)
+instance Ord Ftype where
+  (Ft x y) <= (Ft z w) = x <= z && y <= w
 
 instance Show Ftype where
   show (Ft t1 t2) = show t1 ++ " -> " ++ show t2
@@ -169,6 +157,11 @@ instance Show Ftype where
 -- | A type is either a plain type or a function.
 data Type = Plain Xtype | Function Ftype
    deriving (Eq, Data)
+
+instance Ord Type where
+  (Plain x) <= (Plain y) = x <= y
+  (Function f) <= (Function g) = f <= g
+  _ <= _ = False
 
 p :: Btype -> Type
 p b = Plain $ X b S.empty
@@ -193,7 +186,7 @@ data Expr = I Integer                     -- ^ Integer expression
           | B Bool                        -- ^ Boolean
           | Ref Name                      -- ^ Reference to a variable
           | Tuple [Expr]                  -- ^ Tuple of 'Expr'
-          | App Name [Expr]               -- ^ Application of the function called Name to the list of arguments (Note: this could also be App Expr Expr, which would be cleaner.)
+          | App Name [Expr]                -- ^ Application of the function called Name to the list of arguments
           | Binop Op Expr Expr            -- ^ Binary operation of two expressions
           | Let Name Expr Expr            -- ^ Let binding
           | If Expr Expr Expr             -- ^ Conditional expression

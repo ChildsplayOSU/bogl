@@ -6,6 +6,8 @@ type Board = Grid (3,3) of X|O|Empty
 type Input = Position
 
 
+
+
 -- Game setup
 --
 initialBoard : Board
@@ -20,9 +22,9 @@ goFirst = X
 
 
 outcome : (X|O, Board) -> X|O|Tie
-outcome(b,p) = if inARow(3,X,b) then X else
-               if inARow(3,O,b) then O else Tie
-               --if isFull(b)     then Tie
+outcome(p, b) = if inARow(3,X,b) then X else
+                if inARow(3,O,b) then O else Tie
+
 
 threeInARow : Board -> Bool
 threeInARow(b) = inARow(3,X,b) || inARow(3,O,b)
@@ -47,8 +49,19 @@ loop : (X|O,Board) -> (X|O,Board)
 loop(p,b) = while not(gameOver(b)) do tryMove(p,b)
 
 play : (X|O,Board) -> X|O|Tie
-play(a,b) = outcome(loop(a, b))
+play(a,b) = outcome(loop(a,b))
 -- play(a,b) = outcome(while not(gameOver(b)) do tryMove(p,b))
 
 result : X|O|Tie
-result = play(initialBoard,goFirst)
+result = play(goFirst, initialBoard)
+
+
+lessTen : Int -> Bool
+lessTen(x) = x < 10
+
+incr : Int -> Int
+incr(x) = x + 1
+
+
+whileTest : Int -> Int
+whileTest(x) = while lessTen(x) do incr(x)

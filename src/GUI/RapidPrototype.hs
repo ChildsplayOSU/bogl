@@ -52,6 +52,7 @@ replReply g@(Game n i@(BoardDef (szx, szy) p) b vs) w msgs replArea = do
           Right x -> do
             case tcexpr (environment i b vs) x of
               Right t -> do
+                traceM $ "Typechecked: " ++ show t
                 case runWithBuffer (bindings_ (szx, szy) vs) [] x of
                   Right (x) -> element replArea #+ (pure $ makeValDisplay x msg)
                   Left ((Vboard b), t) -> do

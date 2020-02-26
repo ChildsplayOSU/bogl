@@ -157,15 +157,20 @@ eval (Ref n) = do
 
 eval (App n es) = do
   args <- mapM eval es
+  let args' = foldr (\x k -> case x of
+        (Vt xs) -> xs ++ k
+        x -> x:k) [] args -- NOT GOOD
   f <- lookupName n
   case f of
-    Just (Vf params env' e) -> extScope (zip params args ++ env') (eval e)
+    Just (Vf params env' e) -> extScope (zip params (args')) (eval e) -- ++ env?
     Nothing -> case lookup n builtins of
       Just f -> do
-        traceM $  "Calling function " ++ n ++ " with arguments " ++ (concatMap show args)
-        f args
+        (f (args))
       Nothing -> do
         return $ Err $ "Couldn't find " ++ n ++ " in environment!"
+  where
+    vals ((Vt xs):ys) = xs ++ (vals ys)
+    vals (x:xs) = x : vals xs
 
 eval (Let n e1 e2) = do
   v <- eval e1
@@ -196,9 +201,12 @@ eval (While c b names exprs) = do
          case result of                                         -- update the variables in the environment w/ new values and recurse: 
             (Vt vs) -> extScope ((zip names vs) ++ env) recurse
             r       -> extScope ((head names, r) : env) recurse -- that head should never fail...famous last words
-      False -> eval exprs 
-   where 
-      recurse = eval (While c b names exprs)    
+      False -> do
+        e <- eval exprs
+        traceM $ "Returning with " ++ show e
+        return e
+   where
+      recurse = eval (While c b names exprs)
 
 -- | Run an 'Expr' in the given 'Env' and display the result
 --

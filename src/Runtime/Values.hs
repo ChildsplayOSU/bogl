@@ -37,7 +37,7 @@ instance Show Val where
   show (Vb b) = show b
   show (Vpos x) = show x
   show (Vboard b) = "Board: " ++ show b
-  show (Vt xs) = intercalate " " $ map show xs
+  show (Vt xs) = "(" ++ (intercalate ", " $ map show xs) ++ ")"
   show (Vs s) = s
   show (Vf xs env' e) = "\\" ++ show xs ++ " -> " ++ show e
   show (Err s) = "ERR: " ++ s

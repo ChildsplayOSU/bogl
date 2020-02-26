@@ -178,7 +178,14 @@ xtype =
 
 -- | Function types
 ftype :: Parser Ftype
-ftype = Ft <$> xtype <*> (reservedOp "->" *> xtype)
+ftype = do
+  x <- xtype
+  reservedOp "->"
+  r <- xtype
+  case x of
+    Tup xs -> return $ Ft (Tup xs) r
+    y -> return $ Ft (Tup [y]) r
+
 
 replaceFirst x (a, b) = (x, b)
 replaceSecond x (a, b) = (a, x)
@@ -234,12 +241,12 @@ board =
   (BoardDef <$>
     ((,) <$> (reserved "Grid" *> (lexeme . char) '(' *> (fromInteger <$> integer)) <*>
      ((lexeme . char) ',' *> (fromInteger <$> integer) <* (lexeme . char) ')')) <*>
-  (reserved "of" *> typ)) -- fixme
+  (reserved "of" *> xtype)) -- fixme
 
 -- | Input definition
 input :: Parser InputDef
 input =
-  reserved "type" *> reserved "Input" *> reservedOp "=" *> (InputDef <$> typ)
+  reserved "type" *> reserved "Input" *> reservedOp "=" *> (InputDef <$> xtype)
 
 -- | Game definition
 game :: Parser Game

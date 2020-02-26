@@ -24,8 +24,8 @@ import qualified Data.Set as S
 type TypeEnv = [(Name, Type)]
 data Env = Env {
   types :: TypeEnv,
-  input :: Type,
-  piece :: Type,
+  input :: Xtype,
+  piece :: Xtype,
   size  :: (Int, Int)
                }
 
@@ -38,10 +38,10 @@ extendEnv (Env t i p s) v = Env (v:t) i p s
 getEnv :: (Monad m) => ReaderT Env m TypeEnv
 getEnv = types <$> ask
 
-getInput :: (Monad m) => ReaderT Env m Type
+getInput :: (Monad m) => ReaderT Env m Xtype
 getInput = input <$> ask
 
-getPiece :: (Monad m) => ReaderT Env m Type
+getPiece :: (Monad m) => ReaderT Env m Xtype
 getPiece = piece <$> ask
 
 getSize :: (Monad m) => ReaderT Env m (Int, Int)
@@ -77,11 +77,15 @@ extensions :: Xtype -> Typechecked (S.Set Name)
 extensions (X _ xs) = return xs
 extensions a = throwError (Unknown $ "TYPE ERROR! CANT GET EXTENSIONS FROM " ++ show a)
 
+
 -- | Attempt to unify two xtypes into a single type. If it's not possible, throw an error.
 mergeX :: Xtype -> Xtype -> Typechecked Xtype
-mergeX a@(X x xs) b@(X y ys) = if x == y && (xs `S.isSubsetOf` ys || ys `S.isSubsetOf` xs) then
-                             return (X x (xs `S.union` ys))
-                             else unknown $ "Couldn't merge: " ++ show a ++ show b
+mergeX a@(X y z) b@(X w k)
+  | y <= w = return $ X w (z `S.union` k) -- take the more defined type
+  | w <= y = return $ X y (z `S.union` k)
+
+
+mergeX a b = throwError (Unknown $ "Can't merge." ++ show a ++ "//" ++ show b)
 
 
 instance Show TypeError where
@@ -103,13 +107,13 @@ typecheck e a = runIdentity $ runExceptT $ runReaderT a e
 deftype :: ValDef -> Typechecked Type
 deftype (Val (Sig n t) eqn) = do
   eqt <- localEnv ((n, t):) (eqntype t eqn)
-  if eqt == t
+  if eqt <= t
     then return t
     else sigmismatch n t eqt
 
 deftype (BVal (Sig n t) eqn) = do
   eqt <- beqntype t eqn
-  if eqt == t
+  if eqt <= t
     then return t
     else sigmismatch n t eqt
 
@@ -119,9 +123,9 @@ beqntype t (PosDef _ xp yp e) = do
    t1 <- exprtype e     -- TODO: I think this needs to match the type of Board. Do I need to pass that in to the function or can I access it in some other way?
    b <- getPiece
    sz <- getSize
-   case ((Plain t1) == b, toPos sz >= (xp,yp)) of
+   case (t1 <= b, toPos sz >= (xp,yp)) of
      (True, True) -> return $ Plain (X Board S.empty)
-     (False, _) -> mismatch b (Plain t1) e
+     (False, _) -> mismatch (Plain b) (Plain t1) e
      (_, False) -> outofbounds xp yp
    where
      toPos (x,y) = (Index x, Index y) -- fixme
@@ -161,28 +165,28 @@ exprtype (Ref s) = do
 exprtype (Tuple xs) = do
   xs' <- mapM exprtype xs
   return $ Tup xs'
-exprtype e@(App n es) = do
+exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
   es' <- mapM exprtype es
+  let es'' = foldr (\x k -> case x of
+        (Tup xs) -> xs ++ k
+        xs -> xs:k) [] es'
   t <- getType n
   case t of
-    (Function (Ft (Tup i) o)) -> if es' == i then return o else do
-      mismatch (Plain $ Tup es') (Plain (Tup i)) e
-    (Function (Ft i o)) -> if es' == [i] then return o else do
-      mismatch (Plain $ Tup es') (Plain i) e
+    (Function (Ft (i) o)) -> if Tup (es'') <= i then return o else do
+      mismatch (Plain $ (Tup es'')) (Plain (i)) e
     _ -> do
-      mismatch (Function $ (Ft (Tup es')) (X Undef S.empty)) t e -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
+      (traceM "???") >> mismatch (Function $ (Ft (Tup es') (X Undef S.empty))) t e -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
 
 
 exprtype e@(Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
-  if (t1 == t2) then t Booltype else badop Equiv (Plain t1) (Plain t2) e
+  if (t1 <= t2) || (t2 <= t1) then t Booltype else badop Equiv (Plain t1) (Plain t2) e
 exprtype e@(Binop Get e1 e2) = do 
   t1 <- exprtype e1
   t2 <- exprtype e2
-  p <- getPiece
   if t1 == ext Board && t2 == ext Position
-   then demote p
+   then getPiece
    else badop Get (Plain t1) (Plain t2) e -- TODO: bounds check?  can't at typechecking without dependent types, I think. might be worth looking into.
 exprtype e@(Binop x e1 e2) = do
   t1 <- exprtype e1
@@ -205,13 +209,10 @@ exprtype e@(If e1 e2 e3) = do
   t2 <- exprtype e2
   t3 <- exprtype e3
   case (t1, t2, t3) of
-    ((X Booltype empty), (X Top s1), (X t3' s2)) | S.null empty -> return $ (X t3' $ S.unions [s1, s2])
-    ((X Booltype empty), (X t2' s1), (X Top s2)) | S.null empty -> return $ (X t2' $ S.unions [s1, s2])
-    ((X Booltype empty), t1@(X y s1), t2@(X z s2)) | S.null empty -> if y /= z then mismatch (Plain t1) (Plain t2) e else return $ X y (S.union s1 s2)
     ((X Booltype empty), (Tup xs), (Tup ys)) | S.null empty -> do
                                                  result <- forM (zip xs ys) (\(x, y) -> mergeX x y)
-                                                 return (Tup result)
-
+                                                 return (Tup result) -- this is strange.
+    ((X Booltype empty), t2, t3) | S.null empty  -> mergeX t2 t3
     (x, y, z) -> traceM (show x ++ " " ++ show y ++ show z) >> (mismatch (Plain $ (X Booltype S.empty)) (Plain x) e)
 
 

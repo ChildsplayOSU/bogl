@@ -11,17 +11,17 @@ import qualified Data.Set as S
 import Data.Array
 
 
-
+single x = Tup [x]
 
 builtinT = [
-  ("input", Function (Ft (X Board S.empty) (X Position S.empty))),
+  ("input", Function (Ft (single (X Board S.empty)) (X Position S.empty))),
   ("positions", Plain (X Positions S.empty)),
   ("place", Function (Ft (Tup [(X AnySymbol S.empty), (X Board S.empty), (X Position S.empty)]) (X Board S.empty))),
   ("remove", Function (Ft (Tup [(X Board S.empty), (X Position S.empty)]) (X Board S.empty))),
   ("inARow", Function (Ft (Tup [X Itype S.empty, X AnySymbol S.empty, X Board S.empty]) (X Booltype S.empty))),
-  ("isFull", Function (Ft (X Board S.empty) (X Booltype S.empty))),
-  ("next", Function (Ft (X Top (S.fromList ["X", "O"])) (X Top (S.fromList ["X", "O"])))),
-  ("not", Function (Ft (X Booltype S.empty) (X Booltype S.empty)))
+  ("isFull", Function (Ft (single (X Board S.empty)) (X Booltype S.empty))),
+  ("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
+  ("not", Function (Ft (single (X Booltype S.empty)) (X Booltype S.empty)))
   -- This should be polymorphic over all types instead of over all symbols.
            ]
 
