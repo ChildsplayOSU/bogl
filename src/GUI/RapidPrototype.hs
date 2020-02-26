@@ -25,7 +25,7 @@ runPrototype :: String -> IO ()
 runPrototype f = do
   Just g <- parseGameFile f
   let (env, errs) = tc g
-  forM errs (\(x, y) -> traceM ("error in " ++ show x ++ "\n" ++ show y))
+  forM errs (\x -> traceM ("error/hole in " ++ show x))
   replIn <- Chan.newChan
   startGUI defaultConfig
     { jsPort       = Just 8023

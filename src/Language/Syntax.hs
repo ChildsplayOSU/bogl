@@ -128,12 +128,14 @@ ext :: Btype -> Xtype
 ext b = (X b S.empty)
 
 -- | Xtypes are sum types (or tuples of sum types), but restricted by the semantics to only contain Symbols after the atomic type.
-data Xtype = X Btype (S.Set Name) | Tup [Xtype] | X_ Xtype
+data Xtype = X Btype (S.Set Name)
+           | Tup [Xtype]
+           | Hole Name
   deriving (Data, Eq)
 
 instance Ord Xtype where
   (X Top _) <= (X AnySymbol _) = True -- A set of symbols is the subtype of AnySymbols
-  (X k x) <= (X k' x') = (k <= k') && (x `S.isSubsetOf` x') -- If k is a subtype of k' (they either match or one is Top), and x is a subset
+  (X k x) <= (X k' x') = (k <= k') && (x `S.isSubsetOf` x') --
   (Tup xs) <= (Tup xs') = all (id) (zipWith (<=) xs xs')
   _ <= _ = False
 
@@ -142,6 +144,7 @@ instance Show Xtype where
   show (X b xs) | S.null xs = show b ++ "(no extension)"
                 | otherwise = show b ++ "|" ++ intercalate ("|") (map show (S.toList xs))
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
+  show (Hole n) = "?"
   show _ = undefined
 
 
@@ -194,11 +197,12 @@ data Expr = I Integer                     -- ^ Integer expression
           | AppAbs [Expr] Expr
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
           | While Expr Expr [Name] Expr   -- ^ While: condition, body, names of arguments from the wrapper function, (tuple of) expression(s) which referenc(es) the name(s).
-          | Hole
-          -- the last Expr can always be constructed from the [Name], but it makes the code cleaner to do that only once while parsing 
+          | HE Name
+          -- the last Expr can always be constructed from the [Name], but it makes the code cleaner to do that only once while parsing
    deriving (Eq, Data)
 
 instance Show Expr where
+  show (HE n) = "?" ++ n
   show (I i) = show i
   show (S s) = s
   show (B b) = show b

@@ -5,11 +5,12 @@ module Runtime.Typechecker (tcexpr, environment, runTypeCheck, tc) where
 import Runtime.Builtins
 import Language.Syntax hiding (input, piece, size)
 
-import Control.Monad.Reader
+import Control.Monad.State
 import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Extra
 import Control.Monad.Writer
+import Control.Monad.Reader
 
 import Debug.Trace
 import Data.Either
@@ -29,25 +30,53 @@ data Env = Env {
   size  :: (Int, Int)
                }
 
-initEnv i p s = Env [] i p s
+-- | Things are typechecked with an enviroment ('ReaderT') and the possibility of failure ('ExceptT'). 
+--   The typechecker is non-interactive so we do not need IO.
+type Typechecked a = (StateT TypeEnv (ReaderT Env (ExceptT TypeError Identity))) a
+
+typecheck :: Env -> Typechecked a -> Either TypeError (a, TypeEnv)
+typecheck e a = runIdentity $ runExceptT $ (runReaderT (runStateT a []) e)
+
+
+holes :: Typechecked TypeEnv
+holes = get
+
+unify :: Xtype -> Xtype -> Typechecked Xtype
+unify (Tup xs) (Tup ys) = Tup <$> zipWithM unify xs ys
+unify (Hole n) (Hole n2) = undefined
+unify x (Hole n) = unify (Hole n) x
+unify (Hole n) x = do
+  hs <- holes
+  case lookup n hs of
+    Just (Plain t) -> if t <= x then return x else unknown $ "Couldn't unify " ++ show t ++ show x -- maybe?
+    Nothing -> modify ((n, Plain x):) >> return x
+    _ -> unknown "Couldn't unify"
+unify x y = if x <= y
+            then return y
+            else if y <= x
+                 then return x
+                 else unknown $ "Couldn't unify: " ++ show x ++ show y
+
+
+initEnv i p s = Env [] i p s 
 
 extendEnv :: Env -> (Name, Type) -> Env
 extendEnv (Env t i p s) v = Env (v:t) i p s
 
 -- monadReader m =>
-getEnv :: (Monad m) => ReaderT Env m TypeEnv
+getEnv :: Typechecked TypeEnv
 getEnv = types <$> ask
 
-getInput :: (Monad m) => ReaderT Env m Xtype
+getInput :: Typechecked Xtype
 getInput = input <$> ask
 
-getPiece :: (Monad m) => ReaderT Env m Xtype
+getPiece :: Typechecked (Xtype)
 getPiece = piece <$> ask
 
-getSize :: (Monad m) => ReaderT Env m (Int, Int)
+getSize :: Typechecked (Int, Int)
 getSize = size <$> ask
 
-localEnv :: (Monad m) => ([(Name, Type)] -> [(Name, Type)]) -> ReaderT Env m a -> ReaderT Env m a
+localEnv :: ([(Name, Type)] -> [(Name, Type)]) -> Typechecked a -> Typechecked a
 localEnv f e = local (\(Env a b c d) -> Env (f a) b c d) e
 
 -- | Encoding the different type errors as types should let us do interesting things with them
@@ -78,13 +107,11 @@ extensions (X _ xs) = return xs
 extensions a = throwError (Unknown $ "TYPE ERROR! CANT GET EXTENSIONS FROM " ++ show a)
 
 
--- | Attempt to unify two xtypes into a single type. If it's not possible, throw an error.
+-- | Attempt to join two xtypes into a single type. If it's not possible, throw an error.
 mergeX :: Xtype -> Xtype -> Typechecked Xtype
 mergeX a@(X y z) b@(X w k)
   | y <= w = return $ X w (z `S.union` k) -- take the more defined type
   | w <= y = return $ X y (z `S.union` k)
-
-
 mergeX a b = throwError (Unknown $ "Can't merge." ++ show a ++ "//" ++ show b)
 
 
@@ -95,12 +122,6 @@ instance Show TypeError where
   show (Unknown s) = s
   show (BadOp o t1 t2 e) = "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
 
--- | Things are typechecked with an enviroment ('ReaderT') and the possibility of failure ('ExceptT'). 
---   The typechecker is non-interactive so we do not need IO.
-type Typechecked a =  (ReaderT Env (ExceptT TypeError Identity)) a
-
-typecheck :: Env -> Typechecked a -> Either TypeError a
-typecheck e a = runIdentity $ runExceptT $ runReaderT a e
 
 
 -- | Get the type of a valDef. Check the expression's type with the signature's. If they don't match, throw exception.
@@ -117,12 +138,13 @@ deftype (BVal (Sig n t) eqn) = do
     then return t
     else sigmismatch n t eqt
 
+-- | Get the type of a board equation.
 beqntype :: Type -> BoardEq -> Typechecked Type
 beqntype t (PosDef _ xp yp e) = do
-   -- bounds checking on x and y positions?
-   t1 <- exprtype e     -- TODO: I think this needs to match the type of Board. Do I need to pass that in to the function or can I access it in some other way?
+   t1 <- exprtype e
    b <- getPiece
    sz <- getSize
+   unify t1 b
    case (t1 <= b, toPos sz >= (xp,yp)) of
      (True, True) -> return $ Plain (X Board S.empty)
      (False, _) -> mismatch (Plain b) (Plain t1) e
@@ -143,13 +165,9 @@ eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
   where
 eqntype _ _ = throwError (Unknown "Environment corrupted.") -- this should never happen?
 
-demote :: Type -> Typechecked Xtype
-demote (Plain t) = return t
-demote (_) = throwError (Unknown "Environment corrupted.")
-
 t :: Btype -> Typechecked Xtype
 t b = (return . ext) b
--- Get the type of an expression
+-- Synthesize the type of an expression
 exprtype :: Expr -> Typechecked Xtype
 exprtype (I _) = t Itype
 exprtype (S s) = return $ X Top (S.singleton s)
@@ -172,32 +190,35 @@ exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
         xs -> xs:k) [] es'
   t <- getType n
   case t of
-    (Function (Ft (i) o)) -> if Tup (es'') <= i then return o else do
-      mismatch (Plain $ (Tup es'')) (Plain (i)) e
+    (Function (Ft (i) o)) -> do
+      unify (Tup es'') i
+      return o
     _ -> do
       (traceM "???") >> mismatch (Function $ (Ft (Tup es') (X Undef S.empty))) t e -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
-
-
 exprtype e@(Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
-  if (t1 <= t2) || (t2 <= t1) then t Booltype else badop Equiv (Plain t1) (Plain t2) e
+  unify t1 t2
+  t Booltype
+
 exprtype e@(Binop Get e1 e2) = do 
   t1 <- exprtype e1
   t2 <- exprtype e2
-  if t1 == ext Board && t2 == ext Position
-   then getPiece
-   else badop Get (Plain t1) (Plain t2) e -- TODO: bounds check?  can't at typechecking without dependent types, I think. might be worth looking into.
+  unify t1 (ext Board)
+  unify t2 (ext Position)
+  getPiece
+
 exprtype e@(Binop x e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
-  case (t1, t2) of
-    ((X Itype s1), (X Itype s2)) | S.null s1 && S.null s2 -> if x `elem` [Plus, Minus, Times, Div, Mod]
+  t' <- unify t1 t2
+  case (t') of
+    (X Itype s1) | S.null s1 -> if x `elem` [Plus, Minus, Times, Div, Mod]
                                               then t Itype
                                               else if x `elem` [Less, Greater]
                                                    then t Booltype
                                                    else badop x (Plain t1) (Plain t2) e
-    ((X Booltype s1), (X Booltype s2)) -> if x `elem` [And, Or, Xor] && S.null s1 && S.null s2
+    (X Booltype s1) -> if x `elem` [And, Or, Xor] && S.null s1
                                                     then t Booltype
                                                     else badop x (Plain t1) (Plain t2) e
     _ -> badop x (Plain t1) (Plain t2) e
@@ -208,6 +229,7 @@ exprtype e@(If e1 e2 e3) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   t3 <- exprtype e3
+  unify t1 (ext Booltype)
   case (t1, t2, t3) of
     ((X Booltype empty), (Tup xs), (Tup ys)) | S.null empty -> do
                                                  result <- forM (zip xs ys) (\(x, y) -> mergeX x y)
@@ -215,6 +237,7 @@ exprtype e@(If e1 e2 e3) = do
     ((X Booltype empty), t2, t3) | S.null empty  -> mergeX t2 t3
     (x, y, z) -> traceM (show x ++ " " ++ show y ++ show z) >> (mismatch (Plain $ (X Booltype S.empty)) (Plain x) e)
 
+exprtype (HE n) = return (Hole n)
 
 exprtype e'@(While c b n e) = do
   et <- exprtype e
@@ -226,9 +249,6 @@ exprtype e'@(While c b n e) = do
               then mismatch (Plain b) (Plain (X Booltype S.empty)) e'
               else mismatch (Plain a) (Plain et) e'
 
-    
-
-
 
 getType :: String -> Typechecked Type
 getType n = do
@@ -239,7 +259,6 @@ getType n = do
     _ -> notbound n
 
 
-
 -- | Produce the environment
 environment :: BoardDef -> InputDef -> [ValDef] -> Env
 environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ builtinT) i t sz
@@ -247,16 +266,16 @@ environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ builtinT) i t sz
         f (BVal (Sig n t1) eq) = (n, t1)
 
 -- recursion is not allowed by this.
-runTypeCheck :: BoardDef -> InputDef -> [ValDef] -> Writer [(ValDef, TypeError)] Env
+runTypeCheck :: BoardDef -> InputDef -> [ValDef] -> Writer [Either (ValDef, TypeError) (Name, Type)] Env
 runTypeCheck (BoardDef sz t) (InputDef i) vs = foldM (\env v -> case typecheck env (deftype v) of
-                                Right t -> return $ extendEnv env (ident v, t)
-                                Left err -> (tell . pure $ (v, err)) >> return env)
+                                Right (t, e) -> (tell (map Right e)) >> (return $ extendEnv env (ident v, t))
+                                Left err -> ((tell . pure . Left) $ (v, err)) >> return env)
                                     (initEnv i t sz)
                                     (vs)
 
-tc :: Game -> (Env, [(ValDef, TypeError)])
+tc :: Game -> (Env, [Either (ValDef, TypeError) (Name, Type)])
 tc (Game n b i v) = runWriter (runTypeCheck b i v)
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
-tcexpr :: Env -> Expr -> Either TypeError Xtype
+tcexpr :: Env -> Expr -> Either TypeError (Xtype, TypeEnv)
 tcexpr e x = typecheck e (exprtype x)

@@ -70,6 +70,8 @@ comma = P.comma lexer
 -- | Atomic expressions
 atom :: Parser Expr
 atom =
+  HE <$> ((char '?') *> identifier)
+  <|>
   I <$> integer
   <|>
   B <$> (reserved "True" *> pure True)
