@@ -63,6 +63,9 @@ lookupName n = do
 waitForInput :: Val -> Eval a
 waitForInput v = throwError (NeedInput v)
 
+err :: String -> Eval a
+err n = throwError (Error n)
+
 -- | Read input
 readTape :: Val -> Eval (Val)
 readTape v = do

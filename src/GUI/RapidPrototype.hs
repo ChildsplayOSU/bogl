@@ -51,12 +51,11 @@ replReply g@(Game n i@(BoardDef (szx, szy) p) b vs) w msgs replArea = do
         case parseLine msg of
           Right x -> do
             case tcexpr (environment i b vs) x of
-              Right t -> do
-                traceM $ "Typechecked: " ++ show t
+              Right t' -> do
                 case runWithBuffer (bindings_ (szx, szy) vs) [] x of
-                  Right (x) -> element replArea #+ (pure $ makeValDisplay x msg)
+                  Right (x) -> element replArea #+ (pure $ makeValDisplay x msg t')
                   Left ((Vboard b), t) -> do
-                    element replArea #+ [UI.div #. "content" #+ [makeInteractiveBoard b t x msg]]
+                    element replArea #+ [UI.div #. "content" #+ [makeInteractiveBoard b t x msg t']]
                   Left (err) -> string $ show err
                 UI.scrollToBottom replArea
                 flushCallBuffer
@@ -72,22 +71,20 @@ replReply g@(Game n i@(BoardDef (szx, szy) p) b vs) w msgs replArea = do
             UI.scrollToBottom replArea
             flushCallBuffer
     where
-      makeInteractiveBoard :: Array (Int,Int) Val -> [Val] -> Expr -> String -> UI Element
-      makeInteractiveBoard arr t ex msg = do
+      makeInteractiveBoard arr t ex msg t'' = do
         UI.div #. "board" #+ (map (\r -> UI.div #. "row" #+ r) $ (flip map) (toGrid arr) $ \row -> (flip map) row (\cell -> do
           b <- UI.button #. "click-cell" #+ [string ((show . snd) cell)]
           on UI.click b $ \_ -> do
             element replArea #+ [string $ "Move: " ++ show (fst cell)]
             case runWithBuffer (bindings_ (szx, szy) vs) (t ++ (pure $ Vpos (fst cell))) ex of
-              Right x -> element replArea #+ (pure $ makeValDisplay x msg)
-              Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg]]
+              Right x -> element replArea #+ (pure $ makeValDisplay x msg t'')
+              Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg t'']]
               Left err -> element replArea #+ (pure $ string $ show err)
           return b))
-      makeValDisplay x msg =
+      makeValDisplay x msg t =
         UI.div #. "repl" #+ [UI.div #. "content" #+ [string ("> " ++ msg)]] #+ [UI.div #. "content" #+ [case x of
                                                                                                 (Vboard b) -> makeBoard b
-                                                                                                x -> string $ show x]]
-
+                                                                                                x -> string $ show x, string $ "::" ++ printT t]]
 
 makeinput :: Chan String -> UI Element
 makeinput i = do

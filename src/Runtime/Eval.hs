@@ -203,11 +203,11 @@ eval (While c b names exprs) = do
             r       -> extScope ((head names, r) : env) recurse -- that head should never fail...famous last words
       False -> do
         e <- eval exprs
-        traceM $ "Returning with " ++ show e
         return e
    where
       recurse = eval (While c b names exprs)
 
+eval (HE n) = err ("Type hole: " ++ n)
 -- | Run an 'Expr' in the given 'Env' and display the result
 --
 -- >>> run [] (I 2)
@@ -225,5 +225,4 @@ runWithBuffer env buf e = do
     case v of
       Left (NeedInput b) -> Left (b, buf)
       Right val -> Right val
-      Left (Error e) -> error e -- not good
-
+      Left (Error e) -> Right $ Err e -- not good

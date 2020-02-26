@@ -1,6 +1,6 @@
 -- | Typechecker.
 
-module Runtime.Typechecker (tcexpr, environment, runTypeCheck, tc) where
+module Runtime.Typechecker (tcexpr, environment, runTypeCheck, tc, printT) where
 
 import Runtime.Builtins
 import Language.Syntax hiding (input, piece, size)
@@ -51,14 +51,13 @@ unify (Hole n) x = do
     Just (Plain t) -> if t <= x then return x else unknown $ "Couldn't unify " ++ show t ++ show x -- maybe?
     Nothing -> modify ((n, Plain x):) >> return x
     _ -> unknown "Couldn't unify"
-unify x y = if x <= y
-            then return y
-            else if y <= x
-                 then return x
-                 else unknown $ "Couldn't unify: " ++ show x ++ show y
+unify a@(X y z) b@(X w k)
+  | y <= w = return $ X w (z `S.union` k) -- take the more defined type
+  | w <= y = return $ X y (z `S.union` k)
+unify a b = unknown $ "Couldn't unify " ++ show a ++ show b
 
 
-initEnv i p s = Env [] i p s 
+initEnv i p s = Env [] i p s
 
 extendEnv :: Env -> (Name, Type) -> Env
 extendEnv (Env t i p s) v = Env (v:t) i p s
@@ -107,14 +106,12 @@ extensions (X _ xs) = return xs
 extensions a = throwError (Unknown $ "TYPE ERROR! CANT GET EXTENSIONS FROM " ++ show a)
 
 
--- | Attempt to join two xtypes into a single type. If it's not possible, throw an error.
 mergeX :: Xtype -> Xtype -> Typechecked Xtype
+-- | Attempt to join two xtypes into a single type. If it's not possible, throw an error.
 mergeX a@(X y z) b@(X w k)
   | y <= w = return $ X w (z `S.union` k) -- take the more defined type
   | w <= y = return $ X y (z `S.union` k)
-mergeX a b = throwError (Unknown $ "Can't merge." ++ show a ++ "//" ++ show b)
-
-
+mergeX a b = throwError (Unknown "cannot join ")
 instance Show TypeError where
   show (Mismatch t1 t2 e) = "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
   show (NotBound n) = "Variable " ++ n ++ " not bound in the enviroment!"
@@ -229,13 +226,15 @@ exprtype e@(If e1 e2 e3) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   t3 <- exprtype e3
-  unify t1 (ext Booltype)
-  case (t1, t2, t3) of
+  b <- unify t1 (ext Booltype)
+  case b of
+    (X Booltype empty) -> unify t2 t3
+  {- case (t1, t2, t3) of
     ((X Booltype empty), (Tup xs), (Tup ys)) | S.null empty -> do
                                                  result <- forM (zip xs ys) (\(x, y) -> mergeX x y)
                                                  return (Tup result) -- this is strange.
     ((X Booltype empty), t2, t3) | S.null empty  -> mergeX t2 t3
-    (x, y, z) -> traceM (show x ++ " " ++ show y ++ show z) >> (mismatch (Plain $ (X Booltype S.empty)) (Plain x) e)
+    (x, y, z) -> traceM (show x ++ " " ++ show y ++ show z) >> (mismatch (Plain $ (X Booltype S.empty)) (Plain x) e) -}
 
 exprtype (HE n) = return (Hole n)
 
@@ -279,3 +278,6 @@ tc (Game n b i v) = runWriter (runTypeCheck b i v)
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
 tcexpr :: Env -> Expr -> Either TypeError (Xtype, TypeEnv)
 tcexpr e x = typecheck e (exprtype x)
+
+printT :: (Xtype, TypeEnv) -> String
+printT (x, env) = show x ++ "\n" ++ "Type Holes:" ++ (intercalate "\n" (map (\(a, b) -> a ++ ": " ++ show b) env))
