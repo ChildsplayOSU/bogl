@@ -129,7 +129,7 @@ position =
 -- | Board equations
 boardeqn :: Parser BoardEq
 boardeqn =
-   (try $ (PosDef <$> newIdentifier <*> (lexeme (char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
+   (try $ (PosDef <$> newIdentifier <*> (lexeme ((lexeme (char '!')) *> char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
 
 -- | Atomic types
 btype :: Parser Btype
