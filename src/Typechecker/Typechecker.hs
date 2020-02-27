@@ -65,7 +65,7 @@ eqntype _ _ = throwError (Unknown "Environment corrupted.") -- this should never
 
 -- Synthesize the type of an expression
 exprtype :: Expr -> Typechecked Xtype
-exprtype = setSrc >> exprtype'
+exprtype e = setSrc e >> exprtype' e
 exprtype' :: Expr -> Typechecked Xtype
 exprtype' (I _) = t Itype
 exprtype' (S s) = return $ X Top (S.singleton s)
