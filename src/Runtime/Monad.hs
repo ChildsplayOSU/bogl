@@ -1,6 +1,6 @@
 -- | Evaluation Monad
 
-module Runtime.EvalMonad where
+module Runtime.Monad where
 
 import Runtime.Values
 import Language.Syntax

@@ -4,7 +4,7 @@ module Runtime.Builtins where
 
 import Language.Syntax
 
-import Runtime.EvalMonad
+import Runtime.Monad
 import Runtime.Values
 
 import qualified Data.Set as S

@@ -4,7 +4,7 @@ module Runtime.Eval where
 import Language.Syntax
 
 import Runtime.Values
-import Runtime.EvalMonad
+import Runtime.Monad
 import Runtime.Builtins
 
 import Control.Monad

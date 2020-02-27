@@ -10,7 +10,7 @@ import Runtime.Values
 import Data.Array
 import Data.List
 
-import Runtime.Typechecker
+import Typechecker.Typechecker
 import Control.Monad
 import Language.Syntax
 import Parser.Parser
