@@ -51,7 +51,7 @@ beqntype t (PosDef _ xp yp e) = do
      toPos (x,y) = (Index x, Index y) -- fixme
 -- | Get the type of an equation
 eqntype :: Type -> Equation -> Typechecked Type
-eqntype _ (Veq _ e) = exprtype e >>= (return . Plain)
+eqntype _ (Veq _ e) = exprtypeE e >>= (return . Plain)
 eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
   case inputs of
     (Tup inputs') -> do
@@ -64,25 +64,25 @@ eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
 eqntype _ _ = throwError (Unknown "Environment corrupted.") -- this should never happen?
 
 -- Synthesize the type of an expression
+exprtypeE :: Expr -> Typechecked Xtype -- TODO do this with mapStateT stack thing
+exprtypeE e = setSrc e >> exprtype e
 exprtype :: Expr -> Typechecked Xtype
-exprtype e = setSrc e >> exprtype' e
-exprtype' :: Expr -> Typechecked Xtype
-exprtype' (I _) = t Itype
-exprtype' (S s) = return $ X Top (S.singleton s)
+exprtype (I _) = t Itype
+exprtype (S s) = return $ X Top (S.singleton s)
 
-exprtype' (B _) = t Booltype
-exprtype' (Let n e1 e2) = do
+exprtype (B _) = t Booltype
+exprtype (Let n e1 e2) = do
   t <- exprtype e1
   localEnv ((n, Plain t):) (exprtype e2)
-exprtype' (Ref s) = do
+exprtype (Ref s) = do
   x <- getType s
   case x of
     (Plain t) -> return t
     other -> unknown $ "Object " ++ s ++ " of type " ++ show other ++ " is a function and cannot be dereferenced."
-exprtype' (Tuple xs) = do
+exprtype (Tuple xs) = do
   xs' <- mapM exprtype xs
   return $ Tup xs'
-exprtype' e@(App n es) = do -- FIXME. Tuple composition is bad.
+exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
   es' <- mapM exprtype es
   let es'' = foldr (\x k -> case x of
         (Tup xs) -> xs ++ k
@@ -94,18 +94,18 @@ exprtype' e@(App n es) = do -- FIXME. Tuple composition is bad.
       return o
     _ -> do
       (traceM "???") >> mismatch (Function $ (Ft (Tup es') (X Undef S.empty))) t -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
-exprtype' e@(Binop Equiv e1 e2) = do
+exprtype e@(Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   unify t1 t2
   t Booltype
-exprtype' (Binop Get e1 e2) = do
+exprtype (Binop Get e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   unify t1 (ext Board)
   unify t2 (ext Position)
   getPiece
-exprtype' (Binop x e1 e2) = do
+exprtype (Binop x e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   t' <- unify t1 t2
@@ -120,7 +120,7 @@ exprtype' (Binop x e1 e2) = do
                                                     else badop x (Plain t1) (Plain t2)
     _ -> badop x (Plain t1) (Plain t2)
 -- if
-exprtype' (If e1 e2 e3) = do
+exprtype (If e1 e2 e3) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   t3 <- exprtype e3
@@ -133,9 +133,9 @@ exprtype' (If e1 e2 e3) = do
                                                  return (Tup result) -- this is strange.
     ((X Booltype empty), t2, t3) | S.null empty  -> mergeX t2 t3
     (x, y, z) -> traceM (show x ++ " " ++ show y ++ show z) >> (mismatch (Plain $ (X Booltype S.empty)) (Plain x) e) -}
-exprtype' (HE n) = return (Hole n)
+exprtype (HE n) = return (Hole n)
 
-exprtype' e'@(While c b n e) = do
+exprtype e'@(While c b n e) = do
   et <- exprtype e
   ct <- exprtype c
   bt <- exprtype b
@@ -166,7 +166,7 @@ tc (Game n b i v) = runWriter (runTypeCheck b i v)
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
 tcexpr :: Env -> Expr -> Either TypeError (Xtype, TypeEnv)
-tcexpr e x = typecheck e (exprtype x)
+tcexpr e x = typecheck e (exprtypeE x)
 
 printT :: (Xtype, TypeEnv) -> String
 printT (x, env) = show x ++ "\n" ++ "Type Holes:" ++ (intercalate "\n" (map (\(a, b) -> a ++ ": " ++ show b) env))
