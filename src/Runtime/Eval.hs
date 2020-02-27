@@ -207,7 +207,7 @@ eval (While c b names exprs) = do
    where
       recurse = eval (While c b names exprs)
 
-eval (HE n) = err ("Type hole: " ++ n)
+eval (HE n) = err ("Type hole: ")
 -- | Run an 'Expr' in the given 'Env' and display the result
 --
 -- >>> run [] (I 2)

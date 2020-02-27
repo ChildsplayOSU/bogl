@@ -141,8 +141,14 @@ instance Ord Xtype where
 
 
 instance Show Xtype where
-  show (X b xs) | S.null xs = show b ++ "(no extension)"
-                | otherwise = show b ++ "|" ++ intercalate ("|") (map show (S.toList xs))
+  show (X b xs) | S.null xs = show b
+                | otherwise = 
+                  case b of 
+                     Top -> showTypes                     
+                     _   -> show b ++ "|" ++ showTypes
+                     where
+                        showTypes = intercalate ("|") (map show (S.toList xs))
+
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
   show (Hole n) = "?"
   show _ = undefined
