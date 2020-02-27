@@ -24,9 +24,7 @@ import Language.Syntax
 import Runtime.Repl
 import Runtime.Typechecker
 import Runtime.Eval
-
--- for liftIO apparently????
-import qualified Graphics.UI.Threepenny as UI
+import Control.Monad.IO.Class
 
 -- representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
@@ -83,7 +81,7 @@ handler = runCommand :<|> handleTestResponse
 -- runs a command, lifting it into Handler
 runCommand :: SpielCommand -> Handler SpielResponse
 runCommand sc = do
-  (UI.liftIO (_runCommand sc))
+  (liftIO (_runCommand sc))
 
 -- runs command as IO
 _runCommand :: SpielCommand -> IO SpielResponse
