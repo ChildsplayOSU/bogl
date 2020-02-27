@@ -42,7 +42,8 @@ holes :: Typechecked TypeEnv
 holes = get
 
 unify :: Xtype -> Xtype -> Typechecked Xtype
-unify (Tup xs) (Tup ys) = Tup <$> zipWithM unify xs ys
+unify (Tup xs) (Tup ys)
+  | length xs == length ys = Tup <$> zipWithM unify xs ys
 unify (Hole n) (Hole n2) = undefined
 unify x (Hole n) = unify (Hole n) x
 unify (Hole n) x = do

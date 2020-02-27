@@ -136,7 +136,7 @@ data Xtype = X Btype (S.Set Name)
 instance Ord Xtype where
   (X Top _) <= (X AnySymbol _) = True -- A set of symbols is the subtype of AnySymbols
   (X k x) <= (X k' x') = (k <= k') && (x `S.isSubsetOf` x') --
-  (Tup xs) <= (Tup xs') = all (id) (zipWith (<=) xs xs')
+  (Tup xs) <= (Tup xs') | length xs == length xs' = all (id) (zipWith (<=) xs xs')
   _ <= _ = False
 
 
