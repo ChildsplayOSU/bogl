@@ -11,7 +11,7 @@ type Input = Position
 -- Game setup
 --
 initialBoard : Board
-initialBoard(x,y) = Empty
+initialBoard!(x,y) = Empty
 
 goFirst : X|O
 goFirst = X
@@ -27,16 +27,15 @@ outcome(p, b) = if inARow(3,X,b) then X else
 
 
 threeInARow : Board -> Bool
-threeInARow(b) = inARow(3,X,b) || inARow(3,O,b)
+threeInARow(b) = or(inARow(3,X,b), inARow(3,O,b))
 
 gameOver : Board -> Bool
-gameOver(b) = threeInARow(b) || isFull(b)
+gameOver(b) = or(threeInARow(b), isFull(b))
 
 -- Predefined operations
 --
 isValid : (Board,Position) -> Bool
-isValid(b,p) = if (b!p) == Empty then True else False
--- TODO: fix precedence 
+isValid(b,p) = if b ! p == Empty then True else False
 
 -- Game loop
 --
@@ -50,7 +49,6 @@ loop(p,b) = while not(gameOver(b)) do tryMove(p,b)
 
 play : (X|O,Board) -> X|O|Tie
 play(a,b) = outcome(loop(a,b))
--- play(a,b) = outcome(while not(gameOver(b)) do tryMove(p,b))
 
 result : X|O|Tie
 result = play(goFirst, initialBoard)
