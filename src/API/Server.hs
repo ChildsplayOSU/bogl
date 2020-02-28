@@ -88,7 +88,7 @@ runCommand sc = do
 _runCommand :: SpielCommand -> IO SpielResponse
 _runCommand (SpielCommand file input) = do
   Just game <- parseGameFile file
-  let check = case tc game of
+  let check = success (tc game)
   -- (Typechecker.Monad.Env, [Either (ValDef, Typechecker.Monad.TypeError) (Name, Type)])
   -- (Holes, [Either (Value , and associated error (Name, Type))])
   if check then return (SpielResponse (serverRepl game input)) else return (SpielResponse ["ERR: Could not parse game file!"])
@@ -101,7 +101,7 @@ serverRepl g@(Game n i@(BoardDef (szx,szy) p) b vs) (input:ils) = do
     Right x -> do
       case tcexpr (environment i b vs) x of
         Right t -> do
-          case runWithBuffer (bindings (szx, szy) vs) [] x of
+          case runWithBuffer (bindings_ (szx, szy) vs) [] x of
 
             -- TODO program terminated, potentially more data desired
             Right (x) -> ((show x):(serverRepl g ils))
