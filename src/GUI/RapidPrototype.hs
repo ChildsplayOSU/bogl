@@ -24,8 +24,10 @@ import qualified Control.Concurrent.Chan as Chan
 runPrototype :: String -> IO ()
 runPrototype f = do
   Just g <- parseGameFile f
-  let (env, errs) = tc g
-  forM errs (\x -> traceM ("error/hole in " ++ show x))
+  let x = tc g
+      errs = errors x
+      ts = rtypes x
+  forM errs (\x -> traceM ("type error:" ++ show x))
   replIn <- Chan.newChan
   startGUI defaultConfig
     { jsPort       = Just 8023

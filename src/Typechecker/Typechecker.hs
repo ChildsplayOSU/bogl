@@ -1,6 +1,6 @@
 -- | Typechecker.
 -- todo emit types of expressions
-module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT) where
+module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), errors, rtypes, e, success) where
 
 import Runtime.Builtins
 import Language.Syntax hiding (input, piece, size)
@@ -21,6 +21,14 @@ import Data.List
 import Typechecker.Monad
 
 import qualified Data.Set as S
+
+
+
+
+
+
+
+
 
 -- | Get the type of a valDef. Check the expression's type with the signature's. If they don't match, throw exception.
 deftype :: ValDef -> Typechecked Type
@@ -90,7 +98,7 @@ exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
   t <- getType n
   case t of
     (Function (Ft (i) o)) -> do
-      unify es'' i -- oof
+      unify (es'') i -- oof
       return o
     _ -> do
       (traceM "???") >> mismatch (Function $ (Ft (Tup es') (X Undef S.empty))) t -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
@@ -161,8 +169,21 @@ runTypeCheck (BoardDef sz t) (InputDef i) vs = foldM (\env v -> case typecheck e
                                     (initEnv i t sz)
                                     (vs)
 
-tc :: Game -> (Env, [Either (ValDef, TypeError) (Name, Type)])
-tc (Game n b i v) = runWriter (runTypeCheck b i v)
+data TcResult =
+  Tc {
+  success :: Bool,
+  e :: Env,
+  errors :: [(ValDef, TypeError)],
+  rtypes :: [(Name, Type)]
+     }
+
+tc :: Game -> TcResult
+tc g = case tc' g of
+  (e, ls) -> let l = lefts ls in
+    Tc (length l == 0) e l (rights ls)
+
+tc' :: Game -> (Env, [Either (ValDef, TypeError) (Name, Type)])
+tc' (Game n b i v) = runWriter (runTypeCheck b i v)
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
 tcexpr :: Env -> Expr -> Either TypeError (Xtype, TypeEnv)
