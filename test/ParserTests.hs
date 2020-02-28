@@ -39,32 +39,34 @@ testCheckLeft :: Test
 testCheckLeft = TestCase (
   assertEqual "Parser Check Left"
   True
-  (isLeft $ parseAll ftype "" "(3)"))
+  (isLeft $ parseAll xtype "" "(3)"))
 
 testCheckLeft2 :: Test
 testCheckLeft2 = TestCase (
   assertEqual "Parser Check Left 2"
   True
-  (isLeft $ parseAll ftype "" "(Symbol)"))
+  (isLeft $ parseAll xtype "" "(Symbol)"))
 
 -- updating board tests
 testCheckUpdatedBoard :: Test
 testCheckUpdatedBoard = TestCase (
   assertEqual "Check Updated Board"
   True
-  (parseAll ttype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty])))
+  (parseAll xtype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty])))
 
 
+-- TODO used to be --"Right (Symbol(no extension),Board(no extension))"
+-- determine whether a symbol and board can be evaluated
 testCheckUpdatedBoard2 :: Test
 testCheckUpdatedBoard2 = TestCase (
   assertEqual "Check Updated Board 2"
-  "Right (Symbol(no extension),Board(no extension))"
-  (show (parseAll ttype "" "(Symbol,Board)")))
+  "Right (\"Symbol\",Board)"
+  (show (parseAll xtype "" "(Symbol,Board)")))
 
 
 -- | Read a single line and return the result (intended for brevity in test cases)
 parseLine' :: Parser a -> String -> Either ParseError a
-parseLine' p = parseAll p ""
+parseLine' pars = parseAll pars ""
 
 -- test binary op functionality being parsed & evaluated
 testParseBinaryOp :: Test
@@ -97,8 +99,9 @@ testParseLongExpr = TestCase (
   assertEqual "Testing parsing of long expression"
   True
   (parseAll valdef "" ex1 ==
-    Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty]))
-    (Pext (X Booltype S.empty))))) (Feq "isValid" (Pars ["b", "p"])
+    Right (Val (Sig "isValid" (Function
+      (Ft (Tup [X Board S.empty, X Position S.empty]) (X Booltype S.empty))
+    )) (Feq "isValid" (Pars ["b", "p"])
     (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False))))))
 
 

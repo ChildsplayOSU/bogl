@@ -1,6 +1,6 @@
 -- | Parser for BOGL
 
-module Parser.Parser (parseLine, parseGameFile, expr, isLeft, parseAll, valdef, Parser) where
+module Parser.Parser (parseLine, parseGameFile, expr, isLeft, parseAll, valdef, xtype, Parser) where
 
 import Language.Syntax hiding (input, board)
 import Debug.Trace(trace)

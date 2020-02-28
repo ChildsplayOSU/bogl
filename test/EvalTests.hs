@@ -9,6 +9,8 @@ import Test.HUnit
 import Utils
 import Runtime.Eval
 import Language.Syntax
+import Runtime.Monad
+import Runtime.Values
 
 evalTests :: Test
 evalTests = TestList [testEvalBinOps,

@@ -6,7 +6,9 @@ module Utils(evalTest) where
 --
 
 import Runtime.Eval
+import Runtime.Values
+import Runtime.Monad
 
 -- used to extract value from expression
 evalTest :: Eval Val -> Either Exception Val
-evalTest ev = runEval ev emptyEnv []
+evalTest ev = runEval (emptyEnv (0,0)) [] ev
