@@ -120,23 +120,6 @@ evalBoolOp f l r = do
                         (Vb l', Vb r') -> return (Vb (f l' r'))
                         _ -> return $ Err $ "Could not do boolean operation on " ++ (show l) ++ " to " ++ (show r)
 
--- | Evaluate an expression in the Eval Monad
---
--- >>> run [] (Binop Equiv (B False) (Binop And (B True) (B False)))
--- True
---
--- >>> run [] (Binop Equiv (I 3) (I 4))
--- False
---
--- >>> run [] (Binop Less (I 3) (I 4))
--- True
---
--- >>> run [] (Binop Plus (Binop Minus (I 1) (I 1)) (Binop Times (I 2) (I 3)))
--- 6
---
--- >>> run [] (Binop Plus (B True) (Binop Times (I 2) (I 3)))
--- ERR: ...
-
 
 eval :: Expr -> Eval Val
 eval (I i) = return $ Vi i

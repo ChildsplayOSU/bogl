@@ -1,6 +1,6 @@
--- | Parser for BOGL 
+-- | Parser for BOGL
 
-module Parser.Parser (parseLine, parseGameFile, expr) where
+module Parser.Parser (parseLine, parseGameFile, expr, isLeft, parseAll, valdef, xtype, Parser) where
 
 import Language.Syntax hiding (input, board)
 import Debug.Trace(trace)
@@ -41,12 +41,6 @@ operators = [
               -- and so on
 
 -- | Parser for the 'Expr' datatype
---
--- >>> parseLine' expr "40 + 2" == Right (Binop Plus (I 40) (I 2))  
--- True 
---
--- >>> isLeft $ parseLine' expr "40 + 2life,the universe, and everything" 
--- True 
 expr :: Parser Expr
 expr = buildExpressionParser operators atom
 
@@ -60,12 +54,12 @@ parens = P.parens lexer
 builtin = choice (map (lexeme) [string "or", string "inARow"])
 identifier = choice ((map (try . lexeme) [string "or", string "inARow"]) ++ [P.identifier lexer])
 --identifier = (builtin <|> P.identifier lexer)
-newIdentifier = P.identifier lexer                             -- must not be a built in identifier (e.g. in a let expr) 
+newIdentifier = P.identifier lexer                             -- must not be a built in identifier (e.g. in a let expr)
 capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
-comma = P.comma lexer 
+comma = P.comma lexer
 
 -- | Atomic expressions
 atom :: Parser Expr
@@ -95,15 +89,15 @@ atom =
   (do
       reserved "while"
       c <- atom
-      reserved "do" 
-      e <- atom 
+      reserved "do"
+      e <- atom
       recurse <- (fst . snd) <$> Par.getState
-      names <- (snd . snd) <$> Par.getState -- get the names of the parameters to the function which wraps this while 
+      names <- (snd . snd) <$> Par.getState -- get the names of the parameters to the function which wraps this while
       let exprs = map Ref names
       let exprs' = case exprs of
             [x] -> x
             xs -> Tuple xs
-      return $ While c e names exprs') 
+      return $ While c e names exprs')
    <|>
   Case <$> (reserved "case" *> newIdentifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
 
@@ -120,9 +114,9 @@ equation =
     e <- expr
     return $ Feq name (Pars params) e)
 
-position :: Parser Pos 
-position = 
-   Index <$> fromIntegral <$> integer -- TODO: better way?  
+position :: Parser Pos
+position =
+   Index <$> fromIntegral <$> integer -- TODO: better way?
    <|>
    newIdentifier *> pure ForAll
 
@@ -166,16 +160,16 @@ xtype =
 
 -- |
 --
--- >>> parseAll ttype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty]) 
--- True 
+-- >>> parseAll ttype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty])
+-- True
 --
 -- >>> parseAll ttype "" "(Symbol,Board)"
--- Right (Symbol,Board) 
+-- Right (Symbol,Board)
 --
--- >>> isLeft $ parseAll ttype "" "(Symbol)" 
--- True  
+-- >>> isLeft $ parseAll ttype "" "(Symbol)"
+-- True
 --
--- >>> isLeft $ parseAll ttype "" "(3)" 
+-- >>> isLeft $ parseAll ttype "" "(3)"
 -- True
 
 -- | Function types
@@ -195,7 +189,7 @@ replaceSecond x (a, b) = (a, x)
 
 -- | 'Type's
 typ :: Parser Type
-typ = 
+typ =
   (try $ (do
       f <- ftype
       Par.modifyState (replaceFirst (Just $ Function f))
@@ -206,7 +200,7 @@ typ =
             p <- xtype
             Par.modifyState (replaceFirst $ Just $ Plain p)
             return (Plain p)))
-   
+
 -- | Value signatures
 sig :: Parser Signature
 sig =
@@ -221,21 +215,7 @@ valdef = do
     Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
 
--- |
--- note: Empty is currently parsed as a string in the grammar, not as a Name. Is it an issue? 
--- >>> :{ 
---     parseAll valdef "" ex1 == 
---       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty])) 
---       (Pext (X Booltype S.empty))))) (Feq "isValid" (Pars ["b", "p"]) 
---       (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False)))) 
--- :}
--- True 
-ex1 = "isValid : (Board,Position) -> Bool\n  isValid(b,p) = if b(p) == Empty then True else False"
 
-ex2 = "outcome : (Board,Player) -> Player|Tie \
-\ outcome(b,p) = if inARow(3,A,b) then A else \
-               \ if inARow(3,B,b) then B else \
-               \ if isFull(b)     then Tie"
 -- | Board definition
 board :: Parser BoardDef
 board =
@@ -265,10 +245,6 @@ parseFromFile p fname
        }
 parseLine :: String -> Either ParseError Expr
 parseLine = parseAll expr  ""
-
--- | Read a single line and return the result (intended for brevity in test cases)
-parseLine' :: Parser a -> String -> Either ParseError a
-parseLine' p = parseAll p ""
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Maybe Game)
