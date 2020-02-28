@@ -34,6 +34,7 @@ data SpielCommand = SpielCommand {
 
 -- representation of the response from the Repl
 data SpielResponse = SpielResponse {
+    -- TODO implment as [Either Exception Val] instead of [String]
     responses :: [String]
   } deriving (Eq, Show)
 
@@ -99,14 +100,19 @@ serverRepl g@(Game n i@(BoardDef szx szy p) b vs) (input:ils) = do
       case tcexpr (environment i b vs) x of
         Right t -> do
           case runWithTape (bindings (szx, szy) vs) [] x of
-            -- ??? right val is good?
+
+            -- TODO program terminated, potentially more data desired
             Right (x) -> ((show x):(serverRepl g ils))
-            -- board back
+
+            -- TODO, board and tape returned, program needs more input
             Left ((Vboard b'), t') -> ((show b'):(serverRepl g ils))
-            -- error
+
+            -- TODO runtime error encountered
             Left err -> ((show err):(serverRepl g ils))
-        -- bad expression in environment?
+
+        -- TODO typechecker encountered an error in the environment (unlikely not to happen)
         Left err -> ((show err):(serverRepl g ils))
+
     -- bad parse
     Left err -> ((show err):(serverRepl g ils))
 
