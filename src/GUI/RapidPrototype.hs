@@ -6,16 +6,17 @@ import qualified Graphics.UI.Threepenny       as UI
 import           Graphics.UI.Threepenny.Core
 
 import Runtime.Eval
+import Runtime.Values
 import Data.Array
 import Data.List
 
-import Runtime.Typechecker
+import Typechecker.Typechecker
 import Control.Monad
 import Language.Syntax
-import Runtime.Repl
 import Parser.Parser
 import Data.List.Extra
 import Control.Concurrent
+import Debug.Trace
 import qualified Control.Concurrent.Chan as Chan
 
 -- | run an interactive game, with graphics
@@ -23,7 +24,8 @@ import qualified Control.Concurrent.Chan as Chan
 runPrototype :: String -> IO ()
 runPrototype f = do
   Just g <- parseGameFile f
-  True <- tc g
+  let (env, errs) = tc g
+  forM errs (\x -> traceM ("error/hole in " ++ show x))
   replIn <- Chan.newChan
   startGUI defaultConfig
     { jsPort       = Just 8023
@@ -41,7 +43,7 @@ prototype g@(Game n i b _) replIn window = do
 
 
 replReply :: Game -> Window -> Chan String -> Element -> IO ()
-replReply g@(Game n i@(BoardDef szx szy p) b vs) w msgs replArea = do
+replReply g@(Game n i@(BoardDef (szx, szy) p) b vs) w msgs replArea = do
   reply <- Chan.getChanContents msgs
   forM_ reply $ \msg ->
     do
@@ -49,15 +51,16 @@ replReply g@(Game n i@(BoardDef szx szy p) b vs) w msgs replArea = do
         case parseLine msg of
           Right x -> do
             case tcexpr (environment i b vs) x of
-              Right t -> do
-                case runWithTape (bindings (szx, szy) vs) [] x of
-                  Right (x) -> element replArea #+ (pure $ makeValDisplay x msg)
+              Right t' -> do
+                case runWithBuffer (bindings_ (szx, szy) vs) [] x of
+                  Right (x) -> element replArea #+ (pure $ makeValDisplay x msg t')
                   Left ((Vboard b), t) -> do
-                    element replArea #+ [UI.div #. "content" #+ [makeInteractiveBoard b t x msg]]
+                    element replArea #+ [UI.div #. "content" #+ [makeInteractiveBoard b t x msg t']]
                   Left (err) -> string $ show err
                 UI.scrollToBottom replArea
                 flushCallBuffer
               Left err -> do
+                element replArea #+ [UI.div #+ [string $ "> " ++ msg]]
                 element replArea #+ (pure $ (string $ show err))
                 UI.scrollToBottom replArea
                 flushCallBuffer
@@ -68,21 +71,20 @@ replReply g@(Game n i@(BoardDef szx szy p) b vs) w msgs replArea = do
             UI.scrollToBottom replArea
             flushCallBuffer
     where
-      makeInteractiveBoard :: Array (Int,Int) Val -> [Val] -> Expr -> String -> UI Element
-      makeInteractiveBoard arr t ex msg = do
+      makeInteractiveBoard arr t ex msg t'' = do
         UI.div #. "board" #+ (map (\r -> UI.div #. "row" #+ r) $ (flip map) (toGrid arr) $ \row -> (flip map) row (\cell -> do
           b <- UI.button #. "click-cell" #+ [string ((show . snd) cell)]
           on UI.click b $ \_ -> do
-            case runWithTape (bindings (szx, szy) vs) (t ++ (pure $ Vpos (fst cell))) ex of
-              Right x -> element replArea #+ (pure $ makeValDisplay x msg)
-              Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg]]
+            element replArea #+ [string $ "Move: " ++ show (fst cell)]
+            case runWithBuffer (bindings_ (szx, szy) vs) (t ++ (pure $ Vpos (fst cell))) ex of
+              Right x -> element replArea #+ (pure $ makeValDisplay x msg t'')
+              Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg t'']]
               Left err -> element replArea #+ (pure $ string $ show err)
           return b))
-      makeValDisplay x msg =
+      makeValDisplay x msg t =
         UI.div #. "repl" #+ [UI.div #. "content" #+ [string ("> " ++ msg)]] #+ [UI.div #. "content" #+ [case x of
                                                                                                 (Vboard b) -> makeBoard b
-                                                                                                x -> string $ show x]]
-
+                                                                                                x -> string $ show x, string $ "::" ++ printT t]]
 
 makeinput :: Chan String -> UI Element
 makeinput i = do

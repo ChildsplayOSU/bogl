@@ -2,7 +2,7 @@
 
 module Parser.Parser (parseLine, parseGameFile, expr) where
 
-import Language.Syntax
+import Language.Syntax hiding (input, board)
 import Debug.Trace(trace)
 
 import Text.ParserCombinators.Parsec hiding (Parser)
@@ -19,11 +19,12 @@ import qualified Data.Set as S
 import Data.Either
 type Parser = Par.Parsec String ((Maybe Type), (Name, [Name]))
 -- | The 'Type' keywords
-types = ["Bool", "Int", "Symbol", "Input", "Board", "Player", "Position", "Positions"]
+types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Player", "Position", "Positions"]
 -- | The lexer, using the reserved keywords and operation names
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
                                                             "let", "in", "if", "then", "else",
                                                             "while", "do", "game", "type", "Grid", "of", "case"
+                                                            --"place", "remove", "isFull", "inARow", "at"
                                                             -- "A", "B", "free", "place", "next", "isFull", "inARow",
                                                             -- "countBoard", "countColumn", "countRow" ]
                                                             ] ++ types,
@@ -31,7 +32,9 @@ lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True"
 
 
 -- | Operators (might want to fix the order of operations)
-operators = [[op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "mod" (Binop Mod) AssocLeft],
+operators = [
+             [op "!" (Binop Get) AssocLeft],
+             [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "mod" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
              [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft, op "<" (Binop Less) AssocLeft, op ">" (Binop Greater) AssocLeft]
             ]
@@ -55,17 +58,20 @@ integer = P.integer lexer
 reserved = P.reserved lexer
 parens = P.parens lexer
 builtin = choice (map (lexeme) [string "or", string "inARow"])
-identifier = P.identifier lexer
+identifier = choice ((map (try . lexeme) [string "or", string "inARow"]) ++ [P.identifier lexer])
+--identifier = (builtin <|> P.identifier lexer)
+newIdentifier = P.identifier lexer                             -- must not be a built in identifier (e.g. in a let expr) 
 capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
 comma = P.comma lexer 
 
-
 -- | Atomic expressions
 atom :: Parser Expr
 atom =
+  HE <$> ((char '?') *> identifier)
+  <|>
   I <$> integer
   <|>
   B <$> (reserved "True" *> pure True)
@@ -82,49 +88,53 @@ atom =
   <|>
   Tuple <$> parens (commaSep1 expr)
   <|>
-  Let <$> (reserved "let" *> identifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
+  Let <$> (reserved "let" *> newIdentifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
   <|>
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
-  <|> -- a more robust macro system would be nice.
+  <|>
   (do
       reserved "while"
-      c <- identifier <* parens (commaSep1 identifier) 
+      c <- atom
       reserved "do" 
-      e <- identifier <* parens (commaSep1 identifier)
+      e <- atom 
       recurse <- (fst . snd) <$> Par.getState
-      i <- (snd . snd) <$> Par.getState
-      let args = map Ref i
-      let args' = case args of
+      names <- (snd . snd) <$> Par.getState -- get the names of the parameters to the function which wraps this while 
+      let exprs = map Ref names
+      let exprs' = case exprs of
             [x] -> x
             xs -> Tuple xs
-      return $ If (App c args) (App recurse [(App e args)]) (args')) -- that list is going to break things.
-        <|>
-  Case <$> (reserved "case" *> identifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
+      return $ While c e names exprs') 
+   <|>
+  Case <$> (reserved "case" *> newIdentifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
 
 -- | Equations
 equation :: Parser Equation
 equation =
-  (try $ (Veq <$> identifier <*> (reservedOp "=" *> expr)))
+  (try $ (Veq <$> newIdentifier <*> (reservedOp "=" *> expr)))
   <|>
   (try $ do
-    name <- identifier
-    params <- parens (commaSep1 identifier)
+    name <- newIdentifier
+    params <- parens (commaSep1 newIdentifier)
     Par.modifyState (replaceSecond (name, params))
     reservedOp "="
     e <- expr
     return $ Feq name (Pars params) e)
- 
+
+position :: Parser Pos 
+position = 
+   Index <$> fromIntegral <$> integer -- TODO: better way?  
+   <|>
+   newIdentifier *> pure ForAll
+
 -- | Board equations
 boardeqn :: Parser BoardEq
 boardeqn =
-  (try $ (RegDef <$> identifier <*> (parens expr) <*> (reservedOp "=" *> expr)))
-  <|>
-  (try $ (PosDef <$> identifier <*> (char '(' *> expr) <*> (comma *> expr <* char ')') <*> (reservedOp "=" *> expr)))
+   (try $ (PosDef <$> newIdentifier <*> (lexeme ((lexeme (char '!')) *> char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
 
 -- | Atomic types
 btype :: Parser Btype
 btype =
-  (reserved "Bool" *> pure Booltype
+  reserved "Bool" *> pure Booltype
   <|>
   reserved "Int" *> pure Itype
   <|>
@@ -138,16 +148,21 @@ btype =
   <|>
   reserved "Position" *> pure Position
   <|>
-  reserved "Positions" *> pure Positions)
+  reserved "Positions" *> pure Positions
   <|>
-  Symbol <$> capIdentifier
+  reserved "AnySymbol" *> pure AnySymbol
+
 
 -- | Extended types: types after the first are restricted to symbols
 xtype :: Parser Xtype
 xtype =
-  (try $ (X <$> btype <*> (S.fromList <$> (many1 (reservedOp "|" *> capIdentifier)))))
+  (try $ (X <$> btype <*> (S.fromList <$> many1 (reservedOp "|" *> capIdentifier))))
   <|>
-  (\x -> X x S.empty) <$> btype
+  (try $ (\x -> X x S.empty) <$> btype)
+  <|>
+  (try $ (pure $ X Top) <*> (S.union <$> (S.singleton <$> capIdentifier) <*> (S.fromList <$> many (reservedOp "|" *> capIdentifier))))
+  <|>
+  Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
 
 -- |
 --
@@ -163,18 +178,16 @@ xtype =
 -- >>> isLeft $ parseAll ttype "" "(3)" 
 -- True
 
--- | Tuple types
-ttype :: Parser Tuptype
---ttype = Tup <$> parens (commaSep1 xtype) -- this should only work for k>=2.
-ttype = Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
-
--- | Plain types
-ptype :: Parser Ptype
-ptype = (Pext <$> xtype <|> Pt <$> ttype)
-
 -- | Function types
 ftype :: Parser Ftype
-ftype = Ft <$> ptype <*> (reservedOp "->" *> ptype)
+ftype = do
+  x <- xtype
+  reservedOp "->"
+  r <- xtype
+  case x of
+    Tup xs -> return $ Ft (Tup xs) r
+    y -> return $ Ft (Tup [y]) r
+
 
 replaceFirst x (a, b) = (x, b)
 replaceSecond x (a, b) = (a, x)
@@ -190,14 +203,14 @@ typ =
   ))
   <|>
   (try $ (do
-            p <- ptype
+            p <- xtype
             Par.modifyState (replaceFirst $ Just $ Plain p)
             return (Plain p)))
    
 -- | Value signatures
 sig :: Parser Signature
 sig =
-  Sig <$> identifier <*> (reservedOp ":" *> typ)
+  Sig <$> newIdentifier <*> (reservedOp ":" *> typ)
 
 -- | Value definitions
 valdef :: Parser ValDef
@@ -205,7 +218,7 @@ valdef = do
   s <- sig
   b <- fst <$> getState
   case b of
-    Just (Plain (Pext (X Board set))) | S.null set  -> (BVal s) <$> (boardeqn)
+    Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
 
 -- |
@@ -227,19 +240,20 @@ ex2 = "outcome : (Board,Player) -> Player|Tie \
 board :: Parser BoardDef
 board =
   (reserved "type" *> reserved "Board" *> reservedOp "=") *>
-  (BoardDef <$> (reserved "Grid" *> (lexeme . char) '(' *> (fromInteger <$> integer)) <*>
-   ((lexeme . char) ',' *> (fromInteger <$> integer) <* (lexeme . char) ')') <*>
-   (reserved "of" *> typ)) -- fixme
+  (BoardDef <$>
+    ((,) <$> (reserved "Grid" *> (lexeme . char) '(' *> (fromInteger <$> integer)) <*>
+     ((lexeme . char) ',' *> (fromInteger <$> integer) <* (lexeme . char) ')')) <*>
+  (reserved "of" *> xtype)) -- fixme
 
 -- | Input definition
 input :: Parser InputDef
 input =
-  reserved "type" *> reserved "Input" *> reservedOp "=" *> (InputDef <$> typ)
+  reserved "type" *> reserved "Input" *> reservedOp "=" *> (InputDef <$> xtype)
 
 -- | Game definition
 game :: Parser Game
 game =
-  Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
+  Game <$> (reserved "game" *> newIdentifier) <*> board <*> input <*> (many valdef)
 
 -- | Uses the parser p to parse all input, throws an error if anything is left over
 parseAll p = runParser (p <* eof) (Nothing, ("", []))

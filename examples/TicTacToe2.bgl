@@ -4,7 +4,7 @@ type Board = Grid(3,3) of AnySymbol
 type Input = Position -- currently ignored anyways
 
 empty : Board
-empty(positions) = Empty
+empty(x, y) = Empty
 
 endGame : Board -> Continue | XWins | OWins
 endGame(b) = if inARow(3, b, X) then XWins else if inARow(3,b,O) then OWins else Continue

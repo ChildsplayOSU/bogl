@@ -21,8 +21,8 @@ import Network.Wai.Handler.Warp
 import Servant
 import Parser.Parser
 import Language.Syntax
-import Runtime.Repl
-import Runtime.Typechecker
+import Runtime.Values
+import Typechecker.Typechecker
 import Runtime.Eval
 import Control.Monad.IO.Class
 
@@ -88,18 +88,20 @@ runCommand sc = do
 _runCommand :: SpielCommand -> IO SpielResponse
 _runCommand (SpielCommand file input) = do
   Just game <- parseGameFile file
-  check <- tc game
+  let check = case tc game of
+  -- (Typechecker.Monad.Env, [Either (ValDef, Typechecker.Monad.TypeError) (Name, Type)])
+  -- (Holes, [Either (Value , and associated error (Name, Type))])
   if check then return (SpielResponse (serverRepl game input)) else return (SpielResponse ["ERR: Could not parse game file!"])
 
 -- handles running a command in the repl from the server
 serverRepl :: Game -> [String] -> [String]
 serverRepl g [] = []
-serverRepl g@(Game n i@(BoardDef szx szy p) b vs) (input:ils) = do
+serverRepl g@(Game n i@(BoardDef (szx,szy) p) b vs) (input:ils) = do
   case parseLine input of
     Right x -> do
       case tcexpr (environment i b vs) x of
         Right t -> do
-          case runWithTape (bindings (szx, szy) vs) [] x of
+          case runWithBuffer (bindings (szx, szy) vs) [] x of
 
             -- TODO program terminated, potentially more data desired
             Right (x) -> ((show x):(serverRepl g ils))
