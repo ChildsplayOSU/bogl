@@ -39,13 +39,13 @@ testCheckLeft :: Test
 testCheckLeft = TestCase (
   assertEqual "Parser Check Left"
   True
-  (isLeft $ parseAll ttype "" "(3)"))
+  (isLeft $ parseAll ftype "" "(3)"))
 
 testCheckLeft2 :: Test
 testCheckLeft2 = TestCase (
   assertEqual "Parser Check Left 2"
   True
-  (isLeft $ parseAll ttype "" "(Symbol)"))
+  (isLeft $ parseAll ftype "" "(Symbol)"))
 
 -- updating board tests
 testCheckUpdatedBoard :: Test
