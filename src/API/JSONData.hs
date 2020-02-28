@@ -27,10 +27,19 @@ data SpielCommand = SpielCommand {
   } deriving (Eq, Show)
 
 
--- representation of the response from the Repl
-data SpielResponse = SpielResponse {
-    -- TODO implment as [Either Exception Val] instead of [String]
-    responses :: [String]
+-- representation of a collection of responses from Spiel
+data SpielResponse =
+  SpielOK String |
+  SpielError String
+  deriving(Eq)
+
+instance Show SpielResponse where
+  show (SpielOK s)     = show s
+  show (SpielError s)  = "ERROR: " ++ show s
+
+data SpielResponses = SpielResponses {
+    -- TODO implement as [Either Exception Val] instead of [String]
+    responses :: [SpielResponse]
   } deriving (Eq, Show)
 
 
@@ -38,3 +47,4 @@ data SpielResponse = SpielResponse {
 $(deriveJSON defaultOptions ''SpielFile)
 $(deriveJSON defaultOptions ''SpielCommand)
 $(deriveJSON defaultOptions ''SpielResponse)
+$(deriveJSON defaultOptions ''SpielResponses)

@@ -23,7 +23,7 @@ import Servant
 
 
 
-type SpielApi = "runFileWithCommands" :> ReqBody '[JSON] SpielCommand :> Post '[JSON] SpielResponse
+type SpielApi = "runFileWithCommands" :> ReqBody '[JSON] SpielCommand :> Post '[JSON] SpielResponses
   :<|> "file" :> ReqBody '[JSON] SpielFile :> Post '[JSON] SpielResponse
   :<|> "test" :> Get '[JSON] SpielResponse
 
