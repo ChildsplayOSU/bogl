@@ -10,5 +10,5 @@ import API.JSONData
 import Servant
 
 -- returns a test reponse to the GET test endpoint, to ensure this is running
-handleTest :: Handler SpielResponse
-handleTest = return (SpielOK "Spiel is Running!")
+handleTest :: Handler SpielResponses
+handleTest = return (SpielResponses [(SpielOK "Spiel is Running!")])

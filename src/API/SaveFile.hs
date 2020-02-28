@@ -14,9 +14,9 @@ import Control.Monad.IO.Class
 
 -- TODO Change SpielResponse to SpielOK/SpielError
 
-handleSaveFile :: SpielFile -> Handler SpielResponse
+handleSaveFile :: SpielFile -> Handler SpielResponses
 handleSaveFile (SpielFile fn contents) = liftIO (do
     -- TODO needs to check if this file was successfully written
     writeFile (fn ++ ".bgl") contents
-    return (SpielOK (fn ++ ".bgl" ++ " written successfully"))
+    return (SpielResponses [(SpielOK (fn ++ ".bgl" ++ " written successfully"))])
   )

@@ -24,8 +24,8 @@ import Servant
 
 
 type SpielApi = "runFileWithCommands" :> ReqBody '[JSON] SpielCommand :> Post '[JSON] SpielResponses
-  :<|> "file" :> ReqBody '[JSON] SpielFile :> Post '[JSON] SpielResponse
-  :<|> "test" :> Get '[JSON] SpielResponse
+  :<|> "file" :> ReqBody '[JSON] SpielFile :> Post '[JSON] SpielResponses
+  :<|> "test" :> Get '[JSON] SpielResponses
 
 
 -- defining the api
