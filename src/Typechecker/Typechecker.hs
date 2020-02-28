@@ -84,13 +84,13 @@ exprtype (Tuple xs) = do
   return $ Tup xs'
 exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
   es' <- mapM exprtype es
-  let es'' = foldr (\x k -> case x of
-        (Tup xs) -> xs ++ k
-        xs -> xs:k) [] es' -- oof
+  let es'' = case es' of
+        [Tup xs] -> Tup xs
+        xs -> Tup xs
   t <- getType n
   case t of
     (Function (Ft (i) o)) -> do
-      unify (Tup es'') i -- oof
+      unify es'' i -- oof
       return o
     _ -> do
       (traceM "???") >> mismatch (Function $ (Ft (Tup es') (X Undef S.empty))) t -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
