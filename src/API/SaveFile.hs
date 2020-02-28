@@ -18,6 +18,6 @@ import Control.Exception(try,Exception)
 handleSaveFile :: SpielFile -> Handler SpielResponse
 handleSaveFile (SpielFile fn contents) = liftIO (do
     -- TODO needs to check if this file was successfully written
-    writeFile fn contents
+    writeFile (fn ++ ".bgl") contents
     return (SpielResponse [fn ++ " written successfully"])
   )
