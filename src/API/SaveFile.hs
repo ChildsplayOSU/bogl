@@ -19,5 +19,5 @@ handleSaveFile :: SpielFile -> Handler SpielResponse
 handleSaveFile (SpielFile fn contents) = liftIO (do
     -- TODO needs to check if this file was successfully written
     writeFile (fn ++ ".bgl") contents
-    return (SpielResponse [fn ++ " written successfully"])
+    return (SpielResponse [fn ++ ".bgl" ++ " written successfully"])
   )
