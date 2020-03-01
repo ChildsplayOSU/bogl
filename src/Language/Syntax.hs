@@ -2,7 +2,7 @@
 -- | Abstract syntax for BOGL
 
 module Language.Syntax where
-
+import Language.Types
 import Data.List
 import Text.JSON.Generic
 import Data.Array
@@ -25,38 +25,6 @@ instance Show Game where
                          ++ show i ++ "\n"
                          ++ intercalate ("\n\n\n") (map show vs)
 
--- | Board definition: mxn board of type Type
-data BoardDef = BoardDef
-  {
-    size  :: (Int, Int)
-  , piece :: Xtype
-  }
-  deriving (Data)
-
-instance Show BoardDef where
-  show (BoardDef (i1, i2) t)
-    = "Board : Grid(" ++ show i1 ++ "," ++ show i2 ++ ") of " ++ show t
-
--- | Input definition: Player inputs must be an accepted type
-data InputDef = InputDef Xtype
-  deriving (Data)
-
-instance Show InputDef where
-  show (InputDef t) = "Input : " ++ show t
-
--- | Top level values are signatures paired with either an ordinary 'Equation'
-data ValDef = Val Signature Equation
-  | BVal Signature BoardEq -- ^ Or a 'BoardEq'
-   deriving (Eq, Data)
-
-instance Show ValDef where
-  show (Val s e) = show s ++ "\n" ++ show e
-  show (BVal s e) = show s ++ "\n" ++ show e
-
-ident :: ValDef -> Name
-ident (Val (Sig n _) _) = n
-ident (BVal (Sig n _) _) = n
-
 -- | Signatures are a product of name and type.
 data Signature = Sig Name Type
    deriving (Eq, Data)
@@ -71,7 +39,21 @@ data Parlist = Pars [Name]
 instance Show Parlist where
   show (Pars xs) = "(" ++ intercalate (" , ") (xs) ++ ")"
 
--- | Equations can either be
+-- | Top level values are signatures paired with either an ordinary 'Equation'
+data ValDef = Val Signature Equation
+  | BVal Signature BoardEq -- ^ Or a 'BoardEq'
+   deriving (Eq, Data)
+
+instance Show ValDef where
+  show (Val s e) = show s ++ "\n" ++ show e
+  show (BVal s e) = show s ++ "\n" ++ show e
+
+
+ident :: ValDef -> Name
+ident (Val (Sig n _) _) = n
+ident (BVal (Sig n _) _) = n
+
+-- | Equations:
 data Equation = Veq Name Expr         -- ^ Value equations (a mapping from 'Name' to 'Expr')
               | Feq Name Parlist Expr -- ^ Function equations (a 'Name', list of params 'Parlist', and the 'Expr' that may use them
    deriving (Eq, Data)
@@ -86,93 +68,8 @@ instance Show Equation where
 data BoardEq = PosDef Name Pos Pos Expr
    deriving (Eq, Data)
 
-instance Show BoardEq where 
-   show (PosDef n x y e) = n ++ "(" ++ show x ++ ", " ++ show y ++ ")" ++ " = " ++ show e 
-
--- Types
--- | Atomic types
-data Btype = Booltype      -- ^ Boolean
-           | Itype         -- ^ Integer
-           | AnySymbol     -- ^ this is the type all symbols live in
-           | Input         -- ^ The input type specified at the top of the program
-           | Board         -- ^ A game board
-           | Player        -- ^ A player
-           | Position      -- ^ A position, specified by the board description
-           | Positions     -- ^ The list of all positions
-           | Top           -- ^ Really this is bottom FIXME
-           | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type.
-   deriving (Data, Eq)
-
-
-instance Ord Btype where
-  Top <= _ = True
-  x <= y   = x == y
-
-
-
-instance Show Btype where
-  show Booltype = "Bool"
-  show Itype = "Int"
-  show Top = "T"
-  show Input = "Input"
-  show Board = "Board"
-  show Player = "Player"
-  show Position = "Position"
-  show Positions = "Positions"
-  show AnySymbol = "AnySymbol"
-  show Undef = "?"
-
-
--- | Convert a btype to an unextended Xtype
-ext :: Btype -> Xtype
-ext b = (X b S.empty)
-
--- | Xtypes are sum types (or tuples of sum types), but restricted by the semantics to only contain Symbols after the atomic type.
-data Xtype = X Btype (S.Set Name)
-           | Tup [Xtype]
-           | Hole Name
-  deriving (Data, Eq)
-
-instance Ord Xtype where
-  (X Top _) <= (X AnySymbol _) = True -- A set of symbols is the subtype of AnySymbols
-  (X k x) <= (X k' x') = (k <= k') && (x `S.isSubsetOf` x') --
-  (Tup xs) <= (Tup xs') | length xs == length xs' = all (id) (zipWith (<=) xs xs')
-  _ <= _ = False
-
-
-instance Show Xtype where
-  show (X b xs) | S.null xs = show b ++ "(no extension)"
-                | otherwise = show b ++ "|" ++ intercalate ("|") (map show (S.toList xs))
-  show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
-  show (Hole n) = "?"
-  show _ = undefined
-
-
--- | A function type can be from a plain type to a plain type (no curried functions)
-data Ftype = Ft Xtype Xtype
-   deriving (Eq, Data)
-instance Ord Ftype where
-  (Ft x y) <= (Ft z w) = x <= z && y <= w
-
-instance Show Ftype where
-  show (Ft t1 t2) = show t1 ++ " -> " ++ show t2
-
--- | A type is either a plain type or a function.
-data Type = Plain Xtype | Function Ftype
-   deriving (Eq, Data)
-
-instance Ord Type where
-  (Plain x) <= (Plain y) = x <= y
-  (Function f) <= (Function g) = f <= g
-  _ <= _ = False
-
-p :: Btype -> Type
-p b = Plain $ X b S.empty
-
-instance Show Type where
-  show (Plain t) = show t
-  show (Function f) = show f
-
+instance Show BoardEq where
+   show (PosDef n x y e) = n ++ "(" ++ show x ++ ", " ++ show y ++ ")" ++ " = " ++ show e
 -- | Positions are either
 data Pos = Index Int 
          | ForAll      

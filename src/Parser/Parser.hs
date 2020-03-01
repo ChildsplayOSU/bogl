@@ -3,21 +3,52 @@
 module Parser.Parser (parseLine, parseGameFile, expr) where
 
 import Language.Syntax hiding (input, board)
+import Language.Types
 import Debug.Trace(trace)
 
-import Text.ParserCombinators.Parsec hiding (Parser)
 import qualified Text.Parsec.Token as P
+
 import Text.Parsec.Language
 import Text.Parsec.Expr
-import qualified Text.Parsec as Par
-import Text.ParserCombinators.Parsec.Char
-import Text.Parsec.Combinator
+
+import Text.Parsec
 import qualified Data.Set as S
 
--- FIXME why am I using both parsec2 and parsec3?
-
 import Data.Either
-type Parser = Par.Parsec String ((Maybe Type), (Name, [Name]))
+
+data ParState = PS {
+  ctype :: Maybe Type,
+  whileNames :: (Name, [Name]),
+  ids :: [Name]
+                   }
+
+emptyState = PS Nothing ("", []) []
+
+type Parser = Parsec String (ParState)
+
+getids :: Parser [Name]
+getids = ids <$> getState
+
+addid :: Name -> Parser ()
+addid n = do
+  PS c w ids <- getState
+  putState (PS c w (n:ids))
+
+getWhileNames :: Parser (Name, [Name])
+getWhileNames = whileNames <$> getState
+
+putWhileNames :: (Name, [Name]) -> Parser ()
+putWhileNames n = do
+  PS c w ids <- getState
+  putState (PS c n ids)
+
+getCtype :: Parser (Maybe Type)
+getCtype = ctype <$> getState
+
+putType :: Type -> Parser ()
+putType t = do
+  PS c w ids <- getState
+  putState (PS (Just t) w ids)
 -- | The 'Type' keywords
 types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Player", "Position", "Positions"]
 -- | The lexer, using the reserved keywords and operation names
@@ -29,6 +60,7 @@ lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True"
                                                             -- "countBoard", "countColumn", "countRow" ]
                                                             ] ++ types,
                                         P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "<"]})
+
 
 
 -- | Operators (might want to fix the order of operations)
@@ -57,10 +89,14 @@ lexeme = P.lexeme lexer
 integer = P.integer lexer
 reserved = P.reserved lexer
 parens = P.parens lexer
-builtin = choice (map (lexeme) [string "or", string "inARow"])
-identifier = choice ((map (try . lexeme) [string "or", string "inARow"]) ++ [P.identifier lexer])
---identifier = (builtin <|> P.identifier lexer)
-newIdentifier = P.identifier lexer                             -- must not be a built in identifier (e.g. in a let expr) 
+identifier = P.identifier lexer
+
+new x = do
+  ids' <- getids
+  parsed <- x
+  if parsed `elem` ids'
+    then unexpected $ parsed ++ " has already been defined."
+    else addid parsed >> return parsed
 capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
@@ -88,7 +124,7 @@ atom =
   <|>
   Tuple <$> parens (commaSep1 expr)
   <|>
-  Let <$> (reserved "let" *> newIdentifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
+  Let <$> (reserved "let" *> identifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
   <|>
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
   <|>
@@ -97,25 +133,22 @@ atom =
       c <- atom
       reserved "do" 
       e <- atom 
-      recurse <- (fst . snd) <$> Par.getState
-      names <- (snd . snd) <$> Par.getState -- get the names of the parameters to the function which wraps this while 
+      (recurse, names) <- getWhileNames
       let exprs = map Ref names
       let exprs' = case exprs of
             [x] -> x
             xs -> Tuple xs
       return $ While c e names exprs') 
-   <|>
-  Case <$> (reserved "case" *> newIdentifier) <*> (reserved "of" *> many1 ((,) <$> capIdentifier <*> (reservedOp "->" *> expr))) <*> (reservedOp "|" *> expr)
 
 -- | Equations
 equation :: Parser Equation
 equation =
-  (try $ (Veq <$> newIdentifier <*> (reservedOp "=" *> expr)))
+  (try $ (Veq <$> identifier <*> (reservedOp "=" *> expr)))
   <|>
   (try $ do
-    name <- newIdentifier
-    params <- parens (commaSep1 newIdentifier)
-    Par.modifyState (replaceSecond (name, params))
+    name <- identifier
+    params <- parens (commaSep1 identifier)
+    putWhileNames (name, params)
     reservedOp "="
     e <- expr
     return $ Feq name (Pars params) e)
@@ -124,12 +157,12 @@ position :: Parser Pos
 position = 
    Index <$> fromIntegral <$> integer -- TODO: better way?  
    <|>
-   newIdentifier *> pure ForAll
+   identifier *> pure ForAll
 
 -- | Board equations
 boardeqn :: Parser BoardEq
 boardeqn =
-   (try $ (PosDef <$> newIdentifier <*> (lexeme (char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
+   (try $ (PosDef <$> identifier <*> (lexeme (char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
 
 -- | Atomic types
 btype :: Parser Btype
@@ -140,11 +173,7 @@ btype =
   <|>
   reserved "Input" *> pure Input
   <|>
-  do
-    reserved "Board"
-    pure Board
-  <|>
-  reserved "Player" *> pure Player
+  reserved "Board" *> pure Board
   <|>
   reserved "Position" *> pure Position
   <|>
@@ -189,8 +218,6 @@ ftype = do
     y -> return $ Ft (Tup [y]) r
 
 
-replaceFirst x (a, b) = (x, b)
-replaceSecond x (a, b) = (a, x)
 
 
 -- | 'Type's
@@ -198,44 +225,29 @@ typ :: Parser Type
 typ = 
   (try $ (do
       f <- ftype
-      Par.modifyState (replaceFirst (Just $ Function f))
+      putType (Function f)
       return (Function f)
   ))
   <|>
   (try $ (do
             p <- xtype
-            Par.modifyState (replaceFirst $ Just $ Plain p)
+            putType (Plain p)
             return (Plain p)))
    
 -- | Value signatures
 sig :: Parser Signature
 sig =
-  Sig <$> newIdentifier <*> (reservedOp ":" *> typ)
+  Sig <$> new identifier <*> (reservedOp ":" *> typ)
 
 -- | Value definitions
 valdef :: Parser ValDef
 valdef = do
   s <- sig
-  b <- fst <$> getState
+  b <- getCtype
   case b of
     Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
 
--- |
--- note: Empty is currently parsed as a string in the grammar, not as a Name. Is it an issue? 
--- >>> :{ 
---     parseAll valdef "" ex1 == 
---       Right (Val (Sig "isValid" (Function (Ft (Pt (Tup [X Board S.empty, X Position S.empty])) 
---       (Pext (X Booltype S.empty))))) (Feq "isValid" (Pars ["b", "p"]) 
---       (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False)))) 
--- :}
--- True 
-ex1 = "isValid : (Board,Position) -> Bool\n  isValid(b,p) = if b(p) == Empty then True else False"
-
-ex2 = "outcome : (Board,Player) -> Player|Tie \
-\ outcome(b,p) = if inARow(3,A,b) then A else \
-               \ if inARow(3,B,b) then B else \
-               \ if isFull(b)     then Tie"
 -- | Board definition
 board :: Parser BoardDef
 board =
@@ -253,16 +265,17 @@ input =
 -- | Game definition
 game :: Parser Game
 game =
-  Game <$> (reserved "game" *> newIdentifier) <*> board <*> input <*> (many valdef)
+  Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
 
 -- | Uses the parser p to parse all input, throws an error if anything is left over
-parseAll p = runParser (p <* eof) (Nothing, ("", []))
+parseAll :: Parser a -> String -> String -> Either ParseError a
+parseAll p s = runParser (p <* eof) emptyState s
 
 -- | Read from the file, and parse
-parseFromFile p fname
-   = do{ input <- readFile fname
-       ; return (parseAll p fname input)
-       }
+parseFromFile p fname = do
+  input <- readFile fname
+  return (parseAll p fname input)
+ 
 parseLine :: String -> Either ParseError Expr
 parseLine = parseAll expr  ""
 
