@@ -5,6 +5,8 @@ module GUI.RapidPrototype where
 import qualified Graphics.UI.Threepenny       as UI
 import           Graphics.UI.Threepenny.Core
 
+
+import Language.Types
 import Runtime.Eval
 import Runtime.Values
 import Data.Array

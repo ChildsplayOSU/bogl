@@ -16,35 +16,42 @@ import qualified Data.Set as S
 
 import Data.Either
 
+-- | State for the parser
 data ParState = PS {
   ctype :: Maybe Type,
   whileNames :: (Name, [Name]),
   ids :: [Name]
                    }
-
+-- | An empty parse context
 emptyState = PS Nothing ("", []) []
 
 type Parser = Parsec String (ParState)
 
+-- | Get all used ids
 getids :: Parser [Name]
 getids = ids <$> getState
 
+-- | Add an id to list of used ids
 addid :: Name -> Parser ()
 addid n = do
   PS c w ids <- getState
   putState (PS c w (n:ids))
 
+-- | Get the names necessary to build 'While'
 getWhileNames :: Parser (Name, [Name])
 getWhileNames = whileNames <$> getState
 
+-- | Put the names
 putWhileNames :: (Name, [Name]) -> Parser ()
 putWhileNames n = do
   PS c w ids <- getState
   putState (PS c n ids)
 
+-- | Get the current type of the object being parsed (DEPRECATED due to new board syntax)
 getCtype :: Parser (Maybe Type)
 getCtype = ctype <$> getState
 
+-- | Put the type of the object being parsed
 putType :: Type -> Parser ()
 putType t = do
   PS c w ids <- getState
@@ -73,12 +80,6 @@ operators = [
               -- and so on
 
 -- | Parser for the 'Expr' datatype
---
--- >>> parseLine' expr "40 + 2" == Right (Binop Plus (I 40) (I 2))  
--- True 
---
--- >>> isLeft $ parseLine' expr "40 + 2life,the universe, and everything" 
--- True 
 expr :: Parser Expr
 expr = buildExpressionParser operators atom
 
@@ -91,6 +92,7 @@ reserved = P.reserved lexer
 parens = P.parens lexer
 identifier = P.identifier lexer
 
+-- | Ensure that the object parsed isn't already in state
 new x = do
   ids' <- getids
   parsed <- x
@@ -192,20 +194,6 @@ xtype =
   (try $ (pure $ X Top) <*> (S.union <$> (S.singleton <$> capIdentifier) <*> (S.fromList <$> many (reservedOp "|" *> capIdentifier))))
   <|>
   Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
-
--- |
---
--- >>> parseAll ttype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty]) 
--- True 
---
--- >>> parseAll ttype "" "(Symbol,Board)"
--- Right (Symbol,Board) 
---
--- >>> isLeft $ parseAll ttype "" "(Symbol)" 
--- True  
---
--- >>> isLeft $ parseAll ttype "" "(3)" 
--- True
 
 -- | Function types
 ftype :: Parser Ftype

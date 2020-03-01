@@ -7,61 +7,78 @@ import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Reader
 
+import Language.Types hiding (input, piece, size)
+
 import qualified Data.Set as S
 
-import Language.Syntax hiding (input, piece, size)
+import Language.Syntax hiding (piece, input, size)
 import Runtime.Builtins
 
-
+-- | Types in the environment
 type TypeEnv = [(Name, Type)]
+
+-- | Typechecker environment
 data Env = Env {
   types :: TypeEnv,
   input :: Xtype,
   piece :: Xtype,
   size  :: (Int, Int)
                }
+
+-- | Initial empty environment
+initEnv i p s = Env [] i p s
+-- | Typechecker state
 data Stat = Stat {
   holes :: TypeEnv,
   source :: Maybe Expr
             }
 
---   The typechecker is non-interactive so we do not need IO.
+-- | Typechecking monad
 type Typechecked a = (StateT Stat (ReaderT Env (ExceptT TypeError Identity))) a
 
-typecheck :: Env -> Typechecked a -> Either TypeError (a, TypeEnv)
-typecheck e a = deStat . runIdentity . runExceptT . (flip runReaderT e) $
+
+-- | Run a computation inside of the typechecking monad
+typecheck :: Env -> Typechecked a -> Either TypeError (a, Stat)
+typecheck e a = runIdentity . runExceptT . (flip runReaderT e) $
                 (runStateT a (Stat [] Nothing))
-
-deStat :: Either TypeError (a, Stat) -> Either TypeError (a, TypeEnv)
-deStat (Right (a, b)) = Right (a, holes b)
-deStat (Left x) = Left x
-
-initEnv i p s = Env [] i p s
-
+               
+typeHoles e a = case typecheck e a of
+  Left err -> Left err
+  Right (x, stat) -> Right (x, holes stat)
+-- | Add some types to the environment
 extendEnv :: Env -> (Name, Type) -> Env
 extendEnv (Env t i p s) v = Env (v:t) i p s
 
+-- | Get the type environment
 getEnv :: Typechecked TypeEnv
 getEnv = types <$> ask
 
+-- | Get the input type
 getInput :: Typechecked Xtype
 getInput = input <$> ask
 
+-- | Get the piece type
 getPiece :: Typechecked (Xtype)
 getPiece = piece <$> ask
 
+-- | Get the board size
 getSize :: Typechecked (Int, Int)
 getSize = size <$> ask
 
+
+-- | Extend the environment
 localEnv :: ([(Name, Type)] -> [(Name, Type)]) -> Typechecked a -> Typechecked a
 localEnv f e = local (\(Env a b c d) -> Env (f a) b c d) e
 
+-- | Get the current type holes
 getHoles :: Typechecked TypeEnv
 getHoles = holes <$> get
 
+-- | Set the source line
 setSrc :: Expr -> Typechecked ()
 setSrc e = modify (\(Stat h _) -> Stat h (Just e))
 
+-- | Get the source line
 getSrc :: Typechecked Expr
 getSrc = do
   e <- source <$> get
@@ -69,7 +86,8 @@ getSrc = do
     Nothing -> unknown "bad!" -- fixme
     Just e -> return e
 
-getType :: String -> Typechecked Type
+-- | Get a type from the environment
+getType :: Name -> Typechecked Type
 getType n = do
   env <- getEnv
   case (lookup n env, lookup n builtinT) of
@@ -77,9 +95,11 @@ getType n = do
     (_, Just e) -> return e
     _ -> notbound n
 
+-- | add a type hole
 addHole :: (Name, Type) -> Typechecked ()
 addHole a = modify (\(Stat h s) -> Stat (a:h) s)
 
+-- | Attempt to unify two types
 unify :: Xtype -> Xtype -> Typechecked Xtype
 unify (Tup xs) (Tup ys)
   | length xs == length ys = Tup <$> zipWithM unify xs ys
@@ -88,17 +108,16 @@ unify x (Hole n) = unify (Hole n) x
 unify (Hole n) x = do
   hs <- getHoles
   case lookup n hs of
-    Just (Plain t) -> if t <= x then return x else mismatch (Plain t) (Plain x)
+    Just (Plain t) -> if t <= x then return x else mismatch (Plain t) (Plain x) -- function holes FIXME
     Nothing -> addHole (n, Plain x) >> return x
-    -- missing pattern.
-unify a@(X y z) b@(X w k)
+unify (X y z) (X w k)
   | y <= w = return $ X w (z `S.union` k) -- take the more defined type
   | w <= y = return $ X y (z `S.union` k)
 unify a b = mismatch (Plain a) (Plain b)
 
 
 t :: Btype -> Typechecked Xtype
-t b = (return . ext) b
+t b = return (X b S.empty)
 -- | Encoding the different type errors as types should let us do interesting things with them
 data TypeError = Mismatch Type Type Expr     -- ^ Couldn't match two types in an expression
                | NotBound Name               -- ^ Name isn't (yet) bound in the enviroment
@@ -126,13 +145,6 @@ extensions :: Xtype -> Typechecked (S.Set Name)
 extensions (X _ xs) = return xs
 extensions a = throwError (Unknown $ "TYPE ERROR! CANT GET EXTENSIONS FROM " ++ show a)
 
-
-mergeX :: Xtype -> Xtype -> Typechecked Xtype
--- | Attempt to join two xtypes into a single type. If it's not possible, throw an error.
-mergeX a@(X y z) b@(X w k)
-  | y <= w = return $ X w (z `S.union` k) -- take the more defined type
-  | w <= y = return $ X y (z `S.union` k)
-mergeX a b = throwError (Unknown "cannot join ")
 instance Show TypeError where
   show (Mismatch t1 t2 e) = "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
   show (NotBound n) = "Variable " ++ n ++ " not bound in the enviroment!"
