@@ -1,6 +1,6 @@
--- | Parser for BOGL 
+-- | Parser for BOGL
 
-module Parser.Parser (parseLine, parseGameFile, expr) where
+module Parser.Parser (parseLine, parseGameFile, expr, isLeft, parseAll, valdef, xtype, Parser) where
 
 import Language.Syntax hiding (input, board)
 import Language.Types
@@ -103,7 +103,7 @@ capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
-comma = P.comma lexer 
+comma = P.comma lexer
 
 -- | Atomic expressions
 atom :: Parser Expr
@@ -155,16 +155,16 @@ equation =
     e <- expr
     return $ Feq name (Pars params) e)
 
-position :: Parser Pos 
-position = 
-   Index <$> fromIntegral <$> integer -- TODO: better way?  
+position :: Parser Pos
+position =
+   Index <$> fromIntegral <$> integer -- TODO: better way?
    <|>
    identifier *> pure ForAll
 
 -- | Board equations
 boardeqn :: Parser BoardEq
 boardeqn =
-   (try $ (PosDef <$> identifier <*> (lexeme (char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
+   (try $ (PosDef <$> identifier <*> (lexeme ((lexeme (char '!')) *> char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
 
 -- | Atomic types
 btype :: Parser Btype
@@ -195,6 +195,20 @@ xtype =
   <|>
   Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
 
+-- |
+--
+-- >>> parseAll ttype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty])
+-- True
+--
+-- >>> parseAll ttype "" "(Symbol,Board)"
+-- Right (Symbol,Board)
+--
+-- >>> isLeft $ parseAll ttype "" "(Symbol)"
+-- True
+--
+-- >>> isLeft $ parseAll ttype "" "(3)"
+-- True
+
 -- | Function types
 ftype :: Parser Ftype
 ftype = do
@@ -205,12 +219,9 @@ ftype = do
     Tup xs -> return $ Ft (Tup xs) r
     y -> return $ Ft (Tup [y]) r
 
-
-
-
 -- | 'Type's
 typ :: Parser Type
-typ = 
+typ =
   (try $ (do
       f <- ftype
       putType (Function f)
@@ -221,7 +232,7 @@ typ =
             p <- xtype
             putType (Plain p)
             return (Plain p)))
-   
+
 -- | Value signatures
 sig :: Parser Signature
 sig =
@@ -266,10 +277,6 @@ parseFromFile p fname = do
  
 parseLine :: String -> Either ParseError Expr
 parseLine = parseAll expr  ""
-
--- | Read a single line and return the result (intended for brevity in test cases)
-parseLine' :: Parser a -> String -> Either ParseError a
-parseLine' p = parseAll p ""
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Maybe Game)

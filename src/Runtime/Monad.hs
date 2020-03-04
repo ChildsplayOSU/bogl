@@ -38,7 +38,7 @@ type Buffer = [Val]
 data Exception =
   NeedInput Val | -- ^ Ran out of input, and here's the current board
   Error String -- ^ Encountered a runtime error (shouldn't ever happen)
-  deriving Show
+  deriving (Eq, Show)
 
 -- | Evaluation occurs in the Identity monad with these side effects:
 -- ReaderT: Evaluation enviroment, board size and piece type, and input type

@@ -1,4 +1,12 @@
-import Test.DocTest
+import Test.HUnit
 
-main :: IO ()
-main = doctest ["-isrc", "src/Language/Syntax.hs", "src/Runtime/Eval.hs", "src/Parser/Parser.hs"]
+import ParserTests
+import EvalTests
+
+-- collects all tests together
+spielTests :: Test
+spielTests = TestList [parserTests,evalTests]
+
+-- run all tests in the suite
+main :: IO Counts
+main = runTestTT spielTests
