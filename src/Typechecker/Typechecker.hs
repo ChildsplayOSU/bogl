@@ -128,7 +128,6 @@ exprtype (Binop x e1 e2) = do
                                                     then t Booltype
                                                     else badop x (Plain t1) (Plain t2)
     _ -> badop x (Plain t1) (Plain t2)
--- if
 exprtype (If e1 e2 e3) = do
   t1 <- exprtype e1
   t2 <- exprtype e2

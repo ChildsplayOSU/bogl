@@ -90,12 +90,10 @@ data Expr = I Integer                     -- ^ Integer expression
           | Binop Op Expr Expr            -- ^ Binary operation of two expressions
           | Let Name Expr Expr            -- ^ Let binding
           | If Expr Expr Expr             -- ^ Conditional expression
-          | Abs [Name] Expr
-          | AppAbs [Expr] Expr
           | Case Name [(Name, Expr)] Expr -- ^ case expression: the final pair is if we have the atomic type, and then we downcast the Xtype back to its regular form.
           | While Expr Expr [Name] Expr   -- ^ While: condition, body, names of arguments from the wrapper function, (tuple of) expression(s) which referenc(es) the name(s).
-          | HE Name
           -- the last Expr can always be constructed from the [Name], but it makes the code cleaner to do that only once while parsing
+          | HE Name
    deriving (Eq, Data)
 
 instance Show Expr where

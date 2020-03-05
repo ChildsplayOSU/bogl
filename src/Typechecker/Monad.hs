@@ -147,7 +147,7 @@ extensions a = throwError (Unknown $ "TYPE ERROR! CANT GET EXTENSIONS FROM " ++ 
 
 instance Show TypeError where
   show (Mismatch t1 t2 e) = "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
-  show (NotBound n) = "You did not define the variable " ++ n ++ " in this program"
+  show (NotBound n) = "You did not define " ++ n ++ " in this program"
   show (SigMismatch n sig t) = "Signature for definition " ++ n ++ ": " ++ show sig ++ "\n does not match inferred type: " ++ show t
   show (Unknown s) = s
   show (BadOp o t1 t2 e) = "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
