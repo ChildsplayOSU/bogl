@@ -24,7 +24,7 @@ This will host an instance of the "game" at an IP address which is reported to y
 or(True, False)
 let x = 2 in 40 + x 
 ```
-You can also try evaluation expressions using the functions in the example1.bgl file: 
+You can also try evaluating expressions using the functions in the example1.bgl file: 
 ```
 succ(99) 
 ```
@@ -39,12 +39,12 @@ For examples of actual games, try the following:
 ```
 ## Playing
 
-Since there is no predefined entry function, playing a game is dependent on how the individual program was written. To play Notakto, for example, you can call the gameLoop that starts it with the board called empty. 
+Since there is no predefined entry function, playing a game is dependent on how the individual program was written. To play Notakto, for example, you can call the gameLoop function with the board called empty. 
 ```
 gameLoop(empty)
 ```
 
-To see an example for type errors, you can run:
+To see an example of type errors, you can run:
 ```
 >runFile "examples/typeerrors.bgl"
 ```
