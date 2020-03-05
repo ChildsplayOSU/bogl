@@ -7,6 +7,7 @@ module ParserTests(parserTests) where
 import Test.HUnit
 import Parser.Parser
 import Language.Syntax
+import Language.Types
 import qualified Data.Set as S
 import Text.Parsec.Error
 

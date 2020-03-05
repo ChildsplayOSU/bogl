@@ -3,6 +3,7 @@
 module Runtime.Builtins where
 
 import Language.Syntax
+import Language.Types
 
 import Runtime.Monad
 import Runtime.Values

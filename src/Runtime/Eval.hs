@@ -2,6 +2,7 @@
 
 module Runtime.Eval where
 import Language.Syntax
+import Language.Types
 
 import Runtime.Values
 import Runtime.Monad

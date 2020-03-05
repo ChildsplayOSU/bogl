@@ -11,6 +11,7 @@ import API.JSONData
 import Servant
 import Parser.Parser
 import Language.Syntax
+import Language.Types
 import Runtime.Values
 import Typechecker.Typechecker
 import Runtime.Eval

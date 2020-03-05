@@ -4,6 +4,7 @@ module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, T
 
 import Runtime.Builtins
 import Language.Syntax hiding (input, piece, size)
+import Language.Types
 
 import Control.Monad.State
 import Control.Monad.Identity
@@ -110,8 +111,8 @@ exprtype e@(Binop Equiv e1 e2) = do
 exprtype (Binop Get e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
-  unify t1 (ext Board)
-  unify t2 (ext Position)
+  unify t1 (X Board S.empty)
+  unify t2 (X Position S.empty)
   getPiece
 exprtype (Binop x e1 e2) = do
   t1 <- exprtype e1
@@ -132,18 +133,11 @@ exprtype (If e1 e2 e3) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   t3 <- exprtype e3
-  b <- unify t1 (ext Booltype)
+  b <- unify t1 (X Booltype S.empty)
   case b of
     (X Booltype empty) -> unify t2 t3
-  {- case (t1, t2, t3) of
-    ((X Booltype empty), (Tup xs), (Tup ys)) | S.null empty -> do
-                                                 result <- forM (zip xs ys) (\(x, y) -> mergeX x y)
-                                                 return (Tup result) -- this is strange.
-    ((X Booltype empty), t2, t3) | S.null empty  -> mergeX t2 t3
-    (x, y, z) -> traceM (show x ++ " " ++ show y ++ show z) >> (mismatch (Plain $ (X Booltype S.empty)) (Plain x) e) -}
 exprtype (HE n) = return (Hole n)
-
-exprtype e'@(While c b n e) = do
+exprtype (While c b n e) = do
   et <- exprtype e
   ct <- exprtype c
   bt <- exprtype b
@@ -152,8 +146,6 @@ exprtype e'@(While c b n e) = do
     (a, b) -> if b == et
               then mismatch (Plain b) (Plain (X Booltype S.empty))
               else mismatch (Plain a) (Plain et)
-
-
 
 -- | Produce the environment
 environment :: BoardDef -> InputDef -> [ValDef] -> Env
@@ -164,7 +156,7 @@ environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ builtinT) i t sz
 -- recursion is not allowed by this.
 runTypeCheck :: BoardDef -> InputDef -> [ValDef] -> Writer [Either (ValDef, TypeError) (Name, Type)] Env
 runTypeCheck (BoardDef sz t) (InputDef i) vs = foldM (\env v -> case typecheck env (deftype v) of
-                                Right (t, e) -> tell (map Right (e)) >> (return $ extendEnv env (ident v, t))
+                                Right (t, e) -> tell (map Right (holes e)) >> (return $ extendEnv env (ident v, t))
                                 Left err -> (tell . pure . Left) (v, err) >> return env)
                                     (initEnv i t sz)
                                     (vs)
@@ -187,7 +179,7 @@ tc' (Game n b i v) = runWriter (runTypeCheck b i v)
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
 tcexpr :: Env -> Expr -> Either TypeError (Xtype, TypeEnv)
-tcexpr e x = typecheck e (exprtypeE x)
+tcexpr e x = typeHoles e (exprtypeE x)
 
 printT :: (Xtype, TypeEnv) -> String
 printT (x, env) = show x ++ "\n" ++ "Type Holes:" ++ (intercalate "\n" (map (\(a, b) -> a ++ ": " ++ show b) env))
