@@ -1,5 +1,5 @@
 {-# LANGUAGE DataKinds       #-}
-
+{-# LANGUAGE TypeOperators   #-}
 --
 -- SaveFile.hs
 --
@@ -15,8 +15,7 @@ import Control.Monad.IO.Class
 -- TODO Change SpielResponse to SpielOK/SpielError
 
 handleSaveFile :: SpielFile -> Handler SpielResponses
-handleSaveFile (SpielFile fn contents) = liftIO (do
+handleSaveFile (SpielFile fn contents) = liftIO(do
     -- TODO needs to check if this file was successfully written
     writeFile (fn ++ ".bgl") contents
-    return (SpielResponses [(SpielOK (fn ++ ".bgl" ++ " written successfully"))])
-  )
+    return (SpielResponses [(SpielOK (fn ++ ".bgl" ++ " written successfully"))]))
