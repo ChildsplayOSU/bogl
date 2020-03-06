@@ -13,9 +13,9 @@ import Data.Array
 
 
 single x = Tup [x]
-
-builtinT = [
-  ("input", Function (Ft (single (X Board S.empty)) (X Position S.empty))),
+builtinT :: Xtype -> [(String, Type)]
+builtinT = \i -> [
+  ("input", Function (Ft (single (X Board S.empty)) i)),
   ("positions", Plain (X Positions S.empty)),
   ("place", Function (Ft (Tup [(X AnySymbol S.empty), (X Board S.empty), (X Position S.empty)]) (X Board S.empty))),
   ("remove", Function (Ft (Tup [(X Board S.empty), (X Position S.empty)]) (X Board S.empty))),

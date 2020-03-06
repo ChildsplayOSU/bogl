@@ -148,7 +148,7 @@ exprtype (While c b n e) = do
 
 -- | Produce the environment
 environment :: BoardDef -> InputDef -> [ValDef] -> Env
-environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ builtinT) i t sz
+environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ (builtinT i)) i t sz
   where f (Val (Sig n t1) eq) = (n, t1)
         f (BVal (Sig n t1) eq) = (n, t1)
 
