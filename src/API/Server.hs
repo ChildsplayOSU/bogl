@@ -15,10 +15,12 @@ import API.JSONData
 import API.RunFileWithCommands
 import API.Test
 import API.SaveFile
+import API.CORSMiddleware
 
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
+import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
 
 
@@ -46,19 +48,23 @@ handler = wrapHandleRunFileWithCommands
   :<|> return (addHeader spielFrontLocation handleTest)
 
 
+-- | wraps requests for running a file with give commands
 wrapHandleRunFileWithCommands :: SpielCommand -> Handler (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
 wrapHandleRunFileWithCommands sc = do
   spielResponses <- handleRunFileWithCommands sc
   return (addHeader spielFrontLocation spielResponses)
 
+
+-- | wraps the saving of file requests
 wrapHandleSaveFile :: SpielFile -> Handler (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
 wrapHandleSaveFile sf = do
   spielResponses <- handleSaveFile sf
   return (addHeader spielFrontLocation spielResponses)
 
 
+-- | Prepares a server application
 serverApp :: Application
-serverApp = serve api handler
+serverApp = logStdoutDev . allowCsrf . corsified $ serve api handler
 
 
 -- setup a command api, for talking to the Repl
@@ -66,17 +72,16 @@ serverApp = serve api handler
 -- describes a Command in the request body
 -- and returns an encoded response
 -- can test with this:
--- curl --verbose --request POST --header "Content-Type: application/json"
--- --data '{"file":"examples/example1.bgl","input":"succ(1)"}' http://localhost:8080/spiel
+-- curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"examples/example1.bgl","input":"succ(1)"}' http://localhost:8080/spiel
 
 -- > /runFileWithCommands
--- curl --request POST --header "Content-Type: application/json" --data '{"file":"examples/Notakto.bgl","inputs":["gameLoop(empty)","1","2"]}' http://localhost:8080/runFileWithCommands
+-- curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"examples/Notakto.bgl","inputs":["gameLoop(empty)","1","2"]}' http://localhost:8080/runFileWithCommands
 
 -- > /file
--- curl --request POST --header "Content-Type: application/json" --data '{"fileName":"TEST_FILE.bgl","content":"2 + 3 * 3"}' http://localhost:8080/file
+-- curl --verbose --request POST --header "Content-Type: application/json" --data '{"fileName":"TEST_FILE","content":"2 + 3 * 3"}' http://localhost:8080/file
 
 -- > /test
--- curl http://locahost:8080/test
+-- curl --verbose http://localhost:8080/test
 startServer :: IO ()
 startServer = do
   let port = 8080
