@@ -1,7 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TypeOperators   #-}
--- {-# LANGUAGE OverloadedStrings #-}
 
 --
 -- Server.hs
@@ -10,7 +9,7 @@
 -- Returns encoded board data on request, and computes
 -- boards when input data is taken
 --
-module API.Server (startServer, serverApp) where
+module API.Server (startServer, serverApp, SpielApi) where
 
 import API.JSONData
 import API.RunFileWithCommands
@@ -23,9 +22,9 @@ import Servant
 
 
 
-type SpielApi = "runFileWithCommands" :> ReqBody '[JSON] SpielCommand :> Post '[JSON] SpielResponses
-  :<|> "file" :> ReqBody '[JSON] SpielFile :> Post '[JSON] SpielResponses
-  :<|> "test" :> Get '[JSON] SpielResponses
+type SpielApi = "runFileWithCommands" :> ReqBody '[JSON] SpielCommand :> Post '[JSON] (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
+    :<|> "file" :> ReqBody '[JSON] SpielFile :> Post '[JSON] (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
+    :<|> "test" :> Get '[JSON] (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
 
 
 -- defining the api
@@ -33,13 +32,29 @@ api :: Proxy SpielApi
 api = Proxy
 
 
+-- Allows requests ONLY from this origin
+spielFrontLocation :: String
+spielFrontLocation = "http://localhost:3000"
+
+
 -- handler for actual requests
 -- performs mapping from endpoints to functions and responses
 -- in order by which they are defined  for the API
 handler :: Server SpielApi
-handler = handleRunFileWithCommands
-  :<|> handleSaveFile
-  :<|> handleTest
+handler = wrapHandleRunFileWithCommands
+  :<|> wrapHandleSaveFile
+  :<|> return (addHeader spielFrontLocation handleTest)
+
+
+wrapHandleRunFileWithCommands :: SpielCommand -> Handler (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
+wrapHandleRunFileWithCommands sc = do
+  spielResponses <- handleRunFileWithCommands sc
+  return (addHeader spielFrontLocation spielResponses)
+
+wrapHandleSaveFile :: SpielFile -> Handler (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
+wrapHandleSaveFile sf = do
+  spielResponses <- handleSaveFile sf
+  return (addHeader spielFrontLocation spielResponses)
 
 
 serverApp :: Application
