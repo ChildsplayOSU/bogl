@@ -43,7 +43,7 @@ lookupSyn :: Name -> Parser Xtype
 lookupSyn n = do
   t <- (lookup <$> (pure n) <*> (syn <$> getState))
   case t of
-    Nothing -> fail "Type not found!"
+    Nothing -> fail $ "Type " ++ n ++ " not found!"
     Just t' -> return t'
 
 -- | Add an id to list of used ids

@@ -46,7 +46,7 @@ testCheckLeft2 :: Test
 testCheckLeft2 = TestCase (
   assertEqual "Parser Check Left 2"
   True
-  (isLeft $ parseAll xtype "" "(Symbol)"))
+  (isLeft $ parseAll xtype "" "(22222)"))
 
 -- updating board tests
 testCheckUpdatedBoard :: Test
@@ -61,8 +61,8 @@ testCheckUpdatedBoard = TestCase (
 testCheckUpdatedBoard2 :: Test
 testCheckUpdatedBoard2 = TestCase (
   assertEqual "Check Updated Board 2"
-  "Right (\"Symbol\",Board)"
-  (show (parseAll xtype "" "(Symbol,Board)")))
+  (Right $ Tup [(X Top (S.fromList ["X"])), X Board S.empty])
+  (parseAll xtype "" "({X}, Board)"))
 
 
 -- | Read a single line and return the result (intended for brevity in test cases)
@@ -72,7 +72,7 @@ parseLine' pars = parseAll pars ""
 -- test binary op functionality being parsed & evaluated
 testParseBinaryOp :: Test
 testParseBinaryOp = TestCase (
-  assertEqual "Check Parseing of Binary Op"
+  assertEqual "Check Parsing of Binary Op"
   True
   (parseLine' expr "40 + 2" == Right (Binop Plus (I 40) (I 2))))
 
@@ -85,7 +85,7 @@ testCanParseLine = TestCase (
 
 -- |
 ex1 :: String
-ex1 = "isValid : (Board,Position) -> Bool\n  isValid(b,p) = if b(p) == Empty then True else False"
+ex1 = "isValid : (Board, Position) -> Bool\n  isValid(b,p) = if b(p) == Empty then True else False"
 
 {--
 ex2 = "outcome : (Board,Player) -> Player|Tie \
