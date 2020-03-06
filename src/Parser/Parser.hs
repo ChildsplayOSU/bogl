@@ -10,6 +10,8 @@ import qualified Text.Parsec.Token as P
 
 import Text.Parsec.Language
 import Text.Parsec.Expr
+import Data.Maybe
+import Control.Monad
 
 import Text.Parsec
 import qualified Data.Set as S
@@ -20,10 +22,11 @@ import Data.Either
 data ParState = PS {
   ctype :: Maybe Type,
   whileNames :: (Name, [Name]),
-  ids :: [Name]
+  ids :: [Name],
+  syn :: [(Name, Xtype)]
                    }
 -- | An empty parse context
-emptyState = PS Nothing ("", []) []
+emptyState = PS Nothing ("", []) [] []
 
 type Parser = Parsec String (ParState)
 
@@ -31,11 +34,23 @@ type Parser = Parsec String (ParState)
 getids :: Parser [Name]
 getids = ids <$> getState
 
+-- | Add a type synonym
+addSyn :: (Name, Xtype) -> Parser ()
+addSyn x = modifyState (\env -> env{syn = x:syn env})
+
+-- | Lookup a type synonym
+lookupSyn :: Name -> Parser Xtype
+lookupSyn n = do
+  t <- (lookup <$> (pure n) <*> (syn <$> getState))
+  case t of
+    Nothing -> fail "Type not found!"
+    Just t' -> return t'
+
 -- | Add an id to list of used ids
 addid :: Name -> Parser ()
 addid n = do
-  PS c w ids <- getState
-  putState (PS c w (n:ids))
+  PS c w ids x <- getState
+  putState (PS c w (n:ids) x)
 
 -- | Get the names necessary to build 'While'
 getWhileNames :: Parser (Name, [Name])
@@ -44,8 +59,8 @@ getWhileNames = whileNames <$> getState
 -- | Put the names
 putWhileNames :: (Name, [Name]) -> Parser ()
 putWhileNames n = do
-  PS c w ids <- getState
-  putState (PS c n ids)
+  PS c w ids x <- getState
+  putState (PS c n ids x)
 
 -- | Get the current type of the object being parsed (DEPRECATED due to new board syntax)
 getCtype :: Parser (Maybe Type)
@@ -54,19 +69,19 @@ getCtype = ctype <$> getState
 -- | Put the type of the object being parsed
 putType :: Type -> Parser ()
 putType t = do
-  PS c w ids <- getState
-  putState (PS (Just t) w ids)
+  PS c w ids x <- getState
+  putState (PS (Just t) w ids x)
 -- | The 'Type' keywords
-types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Player", "Position", "Positions"]
+types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Position", "Positions"]
 -- | The lexer, using the reserved keywords and operation names
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
                                                             "let", "in", "if", "then", "else",
-                                                            "while", "do", "game", "type", "Grid", "of", "case"
+                                                            "while", "do", "game", "type", "Grid", "of", "case", "type"
                                                             --"place", "remove", "isFull", "inARow", "at"
                                                             -- "A", "B", "free", "place", "next", "isFull", "inARow",
                                                             -- "countBoard", "countColumn", "countRow" ]
                                                             ] ++ types,
-                                        P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "<"]})
+                                        P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "<", "&", "{", "}"]})
 
 
 
@@ -140,7 +155,9 @@ atom =
       let exprs' = case exprs of
             [x] -> x
             xs -> Tuple xs
-      return $ While c e names exprs') 
+      return $ While c e names exprs')
+  <?> "Parse error, expected expression"
+
 
 -- | Equations
 equation :: Parser Equation
@@ -184,16 +201,39 @@ btype =
   reserved "AnySymbol" *> pure AnySymbol
 
 
+
+
+enum :: Parser (S.Set Name)
+enum = reservedOp "{" *> (S.fromList <$> (commaSep1 capIdentifier)) <* reservedOp "}"
+
+
 -- | Extended types: types after the first are restricted to symbols
 xtype :: Parser Xtype
-xtype =
-  (try $ (X <$> btype <*> (S.fromList <$> many1 (reservedOp "|" *> capIdentifier))))
+xtype = (try $ do
+  x1 <- xtype'
+  reservedOp "&"
+  enum' <- enum
+  case x1 of
+    (X b xs) -> return (X b (S.union xs enum'))
+    a -> return a)
   <|>
-  (try $ (\x -> X x S.empty) <$> btype)
+      xtype'
+
+
+
+xtype' :: Parser Xtype
+xtype' =
+  (try $ capIdentifier >>= lookupSyn)
   <|>
-  (try $ (pure $ X Top) <*> (S.union <$> (S.singleton <$> capIdentifier) <*> (S.fromList <$> many (reservedOp "|" *> capIdentifier))))
+  (try $ X <$> (pure Top) <*> enum) -- ^ Plain enum
   <|>
-  Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype)))
+  (try $ X <$> btype <*> (pure S.empty))
+  <|>
+  (try $ Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype))))
+
+
+
+
 
 -- |
 --
@@ -247,6 +287,14 @@ valdef = do
     Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> (boardeqn)
     _ -> (Val s) <$> (equation)
 
+decl :: Parser (Maybe ValDef)
+decl = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn) >> return Nothing)
+       <|> Just <$> valdef
+
+
+
+
+
 -- | Board definition
 board :: Parser BoardDef
 board =
@@ -264,7 +312,7 @@ input =
 -- | Game definition
 game :: Parser Game
 game =
-  Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (many valdef)
+  Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (catMaybes <$> (many decl))
 
 -- | Uses the parser p to parse all input, throws an error if anything is left over
 parseAll :: Parser a -> String -> String -> Either ParseError a
