@@ -15,6 +15,7 @@ import API.JSONData
 import API.RunFileWithCommands
 import API.Test
 import API.SaveFile
+import API.ReadFile
 import API.CORSMiddleware
 
 import Network.Wai
@@ -25,8 +26,9 @@ import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
 
 -- (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
-type SpielApi = "runFileWithCommands" :> ReqBody '[JSON] SpielCommand :> Post '[JSON] SpielResponses
-    :<|> "file" :> ReqBody '[JSON] SpielFile :> Post '[JSON] SpielResponses
+type SpielApi = "runCmds" :> ReqBody '[JSON] SpielCommand :> Post '[JSON] SpielResponses
+    :<|> "save" :> ReqBody '[JSON] SpielFile :> Post '[JSON] SpielResponses
+    :<|> "read" :> ReqBody '[JSON] SpielRead :> Post '[JSON] SpielFile
     :<|> "test" :> Get '[JSON] SpielResponses
 
 
@@ -35,32 +37,14 @@ api :: Proxy SpielApi
 api = Proxy
 
 
--- Allows requests ONLY from this origin
-spielFrontLocation :: String
-spielFrontLocation = "http://localhost:3000"
-
-
 -- handler for actual requests
 -- performs mapping from endpoints to functions and responses
 -- in order by which they are defined  for the API
 handler :: Server SpielApi
 handler = handleRunFileWithCommands
   :<|> handleSaveFile
+  :<|> handleReadFile
   :<|> return (handleTest)
-
-
--- | wraps requests for running a file with give commands
-wrapHandleRunFileWithCommands :: SpielCommand -> Handler (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
-wrapHandleRunFileWithCommands sc = do
-  spielResponses <- handleRunFileWithCommands sc
-  return (addHeader spielFrontLocation spielResponses)
-
-
--- | wraps the saving of file requests
-wrapHandleSaveFile :: SpielFile -> Handler (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
-wrapHandleSaveFile sf = do
-  spielResponses <- handleSaveFile sf
-  return (addHeader spielFrontLocation spielResponses)
 
 
 -- | Prepares a server application
@@ -73,13 +57,13 @@ serverApp = logStdoutDev . allowCsrf . corsified $ serve api handler
 -- describes a Command in the request body
 -- and returns an encoded response
 -- can test with this:
--- curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"examples/example1.bgl","input":"succ(1)"}' http://localhost:8080/spiel
+-- curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"examples/example1.bgl","input":"succ(1)"}' http://localhost:8080/runCmds
 
 -- > /runFileWithCommands
--- curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"examples/Notakto.bgl","inputs":["gameLoop(empty)","1","2"]}' http://localhost:8080/runFileWithCommands
+-- curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"examples/Notakto.bgl","inputs":["gameLoop(empty)","1","2"]}' http://localhost:8080/runCmds
 
 -- > /file
--- curl --verbose --request POST --header "Content-Type: application/json" --data '{"fileName":"TEST_FILE","content":"2 + 3 * 3"}' http://localhost:8080/file
+-- curl --verbose --request POST --header "Content-Type: application/json" --data '{"fileName":"TEST_FILE","content":"2 + 3 * 3"}' http://localhost:8080/save
 
 -- > /test
 -- curl --verbose http://localhost:8080/test
@@ -87,8 +71,9 @@ startServer :: IO ()
 startServer = do
   let port = 8080
   putStrLn "Spiel Backend listening for POST/GET with endpoints:"
-  putStrLn "http://localhost:8080/runFileWithCommands (POST)"
-  putStrLn "http://localhost:8080/saveFile (POST)"
+  putStrLn "http://localhost:8080/runCmds (POST)"
+  putStrLn "http://localhost:8080/save (POST)"
+  putStrLn "http://localhost:8080/read (POST)"
   putStrLn "http://localhost:8080/test (GET)"
   putStrLn "Ready..."
   (run port serverApp)
