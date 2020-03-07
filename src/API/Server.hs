@@ -24,9 +24,10 @@ import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
 
 
-type SpielApi = "runFileWithCommands" :> ReqBody '[JSON] SpielCommand :> Post '[JSON] (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
-    :<|> "file" :> ReqBody '[JSON] SpielFile :> Post '[JSON] (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
-    :<|> "test" :> Get '[JSON] (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
+-- (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
+type SpielApi = "runFileWithCommands" :> ReqBody '[JSON] SpielCommand :> Post '[JSON] SpielResponses
+    :<|> "file" :> ReqBody '[JSON] SpielFile :> Post '[JSON] SpielResponses
+    :<|> "test" :> Get '[JSON] SpielResponses
 
 
 -- defining the api
@@ -43,9 +44,9 @@ spielFrontLocation = "http://localhost:3000"
 -- performs mapping from endpoints to functions and responses
 -- in order by which they are defined  for the API
 handler :: Server SpielApi
-handler = wrapHandleRunFileWithCommands
-  :<|> wrapHandleSaveFile
-  :<|> return (addHeader spielFrontLocation handleTest)
+handler = handleRunFileWithCommands
+  :<|> handleSaveFile
+  :<|> return (handleTest)
 
 
 -- | wraps requests for running a file with give commands

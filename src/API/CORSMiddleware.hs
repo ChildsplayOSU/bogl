@@ -7,7 +7,7 @@ module API.CORSMiddleware where
 
 import Network.Wai                       (Middleware)
 import Network.Wai.Middleware.AddHeaders (addHeaders)
-import Network.Wai.Middleware.Cors       (CorsResourcePolicy(..), cors)
+import Network.Wai.Middleware.Cors       (CorsResourcePolicy(..), cors, Origin)
 
 -- | @x-csrf-token@ allowance.
 -- The following header will be set: @Access-Control-Allow-Headers: x-csrf-token@.
@@ -17,6 +17,11 @@ allowCsrf = addHeaders [("Access-Control-Allow-Headers", "x-csrf-token,authoriza
 -- | CORS middleware configured with 'appCorsResourcePolicy'.
 corsified :: Middleware
 corsified = cors (const $ Just appCorsResourcePolicy)
+
+
+--unused for the moment
+--allowAll :: Origin
+--allowAll = "http://localhost:3000"
 
 -- | Cors resource policy to be used with 'corsified' middleware.
 --
@@ -31,7 +36,7 @@ appCorsResourcePolicy = CorsResourcePolicy {
   , corsRequestHeaders = ["Authorization", "Content-Type"]
   , corsExposedHeaders = Nothing
   , corsMaxAge         = Nothing
-  , corsVaryOrigin     = False
-  , corsRequireOrigin  = False
-  , corsIgnoreFailures = False
+  , corsVaryOrigin     = True
+  , corsRequireOrigin  = True
+  , corsIgnoreFailures = True
 }
