@@ -12,6 +12,11 @@ module API.JSONData where
 import Data.Aeson
 import Data.Aeson.TH
 
+-- representation of a request to read a BoGL file
+data SpielRead = SpielRead {
+  path :: String
+} deriving (Eq, Show)
+
 
 -- representation of a file that will be saved by the user
 data SpielFile = SpielFile {
@@ -44,6 +49,7 @@ data SpielResponses = SpielResponses {
 
 
 -- derive JSON for cmd & response
+$(deriveJSON defaultOptions ''SpielRead)
 $(deriveJSON defaultOptions ''SpielFile)
 $(deriveJSON defaultOptions ''SpielCommand)
 $(deriveJSON defaultOptions ''SpielResponse)
