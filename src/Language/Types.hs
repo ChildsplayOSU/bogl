@@ -30,7 +30,7 @@ instance Show BoardDef where
     = "Board : Grid(" ++ show i1 ++ "," ++ show i2 ++ ") of " ++ show t
 
 -- | Input definition: Player inputs must be an accepted type
-data InputDef = InputDef Xtype
+data InputDef = InputDef {inputType :: Xtype} 
   deriving (Data)
 
 instance Show InputDef where

@@ -5,6 +5,7 @@ module GUI.RapidPrototype where
 import qualified Graphics.UI.Threepenny       as UI
 import           Graphics.UI.Threepenny.Core
 
+import qualified Data.Set as S 
 
 import Language.Types
 import Runtime.Eval
@@ -80,10 +81,11 @@ replReply g@(Game n i@(BoardDef (szx, szy) p) b vs) w msgs replArea = do
           b <- UI.button #. "click-cell" #+ [string ((show . snd) cell)]
           on UI.click b $ \_ -> do
             element replArea #+ [string $ "Move: " ++ show (fst cell)]
-            case runWithBuffer (bindings_ (szx, szy) vs) (t ++ (pure $ Vpos (fst cell))) ex of
-              Right x -> element replArea #+ (pure $ makeValDisplay x msg t'')
-              Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg t'']]
-              Left err -> element replArea #+ (pure $ string $ show err)
+            let val = if inputType (input g) == (X Itype S.empty) then pure $ Vi (fromIntegral (fst (fst cell))) else pure $ Vpos (fst cell) in   
+               case runWithBuffer (bindings_ (szx, szy) vs) (t ++ val) ex of
+               Right x -> element replArea #+ (pure $ makeValDisplay x msg t'')
+               Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg t'']]
+               Left err -> element replArea #+ (pure $ string $ show err)
           return b))
       makeValDisplay x msg t =
         UI.div #. "repl" #+ [UI.div #. "content" #+ [string ("> " ++ msg)]] #+ [UI.div #. "content" #+ [case x of
