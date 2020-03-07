@@ -33,7 +33,7 @@ builtins = [
   ("place", \[v, Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // [((x,y), v)]),
   ("remove", \[Vboard arr, Vpos (x,y)] -> return $ Vboard $ arr // pure ((x,y), Vs "Empty")),
   ("isFull", \[Vboard arr] -> return $ Vb $ all (/= Vs "Empty") $ elems arr),
-  ("inARow", \[Vi i, v, Vboard arr] -> return $ Vb $ line v (assocs arr) (fromInteger i)),
+  ("inARow", \[Vi i, v, Vboard arr] -> return $ Vb $ line v (assocs arr) i),
   ("next", \[Vs s] -> return $ if s == "X" then Vs "O" else Vs "X"),
   ("not", \[Vb b] -> return $ Vb (not b)),
   ("or", \[Vb a, Vb b] -> return $ Vb (a || b))

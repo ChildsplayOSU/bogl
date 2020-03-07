@@ -95,7 +95,7 @@ evalEquiv l r = do
                   return $ Vb (v1 == v2)
 
 -- | evaluates comparison operations (except for ==)
-evalCompareOp :: (Integer -> Integer -> Bool) -> Expr -> Expr -> Eval Val
+evalCompareOp :: (Int -> Int -> Bool) -> Expr -> Expr -> Eval Val
 evalCompareOp f l r = do
                      v1 <- eval l
                      v2 <- eval r
@@ -104,7 +104,7 @@ evalCompareOp f l r = do
                         _ -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
 
 -- | evaluates numerical operations
-evalNumOp :: (Integer -> Integer -> Integer) -> Expr -> Expr -> Eval Val
+evalNumOp :: (Int -> Int -> Int) -> Expr -> Expr -> Eval Val
 evalNumOp f l r = do
                      v1 <- eval l
                      v2 <- eval r

@@ -103,6 +103,7 @@ op s f assoc = Infix (reservedOp s *> pure f) assoc
 
 lexeme = P.lexeme lexer
 integer = P.integer lexer
+int = fromInteger <$> P.integer lexer 
 reserved = P.reserved lexer
 parens = P.parens lexer
 identifier = P.identifier lexer
@@ -125,7 +126,7 @@ atom :: Parser Expr
 atom =
   HE <$> ((char '?') *> identifier)
   <|>
-  I <$> integer
+  I <$> int
   <|>
   B <$> (reserved "True" *> pure True)
   <|>
@@ -174,7 +175,7 @@ equation =
 
 position :: Parser Pos
 position =
-   Index <$> fromIntegral <$> integer -- TODO: better way?
+   Index <$> int -- TODO: better way?
    <|>
    identifier *> pure ForAll
 
@@ -300,8 +301,8 @@ board :: Parser BoardDef
 board =
   (reserved "type" *> reserved "Board" *> reservedOp "=") *>
   (BoardDef <$>
-    ((,) <$> (reserved "Grid" *> (lexeme . char) '(' *> (fromInteger <$> integer)) <*>
-     ((lexeme . char) ',' *> (fromInteger <$> integer) <* (lexeme . char) ')')) <*>
+    ((,) <$> (reserved "Grid" *> (lexeme . char) '(' *> int) <*>
+     ((lexeme . char) ',' *> int <* (lexeme . char) ')')) <*>
   (reserved "of" *> xtype)) -- fixme
 
 -- | Input definition

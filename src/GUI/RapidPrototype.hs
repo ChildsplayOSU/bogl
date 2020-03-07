@@ -81,7 +81,7 @@ replReply g@(Game n i@(BoardDef (szx, szy) p) b vs) w msgs replArea = do
           b <- UI.button #. "click-cell" #+ [string ((show . snd) cell)]
           on UI.click b $ \_ -> do
             element replArea #+ [string $ "Move: " ++ show (fst cell)]
-            let val = if inputType (input g) == (X Itype S.empty) then pure $ Vi (fromIntegral (fst (fst cell))) else pure $ Vpos (fst cell) in   
+            let val = if inputType (input g) == (X Itype S.empty) then pure $ Vi (fst (fst cell)) else pure $ Vpos (fst cell) in   
                case runWithBuffer (bindings_ (szx, szy) vs) (t ++ val) ex of
                Right x -> element replArea #+ (pure $ makeValDisplay x msg t'')
                Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg t'']]

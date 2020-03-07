@@ -81,7 +81,7 @@ instance Ord Pos where
   compare (_) (ForAll) = GT
 
  -- | Expressions
-data Expr = I Integer                     -- ^ Integer expression
+data Expr = I Int                         -- ^ Int expression
           | S Name                        -- ^ Symbol
           | B Bool                        -- ^ Boolean
           | Ref Name                      -- ^ Reference to a variable

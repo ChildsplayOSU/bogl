@@ -41,7 +41,7 @@ instance Show InputDef where
 -- Types
 -- | Atomic types
 data Btype = Booltype      -- ^ Boolean
-           | Itype         -- ^ Integer
+           | Itype         -- ^ Int
            | AnySymbol     -- ^ this is the type all symbols live in
            | Input         -- ^ The input type specified at the top of the program
            | Board         -- ^ A game board
