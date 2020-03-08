@@ -45,9 +45,15 @@ data ValDef a = Val Signature (Equation a) a
   | BVal Signature (BoardEq a) a -- ^ Or a 'BoardEq'
    deriving (Eq, Data)
 
+instance Functor ValDef where
+  fmap f (Val s e a) = Val s (fmap f e) (f a)
+  fmap f (BVal s e a) = BVal s (fmap f e) (f a)
+
 instance Show (ValDef a) where
   show (Val s e _) = show s ++ "\n" ++ show e
   show (BVal s e _) = show s ++ "\n" ++ show e
+
+
 
 
 ident :: (ValDef a) -> Name
@@ -59,6 +65,10 @@ data Equation a = Veq Name (Expr a)        -- ^ Value equations (a mapping from 
               | Feq Name Parlist (Expr a) -- ^ Function equations (a 'Name', list of params 'Parlist', and the 'Expr' that may use them
    deriving (Eq, Data)
 
+instance Functor Equation where
+  fmap f (Veq n e) = Veq n (fmap f e)
+  fmap f (Feq n ps e) = Feq n ps (fmap f e)
+
 instance Show (Equation a) where
   show (Veq n e) = n ++ " = " ++ show e
   show (Feq n p e) = n ++ show p ++ " = " ++ show e
@@ -68,6 +78,9 @@ instance Show (Equation a) where
 --             | RegDef Name Expr Expr -- ^ A region definition, an assignment to multiple positions
 data BoardEq a = PosDef Name Pos Pos (Expr a)
    deriving (Eq, Data)
+
+instance Functor BoardEq where
+  fmap f (PosDef n p1 p2 e) = PosDef n p1 p2 (fmap f e)
 
 instance Show (BoardEq a) where
    show (PosDef n x y e) = n ++ "(" ++ show x ++ ", " ++ show y ++ ")" ++ " = " ++ show e 
@@ -111,8 +124,13 @@ instance Functor Expr where
   fmap f (S n) = (S n)
   fmap f (I x) = (I x)
 
-clearAnn :: Expr a -> Expr ()
-clearAnn = (() <$)
+
+deAnnotate :: Expr a -> Expr a
+deAnnotate (Annotation a e) = e
+deAnnotate x = x
+
+
+
 
 instance Show (Expr a) where
   show (Annotation _ e) = show e -- can refactor
