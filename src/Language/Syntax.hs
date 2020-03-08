@@ -122,6 +122,7 @@ data Expr a = I Int                     -- ^ Integer expression
 
 -- | this is just "deriving functor"
 instance Functor Expr where
+  fmap f (B x) = (B x)
   fmap f (HE n) = (HE n)
   fmap f (Annotation a e) = Annotation (f a) (fmap f e)
   fmap f (While e1 e2 ns e3) = While (fmap f e1) (fmap f e2) ns (fmap f e3)
