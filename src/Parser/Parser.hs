@@ -1,7 +1,8 @@
 -- | Parser for BOGL
 
-module Parser.Parser (parseLine, parseGameFile, expr, isLeft, parseAll, valdef, xtype, Parser) where
+module Parser.Parser (parseLine, parseGameFile, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, Parser) where
 
+import Parser.ParseError 
 import Language.Syntax hiding (input, board)
 import Language.Types
 import Debug.Trace(trace)
@@ -17,6 +18,7 @@ import Text.Parsec
 import qualified Data.Set as S
 
 import Data.Either
+import Data.List 
 
 type SrcExpr = Expr Pos
 
@@ -106,6 +108,7 @@ op s f assoc = Infix (reservedOp s *> pure f) assoc
 
 lexeme = P.lexeme lexer
 integer = P.integer lexer
+int = fromInteger <$> P.integer lexer 
 reserved = P.reserved lexer
 parens = P.parens lexer
 identifier = P.identifier lexer
@@ -115,7 +118,7 @@ new x = do
   ids' <- getids
   parsed <- x
   if parsed `elem` ids'
-    then unexpected $ parsed ++ " has already been defined."
+    then unexpected $ "redefinition of " ++ parsed
     else addid parsed >> return parsed
 capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
@@ -135,7 +138,7 @@ atom' :: Parser (Expr SourcePos)
 atom' =
   HE <$> ((char '?') *> identifier)
   <|>
-  I <$> integer
+  I <$> int
   <|>
   B <$> (reserved "True" *> pure True)
   <|>
@@ -168,6 +171,14 @@ atom' =
       return $ While c e names exprs')
   <?> "Parse error, expected expression"
 
+params' :: Name -> Parser [Name] 
+params' n = do 
+   params <- parens $ commaSep1 identifier 
+   let paramSet = nub params 
+   if paramSet == params
+      then return params 
+      else 
+         let repeats = params \\ paramSet in unexpected $ errRepeatParam repeats n     
 
 -- | Equations
 equation :: Parser (Equation SourcePos)
@@ -176,7 +187,7 @@ equation =
   <|>
   (try $ do
     name <- identifier
-    params <- parens (commaSep1 identifier)
+    params <- params' name  
     putWhileNames (name, params)
     reservedOp "="
     e <- expr
@@ -184,9 +195,9 @@ equation =
 
 position :: Parser Pos
 position =
-   Index <$> fromIntegral <$> integer -- TODO: better way?
+   Index <$> int 
    <|>
-   identifier *> pure ForAll
+   ForAll <$> identifier
 
 -- | Board equations
 boardeqn :: Parser (BoardEq SourcePos)
@@ -294,7 +305,7 @@ valdef = do
   s <- sig
   b <- getCtype
   case b of
-    Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> (boardeqn) <*> getPosition
+    Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> (many boardeqn) <*> getPosition
     _ -> (Val s) <$> (equation) <*> getPosition
 
 decl :: Parser (Maybe (ValDef SourcePos))
@@ -310,8 +321,8 @@ board :: Parser BoardDef
 board =
   (reserved "type" *> reserved "Board" *> reservedOp "=") *>
   (BoardDef <$>
-    ((,) <$> (reserved "Grid" *> (lexeme . char) '(' *> (fromInteger <$> integer)) <*>
-     ((lexeme . char) ',' *> (fromInteger <$> integer) <* (lexeme . char) ')')) <*>
+    ((,) <$> (reserved "Grid" *> (lexeme . char) '(' *> int) <*>
+     ((lexeme . char) ',' *> int <* (lexeme . char) ')')) <*>
   (reserved "of" *> xtype)) -- fixme
 
 -- | Input definition

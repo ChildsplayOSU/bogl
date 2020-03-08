@@ -23,13 +23,8 @@ import Typechecker.Monad
 import Text.Parsec.Pos
 import qualified Data.Set as S
 
-
-
-
-
-
-
-
+-- | return Nothing or the first element of a list which doen't satisfy a predicate
+all' p xs = foldl (\none x -> if p x then none else Just x) Nothing xs 
 
 -- | Get the type of a valDef. Check the expression's type with the signature's. If they don't match, throw exception.
 deftype :: (ValDef SourcePos) -> Typechecked Type
@@ -40,12 +35,12 @@ deftype (Val (Sig n t) eqn x) = do
     then return t
     else sigmismatch n t eqt
 
-deftype (BVal (Sig n t) eqn x) = do
+deftype (BVal (Sig n t) eqs x) = do
   setPos x
-  eqt <- beqntype t eqn
-  if eqt <= t
-    then return t
-    else sigmismatch n t eqt
+  eqTypes <- mapM (beqntype t) eqs
+  case all' (<= t) eqTypes of 
+    Nothing -> return t 
+    (Just badEqn) -> sigmismatch n t badEqn
 
 -- | Get the type of a board equation.
 beqntype :: Type -> (BoardEq SourcePos) -> Typechecked Type

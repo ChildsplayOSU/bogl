@@ -11,7 +11,6 @@ import Language.Types
 import qualified Data.Set as S
 import Text.Parsec.Error
 
-
 --
 -- exported tests for the Parser
 --
@@ -22,8 +21,12 @@ parserTests = TestList [
   testCheckUpdatedBoard,
   testCheckUpdatedBoard2,
   testParseBinaryOp,
-  testCanParseLine,
-  testParseLongExpr]
+  testRejectBadExprAfterSuccessefulParse,
+  testParseLongExpr,
+  testBoardeqn,
+  testNoRepeatedParamNames, 
+  testParseEqn 
+  ]
 
 --
 -- TEST STRUCTURE
@@ -77,9 +80,9 @@ testParseBinaryOp = TestCase (
   (parseLine' expr "40 + 2" == Right (Binop Plus (I 40) (I 2))))
 
 
-testCanParseLine :: Test
-testCanParseLine = TestCase (
-  assertEqual "Can parse weird line"
+testRejectBadExprAfterSuccessefulParse :: Test
+testRejectBadExprAfterSuccessefulParse = TestCase (
+  assertEqual "Check that the parser does not silently accept bad inputs after a successful parse"
   True
   (isLeft $ parseLine' expr "40 + 2life,the universe, and everything"))
 
@@ -120,3 +123,22 @@ testExampleFile1 = TestCase (
   assertBool "Tests that example file 1 can be loaded"
   (checkGameParse (parseGameFile "../examples/example1.bgl")))
 --}
+
+testParseEqn :: Test
+testParseEqn = TestCase $ 
+   assertEqual "Test parse well-formed equation"
+   True 
+   (parseLine' equation "add(a,b) = a + b" == Right (Feq "add" (Pars  ["a", "b"]) (Binop Plus (Ref "a") (Ref "b"))))
+     
+testNoRepeatedParamNames :: Test 
+testNoRepeatedParamNames = TestCase $  
+   assertEqual "Test parse error on repeated params" 
+   True 
+   (isLeft $ parseLine' equation ("foo(a,a) = a + a"))
+   
+testBoardeqn :: Test 
+testBoardeqn = TestCase $  
+   assertEqual "Test board equation parse" 
+   True 
+   (parseLine' boardeqn ("myBoard!(x,y) = Empty") == Right (PosDef "myBoard" (ForAll "x") (ForAll "y") (S "Empty")))
+   

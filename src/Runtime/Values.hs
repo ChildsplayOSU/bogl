@@ -9,7 +9,7 @@ import Data.List
 type Board = Array (Int, Int) Val
 
 -- | Values
-data Val = Vi Integer -- ^ Integer value
+data Val = Vi Int -- ^ Integer value
          | Vb Bool -- ^ Boolean value
          | Vpos (Int, Int) -- ^ Position value
          | Vboard Board -- ^ Board value (displayed to user)

@@ -41,20 +41,22 @@ instance Show Parlist where
   show (Pars xs) = "(" ++ intercalate (" , ") (xs) ++ ")"
 
 -- | Top level values are signatures paired with either an ordinary 'Equation'
+
+
+
+
+
 data ValDef a = Val Signature (Equation a) a
-  | BVal Signature (BoardEq a) a -- ^ Or a 'BoardEq'
+  | BVal Signature [BoardEq a] a
    deriving (Eq, Data)
 
 instance Functor ValDef where
   fmap f (Val s e a) = Val s (fmap f e) (f a)
-  fmap f (BVal s e a) = BVal s (fmap f e) (f a)
+  fmap f (BVal s e a) = BVal s ((fmap . fmap) f e) (f a)
 
 instance Show (ValDef a) where
   show (Val s e _) = show s ++ "\n" ++ show e
   show (BVal s e _) = show s ++ "\n" ++ show e
-
-
-
 
 ident :: (ValDef a) -> Name
 ident (Val (Sig n _) _ _) = n
@@ -73,10 +75,14 @@ instance Show (Equation a) where
   show (Veq n e) = n ++ " = " ++ show e
   show (Feq n p e) = n ++ show p ++ " = " ++ show e
 
--- | Board equations can either be
---data BoardEq = PosDef Name Expr Expr Expr -- ^ Position defition: an assignment to a specific position
---             | RegDef Name Expr Expr -- ^ A region definition, an assignment to multiple positions
-data BoardEq a = PosDef Name Pos Pos (Expr a)
+-- | Board equations are used to set positions on the board to an expression
+data BoardEq a = PosDef
+   {
+    boardEqName :: Name,
+    xpos :: Pos, 
+    ypos :: Pos,
+    boardExpr :: (Expr a)
+   }
    deriving (Eq, Data)
 
 instance Functor BoardEq where
@@ -86,16 +92,20 @@ instance Show (BoardEq a) where
    show (PosDef n x y e) = n ++ "(" ++ show x ++ ", " ++ show y ++ ")" ++ " = " ++ show e 
 
 data Pos = Index Int 
-         | ForAll      
-         deriving (Eq, Show, Data)
+         | ForAll Name  
+         deriving (Eq, Data)
+
+instance Show Pos where 
+   show (Index i) = show i 
+   show (ForAll n) = n 
 
 instance Ord Pos where
   compare (Index i) (Index j) = compare i j
-  compare (ForAll) (_) = LT
-  compare (_) (ForAll) = GT
+  compare (ForAll _) (_) = LT
+  compare (_) (ForAll _) = GT
 
  -- | Expressions
-data Expr a = I Integer                     -- ^ Integer expression
+data Expr a = I Int                     -- ^ Integer expression
           | S Name                        -- ^ Symbol
           | B Bool                        -- ^ Boolean
           | Ref Name                      -- ^ Reference to a variable
@@ -129,6 +139,8 @@ deAnnotate :: Expr a -> Expr a
 deAnnotate (Annotation a e) = e
 deAnnotate x = x
 
+clearAnn :: Expr a -> Expr ()
+clearAnn = (() <$)
 
 
 

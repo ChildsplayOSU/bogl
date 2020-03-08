@@ -25,37 +25,37 @@ handleRunFileWithCommands sc = do
   (liftIO (_runFileWithCommands sc))
 
 
+
 -- runs command as IO
 _runFileWithCommands :: SpielCommand -> IO SpielResponses
 _runFileWithCommands (SpielCommand gameFile inpt) = do
-  Just game <- parseGameFile gameFile
+  Just game <- parseGameFile (gameFile ++ ".bgl")
+  -- TODO is this a type error or a parse error on return??? (ask Kai) (@montymxb)
   let check = success (tc game)
-  -- (Typechecker.Monad.Env, [Either (ValDef, Typechecker.Monad.TypeError) (Name, Type)])
-  -- (Holes, [Either (Value , and associated error (Name, Type))])
-  if check then return (SpielResponses (serverRepl game inpt)) else return (SpielResponses [SpielError "Could not parse game file!"])
+  if check then return (SpielResponses (serverRepl game gameFile inpt)) else return (SpielResponses [SpielParseError 0 0 gameFile "Could not parse game file!"])
 
 
 -- handles running a command in the repl from the server
-serverRepl :: (Game SourcePos) -> [String] -> [SpielResponse]
-serverRepl _ [] = []
-serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) (inpt:ils) = do
+serverRepl :: (Game SourcePos) -> String -> [String] -> [SpielResponse]
+serverRepl _ _ [] = []
+serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) = do
   case parseLine inpt of
     Right x -> do
       case tcexpr (environment i b vs) x of
         Right _ -> do -- Right t
           case runWithBuffer (bindings_ (szx, szy) vs) [] x of
 
-            -- TODO program terminated, potentially more data desired
-            Right (terminated) -> ((SpielOK ("program ended: " ++ (show terminated))):(serverRepl g ils))
+            -- program terminated normally with a value
+            Right (val) -> ((SpielValue (show val)):(serverRepl g fn ils))
 
-            -- TODO, board and tape returned, program needs more input
-            Left ((Vboard b'), _) -> ((SpielOK (show b')):(serverRepl g ils)) -- used to be ((Vboard b'), t')
+            -- board and tape returned, returns the board for displaying on the frontend
+            Left ((Vboard b'), _) -> ((SpielBoard (show b')):(serverRepl g fn ils)) -- used to be ((Vboard b'), t')
 
-            -- TODO runtime error encountered
-            Left err -> ((SpielError ("runtime error: " ++ (show err))):(serverRepl g ils))
+            -- runtime error encountered
+            Left err -> ((SpielRuntimeError (show err)):(serverRepl g fn ils))
 
-        -- TODO typechecker encountered an error in the environment (unlikely not to happen)
-        Left err -> ((SpielError ("typechecker error: " ++ (show err))):(serverRepl g ils))
+        -- typechecker encountered an error in the environment
+        Left err -> ((SpielTypeError 0 0 fn (show err)):(serverRepl g fn ils))
 
     -- bad parse
-    Left err -> ((SpielError ("parser error: " ++ (show err))):(serverRepl g ils))
+    Left err -> ((SpielParseError 0 0 fn (show err)):(serverRepl g fn ils))

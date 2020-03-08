@@ -27,17 +27,19 @@ import qualified Control.Concurrent.Chan as Chan
 
 runPrototype :: String -> IO ()
 runPrototype f = do
-  Just g <- parseGameFile f
-  let x = tc g
-      errs = errors x
-      ts = rtypes x
-  forM errs (\x -> traceM ("type error:" ++ show x))
-  replIn <- Chan.newChan
-  startGUI defaultConfig
-    { jsPort       = Just 8023
-        , jsStatic     = Just "../wwwroot"
-        } $ prototype g replIn
-
+  maybeGame <- parseGameFile f
+  case maybeGame of 
+    Just g -> do 
+      let x = tc g 
+          errs = errors x
+          ts = rtypes x
+      forM errs (\x -> traceM ("type error:" ++ show x))
+      replIn <- Chan.newChan
+      startGUI defaultConfig
+         { jsPort       = Just 8023
+            , jsStatic     = Just "../wwwroot"
+            } $ prototype g replIn
+    _ -> return ()  
 
 prototype :: (Game SourcePos) -> Chan String -> Window -> UI ()
 prototype g@(Game n i b _) replIn window = do
@@ -82,7 +84,7 @@ replReply g@(Game n i@(BoardDef (szx, szy) p) b vs) w msgs replArea = do
           b <- UI.button #. "click-cell" #+ [string ((show . snd) cell)]
           on UI.click b $ \_ -> do
             element replArea #+ [string $ "Move: " ++ show (fst cell)]
-            let val = if inputType (input g) == (X Itype S.empty) then pure $ Vi (fromIntegral (fst (fst cell))) else pure $ Vpos (fst cell) in   
+            let val = if inputType (input g) == (X Itype S.empty) then pure $ Vi (fst (fst cell)) else pure $ Vpos (fst cell) in   
                case runWithBuffer (bindings_ (szx, szy) vs) (t ++ val) ex of
                Right x -> element replArea #+ (pure $ makeValDisplay x msg t'')
                Left ((Vboard b), t') -> element replArea #+ [UI.div #. "inprogress" #+ [makeInteractiveBoard b t' ex msg t'']]

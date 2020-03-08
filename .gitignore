@@ -6,3 +6,4 @@ Spiel-Lang.cabal
 *.swp
 stack*.yaml.lock
 .stack-work/
+TEMP.bgl
