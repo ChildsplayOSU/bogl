@@ -7,7 +7,7 @@ module API.CORSMiddleware where
 
 import Network.Wai                       (Middleware)
 import Network.Wai.Middleware.AddHeaders (addHeaders)
-import Network.Wai.Middleware.Cors       (CorsResourcePolicy(..), cors, Origin)
+import Network.Wai.Middleware.Cors       (CorsResourcePolicy(..), cors)
 
 -- | @x-csrf-token@ allowance.
 -- The following header will be set: @Access-Control-Allow-Headers: x-csrf-token@.
@@ -32,7 +32,7 @@ corsified = cors (const $ Just appCorsResourcePolicy)
 appCorsResourcePolicy :: CorsResourcePolicy
 appCorsResourcePolicy = CorsResourcePolicy {
     corsOrigins        = Nothing
-  , corsMethods        = ["OPTIONS", "GET", "PUT", "POST"]
+  , corsMethods        = ["OPTIONS", "GET", "POST"]
   , corsRequestHeaders = ["Authorization", "Content-Type"]
   , corsExposedHeaders = Nothing
   , corsMaxAge         = Nothing
