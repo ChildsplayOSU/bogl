@@ -16,6 +16,6 @@ import Control.Monad.IO.Class
 
 handleSaveFile :: SpielFile -> Handler SpielResponses
 handleSaveFile (SpielFile fn contents) = liftIO(do
-    -- TODO needs to check if this file was successfully written
+    -- TODO needs to check if this file was successfully written, rather than just assuming it is (@montymxb)
     writeFile (fn ++ ".bgl") contents
-    return (SpielResponses [(SpielOK (fn ++ ".bgl" ++ " written successfully"))]))
+    return (SpielResponses [(SpielValue (fn ++ ".bgl" ++ " written successfully"))]))

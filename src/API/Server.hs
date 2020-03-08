@@ -52,21 +52,28 @@ serverApp :: Application
 serverApp = logStdoutDev . allowCsrf . corsified $ serve api handler
 
 
+{--
 -- setup a command api, for talking to the Repl
 -- represents, 'POST/cmd' w/ a JSON object
 -- describes a Command in the request body
 -- and returns an encoded response
--- can test with this:
--- curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"examples/example1.bgl","input":"succ(1)"}' http://localhost:8080/runCmds
+-- can test with the following CURL examples:
+> /runCmds
+curl --verbose -H "Origin: localhost" --request POST --header "Content-Type: application/json" --data '{"file":"examples/example1","inputs":["succ(1)"]}' http://localhost:8080/runCmds
 
--- > /runFileWithCommands
--- curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"examples/Notakto.bgl","inputs":["gameLoop(empty)","1","2"]}' http://localhost:8080/runCmds
+> /runCmds
+curl --verbose -H "Origin: localhost" --request POST --header "Content-Type: application/json" --data '{"file":"examples/TicTacToe","inputs":["gameLoop(empty)","1","2"]}' http://localhost:8080/runCmds
 
--- > /file
--- curl --verbose --request POST --header "Content-Type: application/json" --data '{"fileName":"TEST_FILE","content":"2 + 3 * 3"}' http://localhost:8080/save
+> /save
+curl --verbose -H "Origin: localhost" --request POST --header "Content-Type: application/json" --data '{"fileName":"TEST_FILE","content":"2 + 3 * 3"}' http://localhost:8080/save
 
--- > /test
--- curl --verbose http://localhost:8080/test
+> /read
+curl --verbose -H "Origin: localhost" --request POST --header "Content-Type: application/json" --data '{"path":"examples/TicTacToe"}' http://localhost:8080/read
+
+> /test
+curl --verbose -H "Origin: localhost" http://localhost:8080/test
+--}
+
 startServer :: IO ()
 startServer = do
   let port = 8080
