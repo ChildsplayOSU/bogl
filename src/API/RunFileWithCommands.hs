@@ -27,7 +27,7 @@ handleRunFileWithCommands sc = do
 -- runs command as IO
 _runFileWithCommands :: SpielCommand -> IO SpielResponses
 _runFileWithCommands (SpielCommand gameFile inpt) = do
-  Just game <- parseGameFile gameFile
+  Just game <- parseGameFile (gameFile ++ ".bgl")
   -- TODO is this a type error or a parse error on return??? (ask Kai) (@montymxb)
   let check = success (tc game)
   if check then return (SpielResponses (serverRepl game gameFile inpt)) else return (SpielResponses [SpielParseError 0 0 gameFile "Could not parse game file!"])
