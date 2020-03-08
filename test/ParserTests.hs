@@ -140,5 +140,5 @@ testBoardeqn :: Test
 testBoardeqn = TestCase $  
    assertEqual "Test board equation parse" 
    True 
-   (parseLine' boardeqn ("myBoard!(x,y) = Empty") == Right (PosDef "myBoard" ForAll ForAll (S "Empty")))
+   (parseLine' boardeqn ("myBoard!(x,y) = Empty") == Right (PosDef "myBoard" (ForAll "x") (ForAll "y") (S "Empty")))
    

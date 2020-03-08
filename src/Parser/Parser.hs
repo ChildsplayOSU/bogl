@@ -187,7 +187,7 @@ position :: Parser Pos
 position =
    Index <$> int 
    <|>
-   identifier *> pure ForAll
+   ForAll <$> identifier
 
 -- | Board equations
 boardeqn :: Parser BoardEq
@@ -295,7 +295,7 @@ valdef = do
   s <- sig
   b <- getCtype
   case b of
-    Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> (boardeqn)
+    Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> many boardeqn
     _ -> (Val s) <$> (equation)
 
 decl :: Parser (Maybe ValDef)

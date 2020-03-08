@@ -41,13 +41,12 @@ instance Show Parlist where
 
 -- | Top level values are signatures paired with either an ordinary 'Equation'
 data ValDef = Val Signature Equation
-  | BVal Signature BoardEq -- ^ Or a 'BoardEq'
+  | BVal Signature [BoardEq]
    deriving (Eq, Data)
 
 instance Show ValDef where
-  show (Val s e) = show s ++ "\n" ++ show e
+  show (Val s e)  = show s ++ "\n" ++ show e
   show (BVal s e) = show s ++ "\n" ++ show e
-
 
 ident :: ValDef -> Name
 ident (Val (Sig n _) _) = n
@@ -62,23 +61,31 @@ instance Show Equation where
   show (Veq n e) = n ++ " = " ++ show e
   show (Feq n p e) = n ++ show p ++ " = " ++ show e
 
--- | Board equations can either be
---data BoardEq = PosDef Name Expr Expr Expr -- ^ Position defition: an assignment to a specific position
---             | RegDef Name Expr Expr -- ^ A region definition, an assignment to multiple positions
-data BoardEq = PosDef Name Pos Pos Expr
+-- | Board equations are used to set positions on the board to an expression 
+data BoardEq = PosDef 
+   {
+    boardEqName :: Name,
+    xpos :: Pos, 
+    ypos :: Pos,
+    boardExpr :: Expr
+   }
    deriving (Eq, Data)
 
 instance Show BoardEq where 
    show (PosDef n x y e) = n ++ "(" ++ show x ++ ", " ++ show y ++ ")" ++ " = " ++ show e 
 
 data Pos = Index Int 
-         | ForAll      
-         deriving (Eq, Show, Data)
+         | ForAll Name  
+         deriving (Eq, Data)
+
+instance Show Pos where 
+   show (Index i) = show i 
+   show (ForAll n) = n 
 
 instance Ord Pos where
   compare (Index i) (Index j) = compare i j
-  compare (ForAll) (_) = LT
-  compare (_) (ForAll) = GT
+  compare (ForAll _) (_) = LT
+  compare (_) (ForAll _) = GT
 
  -- | Expressions
 data Expr = I Int                         -- ^ Int expression
@@ -86,7 +93,7 @@ data Expr = I Int                         -- ^ Int expression
           | B Bool                        -- ^ Boolean
           | Ref Name                      -- ^ Reference to a variable
           | Tuple [Expr]                  -- ^ Tuple of 'Expr'
-          | App Name [Expr]                -- ^ Application of the function called Name to the list of arguments
+          | App Name [Expr]               -- ^ Application of the function called Name to the list of arguments
           | Binop Op Expr Expr            -- ^ Binary operation of two expressions
           | Let Name Expr Expr            -- ^ Let binding
           | If Expr Expr Expr             -- ^ Conditional expression
