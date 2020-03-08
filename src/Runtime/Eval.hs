@@ -41,19 +41,21 @@ bind (Val _ (Veq n e)) = (n, eval e)
 bind  (Val _ (Feq n (Pars ls) e)) = (n, do
                                         env <- getEnv
                                         return $ Vf ls env e)
-bind (BVal _ (PosDef n xp yp e2)) = (n, do
+bind (BVal (Sig n _) defs) = (n, do
       sz <- getBounds
-      value <- eval e2
+      values <- mapM (eval . boardExpr) defs
       maybeBoard <- lookupName n
       case maybeBoard of
-         Nothing -> let board = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) in do  -- TODO: replace ? with a new Val?
-            return $ Vboard (updateBoard board sz xp yp value)
-         Just (Vboard b) -> return $ Vboard (updateBoard b sz xp yp value)
+         Nothing         -> return $ Vboard (fill (newBoard sz) sz defs values)
+         Just (Vboard b) -> return $ Vboard (fill b sz defs values)
          _ -> error "TODO")
+   where
+      newBoard sz = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) -- TODO: replace ? 
+      fill board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) board (zip ds vs)   
 
-updateBoard :: Board -> (Int, Int) -> Pos -> Pos -> Val -> Board
-updateBoard b sz xp yp v = let indices = range ((1,1), sz) in
-                              b // zip (filter (posMatches xp yp) indices) (repeat v)
+updateBoard :: Board -> (Int, Int) -> BoardEq -> Val -> Board
+updateBoard b sz d v = let indices = range ((1,1), sz) in
+                              b // zip (filter (posMatches (xpos d) (ypos d)) indices) (repeat v)
 
 
 
