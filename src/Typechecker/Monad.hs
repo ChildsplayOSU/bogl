@@ -6,6 +6,8 @@ import Control.Monad.State
 import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Reader
+import Text.Parsec.Pos
+
 
 import Language.Types hiding (input, piece, size)
 
@@ -30,7 +32,8 @@ initEnv i p s = Env [] i p s
 -- | Typechecker state
 data Stat = Stat {
   holes :: TypeEnv,
-  source :: Maybe Expr
+  source :: Maybe (Expr SourcePos),
+  pos :: SourcePos
             }
 
 -- | Typechecking monad
@@ -40,7 +43,7 @@ type Typechecked a = (StateT Stat (ReaderT Env (ExceptT TypeError Identity))) a
 -- | Run a computation inside of the typechecking monad
 typecheck :: Env -> Typechecked a -> Either TypeError (a, Stat)
 typecheck e a = runIdentity . runExceptT . (flip runReaderT e) $
-                (runStateT a (Stat [] Nothing))
+                (runStateT a (Stat [] Nothing (newPos "" 0 0)))
                
 typeHoles e a = case typecheck e a of
   Left err -> Left err
@@ -75,15 +78,21 @@ getHoles :: Typechecked TypeEnv
 getHoles = holes <$> get
 
 -- | Set the source line
-setSrc :: Expr -> Typechecked ()
-setSrc e = modify (\(Stat h _) -> Stat h (Just e))
+setSrc :: (Expr SourcePos) -> Typechecked ()
+setSrc e = modify (\(Stat h _ x) -> Stat h (Just e) x)
+
+setPos :: (SourcePos) -> Typechecked ()
+setPos e = modify (\stat -> stat{pos = e})
+
+getPos :: Typechecked SourcePos
+getPos = pos <$> get
 
 -- | Get the source line
-getSrc :: Typechecked Expr
+getSrc :: Typechecked (Expr SourcePos)
 getSrc = do
   e <- source <$> get
   case e of
-    Nothing -> unknown "bad!" -- fixme
+    Nothing -> unknown "!" -- fixme
     Just e -> return e
 
 -- | Get a type from the environment
@@ -98,7 +107,7 @@ getType n = do
 
 -- | add a type hole
 addHole :: (Name, Type) -> Typechecked ()
-addHole a = modify (\(Stat h s) -> Stat (a:h) s)
+addHole a = modify (\(Stat h s e) -> Stat (a:h) s e)
 
 -- | Attempt to unify two types
 unify :: Xtype -> Xtype -> Typechecked Xtype
@@ -120,35 +129,34 @@ unify a b = mismatch (Plain a) (Plain b)
 t :: Btype -> Typechecked Xtype
 t b = return (X b S.empty)
 -- | Encoding the different type errors as types should let us do interesting things with them
-data TypeError = Mismatch Type Type Expr     -- ^ Couldn't match two types in an expression
-               | NotBound Name               -- ^ Name isn't (yet) bound in the enviroment
-               | SigMismatch Name Type Type  -- ^ couldn't match the type of an equation with its signature
-               | Unknown String              -- ^ Errors that "shouldn't happen"
-               | BadOp Op Type Type Expr     -- ^ Can't perform a primitive operation
-               | OutOfBounds Pos Pos
+data TypeError = Mismatch Type Type (Expr SourcePos) SourcePos     -- ^ Couldn't match two types in an expression
+               | NotBound Name SourcePos              -- ^ Name isn't (yet) bound in the enviroment
+               | SigMismatch Name Type Type SourcePos  -- ^ couldn't match the type of an equation with its signature
+               | Unknown String SourcePos             -- ^ Errors that "shouldn't happen"
+               | BadOp Op Type Type (Expr SourcePos) SourcePos    -- ^ Can't perform a primitive operation
+               | OutOfBounds Pos Pos SourcePos
 
 -- | smart constructors for type errors
 mismatch :: Type -> Type -> Typechecked a
-mismatch t1 t2 = getSrc >>= (\e -> throwError $ Mismatch t1 t2 e)
+mismatch t1 t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) -> throwError $ Mismatch t1 t2 e x)
 notbound :: Name -> Typechecked a
-notbound n  = throwError $ NotBound n
+notbound n  = getPos >>= \p -> throwError $ NotBound n p
 sigmismatch :: Name -> Type -> Type -> Typechecked a
-sigmismatch n t1 t2= throwError $ SigMismatch n t1 t2
+sigmismatch n t1 t2= getPos >>= \p -> throwError $ SigMismatch n t1 t2 p
 unknown :: String -> Typechecked a
-unknown s = throwError $ Unknown s
+unknown s = getPos >>= (\x -> throwError $ Unknown s x)
 badop :: Op -> Type -> Type -> Typechecked a
-badop o t1 t2 = getSrc >>= (\e ->  throwError $ BadOp o t1 t2 e)
+badop o t1 t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) ->  throwError $ BadOp o t1 t2 e x)
 outofbounds :: Pos -> Pos -> Typechecked a
-outofbounds p sz = throwError $ OutOfBounds p sz
+outofbounds p sz = getPos >>= \x -> throwError $ OutOfBounds p sz x
 
 -- | Retrieve the extensions from an Xtype
 extensions :: Xtype -> Typechecked (S.Set Name)
 extensions (X _ xs) = return xs
-extensions a = throwError (Unknown $ "TYPE ERROR! CANT GET EXTENSIONS FROM " ++ show a)
 
 instance Show TypeError where
-  show (Mismatch t1 t2 e) = "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
-  show (NotBound n) = "You did not define " ++ n ++ " in this program"
-  show (SigMismatch n sig t) = "Signature for definition " ++ n ++ ": " ++ show sig ++ "\n does not match inferred type: " ++ show t
-  show (Unknown s) = s
-  show (BadOp o t1 t2 e) = "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
+  show (Mismatch t1 t2 e p) = "Error at: " ++ show p ++ "\n\t Could not match types " ++ show t1 ++ " and " ++ show t2 ++ "\n\t\t in expression: " ++ show e
+  show (NotBound n p) = "Error at: " ++ show p ++ "\n\t You did not define " ++ n ++ " in this program"
+  show (SigMismatch n sig t p) = show p ++ "Signature for definition " ++ n ++ ": " ++ show sig ++ "\n does not match inferred type: " ++ show t
+  show (Unknown s p) = s
+  show (BadOp o t1 t2 e p) = "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e

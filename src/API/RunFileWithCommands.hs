@@ -13,6 +13,7 @@ import Parser.Parser
 import Language.Syntax
 import Language.Types
 import Runtime.Values
+import Text.Parsec.Pos
 import Typechecker.Typechecker
 import Runtime.Eval
 import Control.Monad.IO.Class
@@ -22,6 +23,7 @@ import Control.Monad.IO.Class
 handleRunFileWithCommands :: SpielCommand -> Handler SpielResponses
 handleRunFileWithCommands sc = do
   (liftIO (_runFileWithCommands sc))
+
 
 
 -- runs command as IO
@@ -37,7 +39,7 @@ _runFileWithCommands (SpielCommand gameFile inpt) = do
 
 
 -- handles running a command in the repl from the server
-serverRepl :: Game -> String -> [String] -> [SpielResponse]
+serverRepl :: (Game SourcePos) -> String -> [String] -> [SpielResponse]
 serverRepl _ _ [] = []
 serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) = do
   case parseLine inpt of
