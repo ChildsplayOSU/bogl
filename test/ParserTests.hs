@@ -22,7 +22,6 @@ parserTests = TestList [
   testCheckUpdatedBoard2,
   testParseBinaryOp,
   testRejectBadExprAfterSuccessefulParse,
-  testParseLongExpr,
   testBoardeqn,
   testNoRepeatedParamNames, 
   testParseEqn 
@@ -109,6 +108,7 @@ testParseLongExpr = TestCase (
     )) (Feq "isValid" (Pars ["b", "p"])
     (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False))) ())))
 -} -- parsing is a nightmare with annotations...
+
 {--
 checkGameParse :: IO (Maybe Game) -> IO Bool
 checkGameParse a = do
