@@ -17,13 +17,13 @@ import Language.Syntax
 
 
 -- encodes the game as a JSON object
-encodeGame :: Game -> String
+encodeGame :: (Data a) => (Game a) -> String
 encodeGame g = encodeJSON g
 
 
 -- decodes a JSON object into a game
-decodeGame :: String -> Game
-decodeGame s = decodeJSON s :: Game
+decodeGame :: (Data a) => String -> (Game a)
+decodeGame s = decodeJSON s
 
 
 -- test Game encode functionality
@@ -38,11 +38,12 @@ encode_test = do
 
 
 -- test Game decode functionality
+{-
 decode_test :: IO ()
 decode_test = do
   parsed <- parseGameFile "src/Runtime/example1.bgl"
   case parsed of
     Just g  -> do
-      print (decodeGame (encodeGame g))
+      print (decodeGame (encodeGame (clearAnn g)))
       return ()
-    Nothing -> return () -- do nothing...
+    Nothing -> return () -- do nothing... -}

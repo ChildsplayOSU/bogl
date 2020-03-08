@@ -20,7 +20,7 @@ import Data.Bifunctor
 import Data.List
 
 import Typechecker.Monad
-
+import Text.Parsec.Pos
 import qualified Data.Set as S
 
 
@@ -32,21 +32,23 @@ import qualified Data.Set as S
 
 
 -- | Get the type of a valDef. Check the expression's type with the signature's. If they don't match, throw exception.
-deftype :: ValDef -> Typechecked Type
-deftype (Val (Sig n t) eqn) = do
+deftype :: (ValDef SourcePos) -> Typechecked Type
+deftype (Val (Sig n t) eqn x) = do
+  setPos x
   eqt <- localEnv ((n, t):) (eqntype t eqn)
   if eqt <= t
     then return t
     else sigmismatch n t eqt
 
-deftype (BVal (Sig n t) eqn) = do
+deftype (BVal (Sig n t) eqn x) = do
+  setPos x
   eqt <- beqntype t eqn
   if eqt <= t
     then return t
     else sigmismatch n t eqt
 
 -- | Get the type of a board equation.
-beqntype :: Type -> BoardEq -> Typechecked Type
+beqntype :: Type -> (BoardEq SourcePos) -> Typechecked Type
 beqntype t (PosDef _ xp yp e) = do
    t1 <- exprtype e
    b <- getPiece
@@ -59,26 +61,27 @@ beqntype t (PosDef _ xp yp e) = do
    where
      toPos (x,y) = (Index x, Index y) -- fixme
 -- | Get the type of an equation
-eqntype :: Type -> Equation -> Typechecked Type
+eqntype :: Type -> (Equation SourcePos) -> Typechecked Type
 eqntype _ (Veq _ e) = exprtypeE e >>= (return . Plain)
 eqntype (Function (Ft inputs _)) (Feq _ (Pars params) e) = do
   case inputs of
     (Tup inputs') -> do
-      e' <- localEnv ((++) (zip params (map Plain inputs'))) (exprtype e)
+      e' <- localEnv ((++) (zip params (map Plain inputs'))) (exprtypeE e)
       return $ Function (Ft inputs e')
     (input') -> do
-      e' <- localEnv ((++) (zip params (pure (Plain input')))) (exprtype e)
+      e' <- localEnv ((++) (zip params (pure (Plain input')))) (exprtypeE e)
       return $ Function (Ft inputs e')
   where
-eqntype _ _ = throwError (Unknown "Environment corrupted.") -- this should never happen?
+eqntype _ _ = throwError (Unknown "Environment corrupted." undefined) -- this should never happen?
 
 -- Synthesize the type of an expression
-exprtypeE :: Expr -> Typechecked Xtype -- TODO do this with mapStateT stack thing
+exprtypeE :: (Expr SourcePos) -> Typechecked Xtype -- TODO do this with mapStateT stack thing
 exprtypeE e = setSrc e >> exprtype e
-exprtype :: Expr -> Typechecked Xtype
+
+exprtype :: (Expr SourcePos) -> Typechecked Xtype
+exprtype (Annotation a e) = setPos a >> exprtype e
 exprtype (I _) = t Itype
 exprtype (S s) = return $ X Top (S.singleton s)
-
 exprtype (B _) = t Booltype
 exprtype (Let n e1 e2) = do
   t <- exprtype e1
@@ -147,13 +150,13 @@ exprtype (While c b n e) = do
               else mismatch (Plain a) (Plain et)
 
 -- | Produce the environment
-environment :: BoardDef -> InputDef -> [ValDef] -> Env
+environment :: BoardDef -> InputDef -> [ValDef SourcePos] -> Env
 environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ (builtinT i)) i t sz
-  where f (Val (Sig n t1) eq) = (n, t1)
-        f (BVal (Sig n t1) eq) = (n, t1)
+  where f (Val (Sig n t1) eq x) = (n, t1)
+        f (BVal (Sig n t1) eq x) = (n, t1)
 
 -- recursion is not allowed by this.
-runTypeCheck :: BoardDef -> InputDef -> [ValDef] -> Writer [Either (ValDef, TypeError) (Name, Type)] Env
+runTypeCheck :: BoardDef -> InputDef -> [ValDef SourcePos] -> Writer [Either (ValDef SourcePos, TypeError) (Name, Type)] Env
 runTypeCheck (BoardDef sz t) (InputDef i) vs = foldM (\env v -> case typecheck env (deftype v) of
                                 Right (t, e) -> tell (map Right (holes e)) >> (return $ extendEnv env (ident v, t))
                                 Left err -> (tell . pure . Left) (v, err) >> return env)
@@ -164,20 +167,20 @@ data TcResult =
   Tc {
   success :: Bool,
   e :: Env,
-  errors :: [(ValDef, TypeError)],
+  errors :: [(ValDef SourcePos, TypeError)],
   rtypes :: [(Name, Type)]
      }
 
-tc :: Game -> TcResult
+tc :: (Game SourcePos) -> TcResult
 tc g = case tc' g of
   (e, ls) -> let l = lefts ls in
     Tc (length l == 0) e l (rights ls)
 
-tc' :: Game -> (Env, [Either (ValDef, TypeError) (Name, Type)])
+tc' :: (Game SourcePos) -> (Env, [Either (ValDef SourcePos, TypeError) (Name, Type)])
 tc' (Game n b i v) = runWriter (runTypeCheck b i v)
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
-tcexpr :: Env -> Expr -> Either TypeError (Xtype, TypeEnv)
+tcexpr :: Env -> (Expr SourcePos) -> Either TypeError (Xtype, TypeEnv)
 tcexpr e x = typeHoles e (exprtypeE x)
 
 printT :: (Xtype, TypeEnv) -> String

@@ -15,6 +15,7 @@ import Data.Either
 
 import Control.Monad.Writer
 
+import Text.Parsec.Pos
 
 
 import Debug.Trace
@@ -25,7 +26,7 @@ import Debug.Trace
 
 
 -- | Produce all of the bindings from a list of value definitions. This is done sequentially. Errors are reported as they're found.
-bindings :: (Int, Int) -> [ValDef] -> Writer [Exception] Env
+bindings :: (Int, Int) -> [ValDef a] -> Writer [Exception] Env
 bindings sz vs = e
   where
     e = foldM (\env (n, v) -> case runEval env [] v of
@@ -36,12 +37,12 @@ bindings sz vs = e
 
 bindings_ x y = (fst . runWriter) (bindings x y)
 
-bind :: ValDef -> (Name, Eval Val)
-bind (Val _ (Veq n e)) = (n, eval e)
-bind  (Val _ (Feq n (Pars ls) e)) = (n, do
+bind :: (ValDef a) -> (Name, Eval Val)
+bind (Val _ (Veq n e) _) = (n, eval e)
+bind  (Val _ (Feq n (Pars ls) e) _) = (n, do
                                         env <- getEnv
-                                        return $ Vf ls env e)
-bind (BVal _ (PosDef n xp yp e2)) = (n, do
+                                        return $ Vf ls env (clearAnn e))
+bind (BVal _ (PosDef n xp yp e2) _) = (n, do
       sz <- getBounds
       value <- eval e2
       maybeBoard <- lookupName n
@@ -67,7 +68,7 @@ posMatches xp yp (x, y) = match xp x && match yp y
 
 
 -- | Binary operation evaluation
-evalBinOp :: Op -> Expr -> Expr -> Eval Val
+evalBinOp :: Op -> (Expr a) -> (Expr a) -> Eval Val
 evalBinOp Plus l r  = evalNumOp (+) l r
 evalBinOp Minus l r = evalNumOp (-) l r
 evalBinOp Times l r = evalNumOp (*) l r
@@ -88,14 +89,14 @@ evalBinOp Get l r   = do
 
         --[Vboard arr, Vpos (x,y)] -> return $ arr ! (x,y))
 -- | evaluates the == operation
-evalEquiv :: Expr -> Expr -> Eval Val
+evalEquiv :: (Expr a) -> (Expr a) -> Eval Val
 evalEquiv l r = do
                   v1 <- eval l
                   v2 <- eval r
                   return $ Vb (v1 == v2)
 
 -- | evaluates comparison operations (except for ==)
-evalCompareOp :: (Integer -> Integer -> Bool) -> Expr -> Expr -> Eval Val
+evalCompareOp :: (Integer -> Integer -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
 evalCompareOp f l r = do
                      v1 <- eval l
                      v2 <- eval r
@@ -104,7 +105,7 @@ evalCompareOp f l r = do
                         _ -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
 
 -- | evaluates numerical operations
-evalNumOp :: (Integer -> Integer -> Integer) -> Expr -> Expr -> Eval Val
+evalNumOp :: (Integer -> Integer -> Integer) -> (Expr a) -> (Expr a) -> Eval Val
 evalNumOp f l r = do
                      v1 <- eval l
                      v2 <- eval r
@@ -113,7 +114,7 @@ evalNumOp f l r = do
                         _ -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
 
 -- | evaluates boolean operations
-evalBoolOp :: (Bool -> Bool -> Bool) -> Expr -> Expr -> Eval Val
+evalBoolOp :: (Bool -> Bool -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
 evalBoolOp f l r = do
                      v1 <- eval l
                      v2 <- eval r
@@ -122,7 +123,8 @@ evalBoolOp f l r = do
                         _ -> return $ Err $ "Could not do boolean operation on " ++ (show l) ++ " to " ++ (show r)
 
 
-eval :: Expr -> Eval Val
+eval :: (Expr a) -> Eval Val
+eval (Annotation a e) = eval e
 eval (I i) = return $ Vi i
 
 eval (B b) = return $ Vb b
@@ -146,7 +148,7 @@ eval (App n es) = do
         x -> x:k) [] args -- NOT GOOD
   f <- lookupName n
   case f of
-    Just (Vf params env' e) -> extScope (zip params (args')) (eval e) -- ++ env?
+    Just (Vf params env' e) -> extScope (zip params (args') ++ env') (eval e) -- ++ env?
     Nothing -> case lookup n builtins of
       Just f -> do
         (f (args))
@@ -165,16 +167,6 @@ eval (If p e1 e2) = do
   if b then eval e1 else eval e2
 
 eval (Binop op e1 e2) = evalBinOp op e1 e2
-
-eval (Case n xs e)  = do
-  f <- lookupName n
-  case f of
-    Just v -> case v of
-      (Vs s) -> case lookup s (xs) of
-        Just e' -> extScope (pure (n, v)) (eval e')
-        Nothing -> extScope (pure (n, v)) (eval e) -- hmm.
-      _ -> extScope (pure (n, v)) (eval e)
-    Nothing -> undefined
 
 eval (While c b names exprs) = do
    c' <- unpackBool <$> eval c   -- evaluate the condition
@@ -203,7 +195,7 @@ eval (HE n) = err ("Type hole: ")
 -- >>> run [] (Let "x" (I 2) (Ref "x"))
 -- 2
 
-runWithBuffer :: Env -> Buffer -> Expr -> Either (Val, Buffer) Val
+runWithBuffer :: Env -> Buffer -> (Expr SourcePos) -> Either (Val, Buffer) Val
 runWithBuffer env buf e = do
   let v = runEval env buf (eval e) in
     case v of

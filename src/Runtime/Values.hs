@@ -15,7 +15,7 @@ data Val = Vi Integer -- ^ Integer value
          | Vboard Board -- ^ Board value (displayed to user)
          | Vt [Val] -- ^ Tuple value
          | Vs Name -- ^ Symbol value
-         | Vf [Name] EvalEnv Expr -- ^ Function value
+         | Vf [Name] EvalEnv (Expr ()) -- ^ Function value (annotations discarded)
          | Err String -- ^ Runtime error (I think the typechecker catches all these)
          | Deferred -- ^ This needs an input.
 
