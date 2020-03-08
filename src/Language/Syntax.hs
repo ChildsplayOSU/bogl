@@ -75,13 +75,17 @@ instance Show BoardEq where
    show (PosDef n x y e) = n ++ "(" ++ show x ++ ", " ++ show y ++ ")" ++ " = " ++ show e 
 
 data Pos = Index Int 
-         | ForAll      
-         deriving (Eq, Show, Data)
+         | ForAll Name  
+         deriving (Eq, Data)
+
+instance Show Pos where 
+   show (Index i) = show i 
+   show (ForAll n) = n 
 
 instance Ord Pos where
   compare (Index i) (Index j) = compare i j
-  compare (ForAll) (_) = LT
-  compare (_) (ForAll) = GT
+  compare (ForAll _) (_) = LT
+  compare (_) (ForAll _) = GT
 
  -- | Expressions
 data Expr = I Int                         -- ^ Int expression

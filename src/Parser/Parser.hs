@@ -187,7 +187,7 @@ position :: Parser Pos
 position =
    Index <$> int 
    <|>
-   identifier *> pure ForAll
+   ForAll <$> identifier
 
 -- | Board equations
 boardeqn :: Parser BoardEq

@@ -64,7 +64,7 @@ updateBoard b sz d v = let indices = range ((1,1), sz) in
 posMatches :: Pos -> Pos -> (Int, Int) -> Bool
 posMatches xp yp (x, y) = match xp x && match yp y
    where
-      match ForAll _        = True
+      match (ForAll _) _        = True
       match (Index ix) i = ix == i
 
 
