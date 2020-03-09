@@ -18,6 +18,7 @@ import Control.Monad
 import Language.Syntax
 import Parser.Parser
 import Data.List.Extra
+import Text.Parsec.Pos
 import Control.Concurrent
 import Debug.Trace
 import qualified Control.Concurrent.Chan as Chan
@@ -40,7 +41,7 @@ runPrototype f = do
             } $ prototype g replIn
     _ -> return ()  
 
-prototype :: Game -> Chan String -> Window -> UI ()
+prototype :: (Game SourcePos) -> Chan String -> Window -> UI ()
 prototype g@(Game n i b _) replIn window = do
   return window # set UI.title n
   inputarea <- makeinput replIn
@@ -49,7 +50,7 @@ prototype g@(Game n i b _) replIn window = do
   return ()
 
 
-replReply :: Game -> Window -> Chan String -> Element -> IO ()
+replReply :: (Game SourcePos) -> Window -> Chan String -> Element -> IO ()
 replReply g@(Game n i@(BoardDef (szx, szy) p) b vs) w msgs replArea = do
   reply <- Chan.getChanContents msgs
   forM_ reply $ \msg ->
