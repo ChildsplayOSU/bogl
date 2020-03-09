@@ -338,10 +338,13 @@ input :: Parser InputDef
 input =
   reserved "type" *> reserved "Input" *> reservedOp "=" *> (InputDef <$> xtype)
 
+
+typesyn = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn))
+
 -- | Game definition
 game :: Parser (Game SourcePos)
 game =
-  Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (catMaybes <$> (many decl))
+  Game <$> (reserved "game" *> identifier) <*> (many typesyn *> board) <*> (many typesyn *> input) <*> (catMaybes <$> (many decl))
 
 -- | Uses the parser p to parse all input, throws an error if anything is left over
 parseAll :: Parser a -> String -> String -> Either ParseError a
