@@ -9,15 +9,15 @@ import Data.List
 type Board = Array (Int, Int) Val
 
 -- | Values
-data Val = Vi Int                 -- ^ Int value
-         | Vb Bool                -- ^ Boolean value
-         | Vpos (Int, Int)        -- ^ Position value
-         | Vboard Board           -- ^ Board value (displayed to user)
-         | Vt [Val]               -- ^ Tuple value
-         | Vs Name                -- ^ Symbol value
-         | Vf [Name] EvalEnv Expr -- ^ Function value
-         | Err String             -- ^ Runtime error (I think the typechecker catches all these)
-         | Deferred               -- ^ This needs an input.
+data Val = Vi Int -- ^ Integer value
+         | Vb Bool -- ^ Boolean value
+         | Vpos (Int, Int) -- ^ Position value
+         | Vboard Board -- ^ Board value (displayed to user)
+         | Vt [Val] -- ^ Tuple value
+         | Vs Name -- ^ Symbol value
+         | Vf [Name] EvalEnv (Expr ()) -- ^ Function value (annotations discarded)
+         | Err String -- ^ Runtime error (I think the typechecker catches all these)
+         | Deferred -- ^ This needs an input.
 
 
 -- | Can't compare two functions.

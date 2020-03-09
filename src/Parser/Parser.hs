@@ -20,6 +20,9 @@ import qualified Data.Set as S
 import Data.Either
 import Data.List 
 
+type SrcExpr = Expr Pos
+
+
 -- | State for the parser
 data ParState = PS {
   ctype :: Maybe Type,
@@ -97,7 +100,7 @@ operators = [
               -- and so on
 
 -- | Parser for the 'Expr' datatype
-expr :: Parser Expr
+expr :: Parser (Expr SourcePos)
 expr = buildExpressionParser operators atom
 
 -- | Helper function for handling operators
@@ -123,9 +126,16 @@ reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
 comma = P.comma lexer
 
--- | Atomic expressions
-atom :: Parser Expr
+
+
+atom :: Parser (Expr SourcePos)
 atom =
+  Annotation <$> getPosition <*> atom'
+
+
+-- | Atomic expressions
+atom' :: Parser (Expr SourcePos)
+atom' =
   HE <$> ((char '?') *> identifier)
   <|>
   I <$> int
@@ -171,7 +181,7 @@ params' n = do
          let repeats = params \\ paramSet in unexpected $ errRepeatParam repeats n     
 
 -- | Equations
-equation :: Parser Equation
+equation :: Parser (Equation SourcePos)
 equation =
   (try $ (Veq <$> identifier <*> (reservedOp "=" *> expr)))
   <|>
@@ -190,8 +200,8 @@ position =
    ForAll <$> identifier
 
 -- | Board equations
-boardeqn :: Parser BoardEq
-boardeqn = 
+boardeqn :: Parser (BoardEq SourcePos)
+boardeqn =
    (try $ (PosDef <$> identifier <*> (lexeme ((lexeme (char '!')) *> char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
 
 -- | Atomic types
@@ -290,15 +300,15 @@ sig =
   Sig <$> new identifier <*> (reservedOp ":" *> typ)
 
 -- | Value definitions
-valdef :: Parser ValDef
+valdef :: Parser (ValDef SourcePos)
 valdef = do
   s <- sig
   b <- getCtype
   case b of
-    Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> many boardeqn
-    _ -> (Val s) <$> (equation)
+    Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> (many boardeqn) <*> getPosition
+    _ -> (Val s) <$> (equation) <*> getPosition
 
-decl :: Parser (Maybe ValDef)
+decl :: Parser (Maybe (ValDef SourcePos))
 decl = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn) >> return Nothing)
        <|> Just <$> valdef
 
@@ -321,7 +331,7 @@ input =
   reserved "type" *> reserved "Input" *> reservedOp "=" *> (InputDef <$> xtype)
 
 -- | Game definition
-game :: Parser Game
+game :: Parser (Game SourcePos)
 game =
   Game <$> (reserved "game" *> identifier) <*> board <*> input <*> (catMaybes <$> (many decl))
 
@@ -334,11 +344,11 @@ parseFromFile p fname = do
   input <- readFile fname
   return (parseAll p fname input)
  
-parseLine :: String -> Either ParseError Expr
+parseLine :: String -> Either ParseError (Expr SourcePos)
 parseLine = parseAll expr  ""
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
-parseGameFile :: String -> IO (Maybe Game)
+parseGameFile :: String -> IO (Maybe (Game SourcePos))
 parseGameFile f = do
   parsed <- Parser.Parser.parseFromFile game f
   case parsed of
