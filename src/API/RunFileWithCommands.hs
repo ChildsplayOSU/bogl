@@ -12,11 +12,12 @@ import Servant
 import Parser.Parser
 import Language.Syntax
 import Language.Types
-import Runtime.Values
 import Text.Parsec.Pos
 import Typechecker.Typechecker
 import Runtime.Eval
 import Control.Monad.IO.Class
+import Runtime.Serializer
+import Runtime.Values
 
 
 -- runs a file with given commands, lifting it into Handler
@@ -52,7 +53,7 @@ serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) = do
             Right (val) -> ((SpielValue (show val)):(serverRepl g fn ils))
 
             -- board and tape returned, returns the board for displaying on the frontend
-            Left ((Vboard b'), _) -> ((SpielBoard (show b')):(serverRepl g fn ils)) -- used to be ((Vboard b'), t')
+            Left (bord@(Vboard _), _) -> ((SpielBoard (encodeBoard bord)):(serverRepl g fn ils)) -- used to be ((Vboard b'), t')
 
             -- runtime error encountered
             Left err -> ((SpielRuntimeError (show err)):(serverRepl g fn ils))
