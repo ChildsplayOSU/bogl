@@ -11,6 +11,9 @@ module API.JSONData where
 
 import Data.Aeson
 import Data.Aeson.TH
+import Runtime.Serializer
+import Runtime.Values
+import Data.Array
 
 -- representation of a request to read a BoGL file
 data SpielRead = SpielRead {
@@ -63,7 +66,7 @@ data SpielResponse =
 
 instance Show SpielResponse where
   -- shows a board in JSON
-  show (SpielBoard b)                 = show b
+  show (SpielBoard s)                 = show s
   -- indicates that the game is over and a player has won
   show (SpielGameResult gr)           = show gr
   -- shows a type error to the user
