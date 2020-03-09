@@ -9,6 +9,7 @@ import Debug.Trace(trace)
 
 import qualified Text.Parsec.Token as P
 
+import Text.Parsec.Char 
 import Text.Parsec.Language
 import Text.Parsec.Expr
 import Data.Maybe
@@ -120,6 +121,7 @@ new x = do
   if parsed `elem` ids'
     then unexpected $ "redefinition of " ++ parsed
     else addid parsed >> return parsed
+
 capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 reservedOp = P.reservedOp lexer
@@ -171,8 +173,8 @@ atom' =
       return $ While c e names exprs')
   <?> "Parse error, expected expression"
 
-params' :: Name -> Parser [Name] 
-params' n = do 
+params :: Name -> Parser [Name] 
+params n = do 
    params <- parens $ commaSep1 identifier 
    let paramSet = nub params 
    if paramSet == params
@@ -187,7 +189,7 @@ equation =
   <|>
   (try $ do
     name <- identifier
-    params <- params' name  
+    params <- params name  
     putWhileNames (name, params)
     reservedOp "="
     e <- expr
@@ -200,9 +202,19 @@ position =
    ForAll <$> identifier
 
 -- | Board equations
-boardeqn :: Parser (BoardEq SourcePos)
-boardeqn =
-   (try $ (PosDef <$> identifier <*> (lexeme ((lexeme (char '!')) *> char '(') *> lexeme position) <*> (lexeme comma *> lexeme position <* lexeme (char ')')) <*> (reservedOp "=" *> expr)))
+boardeqn :: String -> Parser (BoardEq SourcePos)
+boardeqn n = do 
+   name <- string n <* (lexeme ((lexeme (char '!')) *> char '('))  
+   xpos <- lexeme position <* lexeme comma 
+   ypos <- lexeme position <* (lexeme (char ')') <* reservedOp "=") 
+   case (xpos, ypos) of 
+      (ForAll xn, ForAll yn) -> if xn == yn then unexpected (errRepeatParam [xn] name) 
+         else do 
+            exp <- expr
+            return $ PosDef name xpos ypos exp  
+      _ -> do 
+            exp <- expr
+            return $ PosDef name xpos ypos exp  
 
 -- | Atomic types
 btype :: Parser Btype
@@ -302,19 +314,15 @@ sig =
 -- | Value definitions
 valdef :: Parser (ValDef SourcePos)
 valdef = do
-  s <- sig
+  (Sig n t) <- sig
   b <- getCtype
   case b of
-    Just (Plain (X Board set)) | S.null set  -> (BVal s) <$> (many boardeqn) <*> getPosition
-    _ -> (Val s) <$> (equation) <*> getPosition
+    Just (Plain (X Board set)) | S.null set  -> (BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition 
+    _ -> (Val (Sig n t)) <$> (equation) <*> getPosition 
 
 decl :: Parser (Maybe (ValDef SourcePos))
 decl = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn) >> return Nothing)
        <|> Just <$> valdef
-
-
-
-
 
 -- | Board definition
 board :: Parser BoardDef

@@ -24,7 +24,8 @@ parserTests = TestList [
   testRejectBadExprAfterSuccessefulParse,
   testBoardeqn,
   testNoRepeatedParamNames, 
-  testParseEqn 
+  testParseEqn, 
+  testNoRepeatedMetaVars
   ]
 
 --
@@ -140,5 +141,10 @@ testBoardeqn :: Test
 testBoardeqn = TestCase $  
    assertEqual "Test board equation parse" 
    True 
-   (parseLine' boardeqn ("myBoard!(x,y) = Empty") == Right (PosDef "myBoard" (ForAll "x") (ForAll "y") (S "Empty")))
+   (parseLine' (boardeqn "myBoard") ("myBoard!(x,y) = Empty") == Right (PosDef "myBoard" (ForAll "x") (ForAll "y") (S "Empty")))
    
+testNoRepeatedMetaVars :: Test 
+testNoRepeatedMetaVars = TestCase $  
+   assertEqual "Test fail on repeated metavariables" 
+   True 
+   (isLeft $ parseLine' (boardeqn "myBoard") ("myBoard!(x,x) = Empty"))   
