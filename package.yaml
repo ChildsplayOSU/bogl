@@ -52,6 +52,16 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - Spiel-Lang
+  spielserver:
+    main:                ServerMain.hs
+    source-dirs:         serverApp
+    ghc-options:
+    - -Wall
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - Spiel-Lang
 
 tests:
   Spiel-Lang-test:
