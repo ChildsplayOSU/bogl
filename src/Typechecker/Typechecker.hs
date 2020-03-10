@@ -110,7 +110,7 @@ exprtype (Binop Get e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   unify t1 (X Board S.empty)
-  unify t2 (X Position S.empty)
+  unify t2 (Tup [X Itype S.empty, X Itype S.empty])
   getPiece
 exprtype (Binop x e1 e2) = do
   t1 <- exprtype e1

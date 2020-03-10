@@ -46,7 +46,6 @@ data Btype = Booltype      -- ^ Boolean
            | Input         -- ^ The input type specified at the top of the program
            | Board         -- ^ A game board
            | Player        -- ^ A player
-           | Position      -- ^ A position, specified by the board description
            | Positions     -- ^ The list of all positions
            | Top           -- ^ Really this is bottom FIXME
            | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type.
@@ -66,7 +65,6 @@ instance Show Btype where
   show Input = "Input"
   show Board = "Board"
   show Player = "Player"
-  show Position = "Position"
   show Positions = "Positions"
   show AnySymbol = "AnySymbol"
   show Undef = "?"

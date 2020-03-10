@@ -56,7 +56,7 @@ testCheckUpdatedBoard :: Test
 testCheckUpdatedBoard = TestCase (
   assertEqual "Check Updated Board"
   True
-  (parseAll xtype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty])))
+  (parseAll xtype "" "(Board, (Int, Int))" == Right (Tup [X Board S.empty, Tup [X Itype S.empty, X Itype S.empty]])))
 
 
 -- TODO used to be --"Right (Symbol(no extension),Board(no extension))"
@@ -86,11 +86,11 @@ testRejectBadExprAfterSuccessefulParse = TestCase (
   True
   (isLeft $ parseLine' expr "40 + 2life,the universe, and everything"))
 
+{-
 -- |
 ex1 :: String
 ex1 = "isValid : (Board, Position) -> Bool\n  isValid(b,p) = if b(p) == Empty then True else False"
 
-{--
 ex2 = "outcome : (Board,Player) -> Player|Tie \
 \ outcome(b,p) = if inARow(3,A,b) then A else \
                 \ if inARow(3,B,b) then B else \

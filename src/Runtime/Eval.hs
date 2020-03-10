@@ -85,11 +85,10 @@ evalBinOp Get l r   = do
                         board <- eval l
                         pos   <- eval r
                         case (board, pos) of
-                           (Vboard arr, Vpos (x,y)) -> return $ arr ! (x,y)
+                           (Vboard arr, Vt [Vi x, Vi y]) -> return $ arr ! (x,y)
                            _ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
                            -- not a great error message, but this should be caught in the typechecker anyways
 
-        --[Vboard arr, Vpos (x,y)] -> return $ arr ! (x,y))
 -- | evaluates the == operation
 evalEquiv :: (Expr a) -> (Expr a) -> Eval Val
 evalEquiv l r = do
