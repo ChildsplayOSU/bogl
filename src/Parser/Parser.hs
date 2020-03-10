@@ -342,9 +342,11 @@ input =
 typesyn = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn))
 
 -- | Game definition
-game :: Parser (Game SourcePos)
-game =
-  Game <$> (reserved "game" *> identifier) <*> (many typesyn *> board) <*> (many typesyn *> input) <*> (catMaybes <$> (many decl))
+game :: [ValDef SourcePos] -> Parser (Game SourcePos)
+game vs =
+  Game <$> (reserved "game" *> identifier) <*>
+  (many typesyn *> board) <*> (many typesyn *> input) <*>
+  ((\p -> vs ++ catMaybes p) <$> (many decl))
 
 -- | Uses the parser p to parse all input, throws an error if anything is left over
 parseAll :: Parser a -> String -> String -> Either ParseError a
@@ -356,12 +358,13 @@ parseFromFile p fname = do
   return (parseAll p fname input)
  
 parseLine :: String -> Either ParseError (Expr SourcePos)
-parseLine = parseAll expr  ""
+parseLine = parseAll expr ""
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Maybe (Game SourcePos))
 parseGameFile f = do
-  parsed <- Parser.Parser.parseFromFile game f
+  Right prel <- Parser.Parser.parseFromFile (many decl) "./Prelude.bglp"
+  parsed <- Parser.Parser.parseFromFile (game (catMaybes prel)) f
   case parsed of
     Left err -> (putStrLn $ show err) >> return Nothing
     Right g -> return (Just g)
