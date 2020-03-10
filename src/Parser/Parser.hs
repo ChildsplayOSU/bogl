@@ -124,6 +124,7 @@ new x = do
 
 capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
+commaSep = P.commaSep lexer
 reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
 comma = P.comma lexer
@@ -146,7 +147,7 @@ atom' =
   <|>
   B <$> (reserved "False" *> pure False)
   <|>
-  (try $ App <$> identifier <*> (parens (commaSep1 expr)))
+  (try $ App <$> identifier <*> (parens (Tuple <$> (commaSep expr))))
   <|>
   S <$> capIdentifier
   <|>

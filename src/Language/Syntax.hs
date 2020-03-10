@@ -110,7 +110,7 @@ data Expr a = I Int                     -- ^ Integer expression
           | B Bool                        -- ^ Boolean
           | Ref Name                      -- ^ Reference to a variable
           | Tuple [Expr a]                  -- ^ Tuple of 'Expr'
-          | App Name [Expr a]                -- ^ Application of the function called Name to the list of arguments
+          | App Name (Expr a)                -- ^ Application of the function called Name to the tuple of arguments
           | Binop Op (Expr a) (Expr a)            -- ^ Binary operation of two expressions
           | Let Name (Expr a) (Expr a)           -- ^ Let binding
           | If (Expr a) (Expr a) (Expr a)             -- ^ Conditional expression
@@ -129,7 +129,7 @@ instance Functor Expr where
   fmap f (If e1 e2 e3) = If (fmap f e1) (fmap f e2) (fmap f e3)
   fmap f (Let n e1 e2) = Let n (fmap f e1) (fmap f e2)
   fmap f (Binop o e1 e2) = Binop o (fmap f e1) (fmap f e2)
-  fmap f (App n es) = App n (fmap (fmap f) es)
+  fmap f (App n es) = App n (fmap f es)
   fmap f (Tuple xs) = Tuple (fmap (fmap f) xs)
   fmap f (Ref n) = (Ref n)
   fmap f (S n) = (S n)
@@ -153,7 +153,7 @@ instance Show (Expr a) where
   show (B b) = show b
   show (Ref n) = n
   show (Tuple e) = "(" ++ intercalate " , " (map show e) ++ ")"
-  show (App n es) = n ++ "(" ++ intercalate "," (map show es) ++ ")"
+  show (App n es) = n ++ show es
   show (Binop o e1 e2) = show e1 ++ show o ++ show e2
   show (Let n e1 e2) = "Let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
   show (If e1 e2 e3) = "If " ++ show e1 ++ " Then " ++ show e2 ++ " Else " ++ show e3

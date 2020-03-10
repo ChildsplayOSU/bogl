@@ -90,17 +90,17 @@ exprtype (Tuple xs) = do
   xs' <- mapM exprtype xs
   return $ Tup xs'
 exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
-  es' <- mapM exprtype es
+  es' <- exprtype es
   let es'' = case es' of
-        [Tup xs] -> Tup xs
-        xs -> Tup xs
+        Tup [Tup xs] -> Tup xs
+        x -> x
   t <- getType n
   case t of
     (Function (Ft (i) o)) -> do
       unify (es'') i -- oof
       return o
     _ -> do
-      (traceM "???") >> mismatch (Function $ (Ft (Tup es') (X Undef S.empty))) t -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
+      (traceM "???") >> mismatch (Function $ (Ft es' (X Undef S.empty))) t -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
 exprtype e@(Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2

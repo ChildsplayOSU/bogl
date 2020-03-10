@@ -143,13 +143,12 @@ eval (Ref n) = do
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 
 eval (App n es) = do
-  args <- mapM eval es
-  let args' = foldr (\x k -> case x of
-        (Vt xs) -> xs ++ k
-        x -> x:k) [] args -- NOT GOOD
+  args <- eval es >>= \x -> case x of
+    (Vt [Vt args]) -> return args
+    (Vt args) -> return args
   f <- lookupName n
   case f of
-    Just (Vf params env' e) -> extScope (zip params (args') ++ env') (eval e) -- ++ env?
+    Just (Vf params env' e) -> extScope (zip params (args) ++ env') (eval e) -- ++ env?
     Nothing -> case lookup n builtins of
       Just f -> do
         (f (args))
