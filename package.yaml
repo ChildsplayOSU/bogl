@@ -42,16 +42,18 @@ library:
   source-dirs: src
 
 executables:
-  spiel:
-    main:                Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -Wall
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - Spiel-Lang
+# commented this out to remove the "ambiguous main module" message when running stack ghci
+# at the time of this comment, the spiel executable does not do anything useful
+#  spiel:
+#    main:                Main.hs
+#    source-dirs:         app
+#    ghc-options:
+#    - -Wall
+#    - -threaded
+#    - -rtsopts
+#    - -with-rtsopts=-N
+#    dependencies:
+#    - Spiel-Lang
   spielserver:
     main:                ServerMain.hs
     source-dirs:         serverApp
