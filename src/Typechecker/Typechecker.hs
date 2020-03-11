@@ -169,7 +169,7 @@ data TcResult =
 tc :: (Game SourcePos) -> TcResult
 tc g = case tc' g of
   (e, ls) -> let l = lefts ls in
-    Tc (length l == 0) e l (rights ls)
+    Tc (length l == 0) e l (rights ls ++ types e)
 
 tc' :: (Game SourcePos) -> (Env, [Either (ValDef SourcePos, TypeError) (Name, Type)])
 tc' (Game n b i v) = runWriter (runTypeCheck b i v)

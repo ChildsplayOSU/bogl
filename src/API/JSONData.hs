@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
-
+{-# LANGUAGE OverloadedStrings #-}
 --
 -- JSONData.hs
 --
@@ -26,7 +26,8 @@ data SpielRead = SpielRead {
   path :: String
 } deriving (Eq, Show, Generic)
 
-instance FromJSON SpielRead
+instance FromJSON SpielRead where
+  parseJSON (Object v) = SpielRead <$> v .: "fileName"
 
 
 -- | representation of a file that will be saved by the user
@@ -39,7 +40,7 @@ data SpielFile = SpielFile {
 instance ToJSON SpielFile where
 
 instance FromJSON SpielFile where
-
+  parseJSON (Object v) = SpielFile <$> v .: "fileName" <*> v .: "content"
 
 -- | representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
