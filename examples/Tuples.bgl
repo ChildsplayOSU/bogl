@@ -1,6 +1,5 @@
-game Tuples 
-
--- funnctions for testing nested tuple behavior 
+-- functions for testing nested tuple behavior 
+game Tuples
 
 type Pair = (Int, Int) 
 
