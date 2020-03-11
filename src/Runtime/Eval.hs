@@ -85,11 +85,10 @@ evalBinOp Get l r   = do
                         board <- eval l
                         pos   <- eval r
                         case (board, pos) of
-                           (Vboard arr, Vpos (x,y)) -> return $ arr ! (x,y)
+                           (Vboard arr, Vt [Vi x, Vi y]) -> return $ arr ! (x,y)
                            _ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
                            -- not a great error message, but this should be caught in the typechecker anyways
 
-        --[Vboard arr, Vpos (x,y)] -> return $ arr ! (x,y))
 -- | evaluates the == operation
 evalEquiv :: (Expr a) -> (Expr a) -> Eval Val
 evalEquiv l r = do
@@ -144,13 +143,12 @@ eval (Ref n) = do
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 
 eval (App n es) = do
-  args <- mapM eval es
-  let args' = foldr (\x k -> case x of
-        (Vt xs) -> xs ++ k
-        x -> x:k) [] args -- NOT GOOD
+  args <- eval es >>= \x -> case x of
+    (Vt [Vt args]) -> return args
+    (Vt args) -> return args
   f <- lookupName n
   case f of
-    Just (Vf params env' e) -> extScope (zip params (args') ++ env') (eval e) -- ++ env?
+    Just (Vf params env' e) -> extScope (zip params (args) ++ env') (eval e) -- ++ env?
     Nothing -> case lookup n builtins of
       Just f -> do
         (f (args))

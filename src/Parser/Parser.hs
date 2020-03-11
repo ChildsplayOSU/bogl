@@ -78,7 +78,7 @@ putType t = do
   PS c w ids x <- getState
   putState (PS (Just t) w ids x)
 -- | The 'Type' keywords
-types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Position", "Positions"]
+types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Positions"]
 -- | The lexer, using the reserved keywords and operation names
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
                                                             "let", "in", "if", "then", "else",
@@ -124,6 +124,7 @@ new x = do
 
 capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
+commaSep = P.commaSep lexer
 reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
 comma = P.comma lexer
@@ -146,7 +147,7 @@ atom' =
   <|>
   B <$> (reserved "False" *> pure False)
   <|>
-  (try $ App <$> identifier <*> (parens (commaSep1 expr)))
+  (try $ App <$> identifier <*> (parens (Tuple <$> (commaSep expr))))
   <|>
   S <$> capIdentifier
   <|>
@@ -227,8 +228,6 @@ btype =
   <|>
   reserved "Board" *> pure Board
   <|>
-  reserved "Position" *> pure Position
-  <|>
   reserved "Positions" *> pure Positions
   <|>
   reserved "AnySymbol" *> pure AnySymbol
@@ -270,7 +269,7 @@ xtype' =
 
 -- |
 --
--- >>> parseAll ttype "" "(Board, Position)" == Right (Tup [X Board S.empty, X Position S.empty])
+-- >>> parseAll ttype "" "(Board, Int)" == Right (Tup [X Board S.empty, X Itype S.empty])
 -- True
 --
 -- >>> parseAll ttype "" "(Symbol,Board)"
