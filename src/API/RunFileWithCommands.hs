@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 --
 -- RunFileWithCommands.hs
 --
@@ -9,14 +10,20 @@ module API.RunFileWithCommands (handleRunFileWithCommands) where
 
 import API.JSONData
 import Servant
+import Data.Bifunctor
 import Parser.Parser
 import Language.Syntax
 import Language.Types
 import Text.Parsec.Pos
+import Text.Parsec (errorPos)
+import Text.Parsec.Error
+
+
+
+
 import Typechecker.Typechecker
 import Runtime.Eval
 import Control.Monad.IO.Class
-import Runtime.Serializer
 import Runtime.Values
 
 
@@ -25,18 +32,23 @@ handleRunFileWithCommands :: SpielCommand -> Handler SpielResponses
 handleRunFileWithCommands sc = do
   (liftIO (_runFileWithCommands sc))
 
-
-
 -- runs command as IO
 _runFileWithCommands :: SpielCommand -> IO SpielResponses
 _runFileWithCommands (SpielCommand gameFile inpt) = do
-  parsed <- parseGameFile (gameFile ++ ".bgl")
+  parsed <- parseGameFile (gameFile)
   case parsed of
-    Just game -> do
-      let check = success (tc game)
-      if check then return (SpielResponses (serverRepl game gameFile inpt)) else return (SpielResponses [SpielTypeError 0 0 gameFile "Type error in the game file."])
-    Nothing -> do
-      return (SpielResponses [SpielParseError 0 0 gameFile "There is some error in the game file code."])
+    Right game -> do
+      let checked = tc game
+      if success checked
+        then return $ (SpielTypes (rtypes checked):(serverRepl game gameFile inpt))
+        else return $ (SpielTypes (rtypes checked)):map (SpielTypeError . snd) (errors checked)
+
+    Left err -> do
+      let position = errorPos err
+          l = sourceLine position
+          c = sourceColumn position
+          msg = concatMap (messageString) (errorMessages err) in
+        return $ [SpielParseError l c gameFile (show msg)]
 
 
 -- handles running a command in the repl from the server
@@ -50,7 +62,7 @@ serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) = do
           case runWithBuffer (bindings_ (szx, szy) vs) [] x of
 
             -- program terminated normally with a value
-            Right (val) -> ((SpielValue (show val)):(serverRepl g fn ils))
+            Right (val) -> ((SpielValue val):(serverRepl g fn ils))
 
             -- board and tape returned, returns the board for displaying on the frontend
             Left (bord@(Vboard _), _) -> ((SpielBoard (encodeBoard bord)):(serverRepl g fn ils)) -- used to be ((Vboard b'), t')
@@ -59,7 +71,16 @@ serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) = do
             Left err -> ((SpielRuntimeError (show err)):(serverRepl g fn ils))
 
         -- typechecker encountered an error in the environment
-        Left err -> ((SpielTypeError 0 0 fn (show err)):(serverRepl g fn ils))
+        Left err -> ((SpielTypeError err):(serverRepl g fn ils))
 
     -- bad parse
-    Left err -> ((SpielParseError 0 0 fn (show err)):(serverRepl g fn ils))
+    Left err ->
+      let position = errorPos err
+          l = sourceLine position
+          c = sourceColumn position
+          msg = concatMap messageString $ errorMessages err in
+      (SpielParseError l c fn msg:(serverRepl g fn ils))
+
+
+-- Orphaned instance here (discuss):
+

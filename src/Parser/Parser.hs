@@ -6,6 +6,7 @@ import Parser.ParseError
 import Language.Syntax hiding (input, board)
 import Language.Types
 import Debug.Trace(trace)
+import System.Directory
 
 import qualified Text.Parsec.Token as P
 
@@ -360,10 +361,13 @@ parseLine :: String -> Either ParseError (Expr SourcePos)
 parseLine = parseAll expr ""
 
 -- | Parse a game file, displaying an error if there's a problem (used in repl)
-parseGameFile :: String -> IO (Maybe (Game SourcePos))
+parseGameFile :: String -> IO (Either ParseError (Game SourcePos))
 parseGameFile f = do
-  Right prel <- Parser.Parser.parseFromFile (many decl) "./Prelude.bglp"
+  exists <- doesFileExist "./Prelude.bglp"
+  prel <- if exists then
+             Parser.Parser.parseFromFile (many decl) "./Prelude.bglp" >>= \x -> case x of
+              Right x -> return x
+              Left err -> return [] -- FIXME. Need to warn the teacher that they wrote a corrupt Prelude.
+            else return []
   parsed <- Parser.Parser.parseFromFile (game (catMaybes prel)) f
-  case parsed of
-    Left err -> (putStrLn $ show err) >> return Nothing
-    Right g -> return (Just g)
+  return parsed

@@ -30,6 +30,16 @@ foo(l,r) = (fst(l) + fst(r), snd(l) + snd(r))
 bar : (Pair, Int) -> Pair 
 bar(p, i) = (fst(p) + snd(p), i)
 
--- this does not type check 
-identityIfItWasAnAngstyTeen : Pair -> Pair  
-identityIfItWasAnAngstyTeen(p) = p  
+
+f : (Int, Int) -> (Int, Int)
+f(x,y) = (x+1, y+1)
+
+g : (Int, Int) -> (Int, Int)
+g(x,y) = (x-1,y-1)
+
+h : (Int, Int) -> (Int, Int)
+h(x,y) = (x*2, y*2)
+
+testing : Int -> Int
+testing(k) = let z = h(g(f((k,k)))) in
+                 fst(z) + snd(z)

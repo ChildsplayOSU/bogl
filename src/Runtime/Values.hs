@@ -1,3 +1,6 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 -- | Values in spiel
 
 module Runtime.Values where
@@ -5,6 +8,8 @@ module Runtime.Values where
 import Language.Syntax
 import Data.Array
 import Data.List
+import Data.Aeson hiding (Array)
+import GHC.Generics
 
 type Board = Array (Int, Int) Val
 
@@ -17,6 +22,17 @@ data Val = Vi Int                      -- ^ Integer value
          | Vf [Name] EvalEnv (Expr ()) -- ^ Function value (annotations discarded)
          | Err String                  -- ^ Runtime error (caught by typechecker) 
          | Deferred                    -- ^ This needs an input.
+
+instance ToJSON Val where
+  toJSON (Vi i) = object ["type" .= String "Int", "value" .= i]
+  toJSON (Vb b) = object ["type" .= String "Bool", "value" .= b]
+  toJSON (Vboard b) = object ["type" .= String "Board", "value" .= assocs b]
+  toJSON (Vt vs) = object ["type" .= String "Tuple", "value" .= map toJSON vs]
+  toJSON (Vs n) = object ["type" .= String "Symbol", "value" .= n]
+  toJSON (Vf args _ e) = object ["type" .= String "Function", "value" .= Null]
+  toJSON (Err s) = object ["type" .= String "ERROR", "value" .= Null] -- null or something
+
+
 
 
 -- | Can't compare two functions.

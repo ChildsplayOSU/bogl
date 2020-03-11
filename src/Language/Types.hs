@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
+
 -- | BOGL types
 
 module Language.Types
@@ -11,8 +12,10 @@ module Language.Types
 where
 
 import Data.List
-import Text.JSON.Generic
 import Data.Array
+import Data.Aeson
+import GHC.Generics
+
 import qualified Data.Set as S
 
 type Name = String
@@ -23,7 +26,7 @@ data BoardDef = BoardDef
     size  :: (Int, Int)
   , piece :: Xtype
   }
-  deriving (Data)
+  deriving (Generic)
 
 instance Show BoardDef where
   show (BoardDef (i1, i2) t)
@@ -31,7 +34,7 @@ instance Show BoardDef where
 
 -- | Input definition: Player inputs must be an accepted type
 data InputDef = InputDef {inputType :: Xtype} 
-  deriving (Data)
+  deriving (Generic)
 
 instance Show InputDef where
   show (InputDef t) = "Input : " ++ show t
@@ -49,7 +52,7 @@ data Btype = Booltype      -- ^ Boolean
            | Positions     -- ^ The list of all positions
            | Top           -- ^ Really this is bottom FIXME
            | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type.
-   deriving (Data, Eq)
+   deriving (Generic, Eq)
 
 
 instance Ord Btype where
@@ -69,12 +72,14 @@ instance Show Btype where
   show AnySymbol = "AnySymbol"
   show Undef = "?"
 
+instance ToJSON Btype where
+
 
 -- | Xtypes are sum types (or tuples of sum types), but restricted by the semantics to only contain Symbols after the atomic type.
 data Xtype = X Btype (S.Set Name)
            | Tup [Xtype]
            | Hole Name
-  deriving (Data, Eq)
+  deriving (Generic, Eq)
 
 instance Ord Xtype where
   (X Top _) <= (X AnySymbol _) = True -- A set of symbols is the subtype of AnySymbols
@@ -95,19 +100,22 @@ instance Show Xtype where
   show (Hole n) = "?"
   show _ = undefined
 
-
+instance ToJSON Xtype where
+ 
 -- | A function type can be from a plain type to a plain type (no curried functions)
 data Ftype = Ft Xtype Xtype
-   deriving (Eq, Data)
+   deriving (Eq, Generic)
 instance Ord Ftype where
   (Ft x y) <= (Ft z w) = x <= z && y <= w
 
 instance Show Ftype where
   show (Ft t1 t2) = show t1 ++ " -> " ++ show t2
 
+instance ToJSON Ftype where
+
 -- | A type is either a plain type or a function.
 data Type = Plain Xtype | Function Ftype
-   deriving (Eq, Data)
+   deriving (Eq, Generic)
 
 instance Ord Type where
   (Plain x) <= (Plain y) = x <= y
@@ -120,3 +128,5 @@ p b = Plain $ X b S.empty
 instance Show Type where
   show (Plain t) = show t
   show (Function f) = show f
+
+instance ToJSON Type where

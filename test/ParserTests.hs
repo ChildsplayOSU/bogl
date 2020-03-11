@@ -76,8 +76,8 @@ parseLine' pars = parseAll pars ""
 testParseBinaryOp :: Test
 testParseBinaryOp = TestCase (
   assertEqual "Check Parsing of Binary Op"
-  True
-  (parseLine' expr "40 + 2" == Right (Binop Plus (I 40) (I 2))))
+  Right (Binop Plus (I 40) (I 2)))
+  (parseLine' expr "40 + 2")
 
 
 testRejectBadExprAfterSuccessefulParse :: Test

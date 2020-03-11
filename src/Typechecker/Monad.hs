@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-} -- why isn't this on by default :(
 -- | Typechecker monad: TODO sort and document all these
 
 module Typechecker.Monad where
@@ -5,6 +7,7 @@ module Typechecker.Monad where
 import Control.Monad.State
 import Control.Monad.Identity
 import Control.Monad.Except
+import Data.Aeson
 import Control.Monad.Reader
 import Text.Parsec.Pos
 
@@ -135,6 +138,12 @@ data TypeError = Mismatch Type Type (Expr SourcePos) SourcePos     -- ^ Couldn't
                | Unknown String SourcePos             -- ^ Errors that "shouldn't happen"
                | BadOp Op Type Type (Expr SourcePos) SourcePos    -- ^ Can't perform a primitive operation
                | OutOfBounds Pos Pos SourcePos
+               deriving (Eq)
+
+instance ToJSON TypeError where
+  toJSON (Mismatch t1 t2 _ src) = object ["errtype" .= String "mismatch", "left" .= t1, "right" .= t2, "line" .= sourceLine src, "col" .= sourceColumn src]
+  toJSON (NotBound n src) = object ["errtype" .= String "notBound", "name" .= n, "line" .= sourceLine src, "col" .= sourceColumn src]
+  toJSON _ = object ["errtype" .= String "ERROR TODO"]
 
 -- | smart constructors for type errors
 mismatch :: Type -> Type -> Typechecked a
