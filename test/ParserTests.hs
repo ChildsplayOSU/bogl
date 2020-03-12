@@ -23,8 +23,8 @@ parserTests = TestList [
   testParseBinaryOp,
   testRejectBadExprAfterSuccessefulParse,
   testBoardeqn,
-  testNoRepeatedParamNames, 
-  testParseEqn, 
+  testNoRepeatedParamNames,
+  testParseEqn,
   testNoRepeatedMetaVars
   ]
 
@@ -76,8 +76,8 @@ parseLine' pars = parseAll pars ""
 testParseBinaryOp :: Test
 testParseBinaryOp = TestCase (
   assertEqual "Check Parsing of Binary Op"
-  Right (Binop Plus (I 40) (I 2)))
-  (parseLine' expr "40 + 2")
+  (Right (Binop Plus (I 40) (I 2)))
+  (parseLine' expr "40 + 2"))
 
 
 testRejectBadExprAfterSuccessefulParse :: Test
@@ -126,25 +126,25 @@ testExampleFile1 = TestCase (
 --}
 
 testParseEqn :: Test
-testParseEqn = TestCase $ 
+testParseEqn = TestCase $
    assertEqual "Test parse well-formed equation"
-   True 
+   True
    (parseLine' equation "add(a,b) = a + b" == Right (Feq "add" (Pars  ["a", "b"]) (Binop Plus (Ref "a") (Ref "b"))))
-     
-testNoRepeatedParamNames :: Test 
-testNoRepeatedParamNames = TestCase $  
-   assertEqual "Test parse error on repeated params" 
-   True 
+
+testNoRepeatedParamNames :: Test
+testNoRepeatedParamNames = TestCase $
+   assertEqual "Test parse error on repeated params"
+   True
    (isLeft $ parseLine' equation ("foo(a,a) = a + a"))
-   
-testBoardeqn :: Test 
-testBoardeqn = TestCase $  
-   assertEqual "Test board equation parse" 
-   True 
+
+testBoardeqn :: Test
+testBoardeqn = TestCase $
+   assertEqual "Test board equation parse"
+   True
    (parseLine' (boardeqn "myBoard") ("myBoard!(x,y) = Empty") == Right (PosDef "myBoard" (ForAll "x") (ForAll "y") (S "Empty")))
-   
-testNoRepeatedMetaVars :: Test 
-testNoRepeatedMetaVars = TestCase $  
-   assertEqual "Test fail on repeated metavariables" 
-   True 
-   (isLeft $ parseLine' (boardeqn "myBoard") ("myBoard!(x,x) = Empty"))   
+
+testNoRepeatedMetaVars :: Test
+testNoRepeatedMetaVars = TestCase $
+   assertEqual "Test fail on repeated metavariables"
+   True
+   (isLeft $ parseLine' (boardeqn "myBoard") ("myBoard!(x,x) = Empty"))
