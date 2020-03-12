@@ -1,0 +1,69 @@
+game ConnectFour
+
+-- this game will crash due to a tuple order error, but it type checks 
+-- outcome expects a (Board,Player) and loop returns a (Player, Board) 
+-- the game crashes once loop ends and its value is passed to outcome 
+ 
+type Player = {A, B} 
+type Position = (Int, Int) 
+
+-- Board and input type definitions
+--
+type Board = Grid (6,7) of {A, B, Empty} 
+type Input = Int
+
+grab : (Board, Int, Int) -> Position  
+grab(b,column,row) = (column, row) 
+
+findPos : (Board, Int, Int) -> (Board, Int, Int) 
+findPos(b,column,count) = while not(b ! (column,count) == Empty) 
+    do findPos(b,column,count - 1)
+
+-- We need to convert column input into positions
+--
+col2pos : (Board,Int) -> (Int,Int)
+col2pos(b,c) = grab(findPos(b,c,7)) 
+
+-- Game setup
+--
+initialBoard : Board
+initialBoard!(x,y)= Empty
+
+goFirst : Player
+goFirst = A
+
+nextAB : Player -> Player 
+nextAB(p) = if p == A then B else A 
+
+fourInARow : Board -> Bool
+fourInARow(b) = or(inARow(4,A,b),inARow(4,B,b))
+
+-- Game ending: game-over condition and game outcome
+--
+gameOver : Board -> Bool
+gameOver(b) = or(fourInARow(b),isFull(b))
+
+outcome : (Board,Player) -> Player & {Tie}  
+outcome(b,p) = if inARow(4,A,b) then A else
+               if inARow(4,B,b) then B else Tie 
+
+-- Predefined operations
+--
+isValid : (Board, Position) -> Bool
+isValid(b,p) = if b!p == Empty then True else False
+
+-- Game loop
+--
+tryMove : (Player, Board) -> (Player, Board)
+tryMove(p,b) = let pos = col2pos(b, input(b)) in
+                   if isValid(b,pos) then (nextAB(p), place(p,b,pos))
+                                     else (p, b)
+
+loop : (Player, Board) -> (Player, Board)
+loop(p,b) = while not(gameOver(b)) do tryMove(p,b)
+
+play : (Player, Board) -> Player & {Tie}
+play(a,b) = outcome(loop(a,b))
+
+result : Player & {Tie} 
+result = play(initialBoard,goFirst)

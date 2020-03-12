@@ -11,6 +11,8 @@ import Runtime.Values
 import qualified Data.Set as S
 import Data.Array
 
+import Data.Map (Map) 
+import qualified Data.Map as M  
 
 single x = Tup [x]
 builtinT :: Xtype -> [(String, Type)]
@@ -24,7 +26,7 @@ builtinT = \i -> [
   ("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
   ("not", Function (Ft (single (X Booltype S.empty)) (X Booltype S.empty))), 
   ("or", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty)))
-  -- This should be polymorphic over all types instead of over all symbols.
+  -- place and inARow should be polymorphic over all types instead of over all symbols.
            ]
 
 builtins :: [(Name, [Val] -> Eval Val)]
@@ -33,7 +35,7 @@ builtins = [
   ("place", \[v, Vboard arr, Vt [Vi x, Vi y]] -> return $ Vboard $ arr // [((x,y), v)]),
   ("remove", \[Vboard arr, Vt [Vi x, Vi y]] -> return $ Vboard $ arr // pure ((x,y), Vs "Empty")),
   ("isFull", \[Vboard arr] -> return $ Vb $ all (/= Vs "Empty") $ elems arr),
-  ("inARow", \[Vi i, v, Vboard arr] -> return $ Vb $ line v (assocs arr) (i)),
+  ("inARow", \[Vi i, v, Vboard arr] -> return $ Vb $ inARow arr v i),
   ("next", \[Vs s] -> return $ if s == "X" then Vs "O" else Vs "X"),
   ("not", \[Vb b] -> return $ Vb (not b)),
   ("or", \[Vb a, Vb b] -> return $ Vb (a || b))
@@ -42,15 +44,36 @@ builtins = [
 builtinRefs :: [(Name, Eval Val)]
 builtinRefs = [("positions", (getBounds) >>= \(szx, szy) -> return $ Vt [Vt [Vi x, Vi y] | x <- [1..szx], y <- [1..szy]])]
 
-inARow :: Val -> [((Int, Int), Val)] -> [((Int, Int), Val)] -> (Int, Int) -> Int -> Bool
-inARow v state (s:st) d n = (inARow' state s d n) || inARow v state st d n
-  where
-    inARow' :: [((Int, Int), Val)] -> ((Int, Int), Val) -> (Int, Int) -> Int -> Bool
-    inARow' _ _ _ 1 = True
-    inARow' st ((x, y), c) (dx, dy) n = if v /= c then False else case lookup (x+dx, y+dy) st of
-      Nothing -> False
-      Just c' -> if v == c' then inARow' state ((x+dx, y+dy), c) (dx, dy) (n-1) else False
-inARow _ _ _ _ _ = False
+-- the count of adjacent cells in four directions (above, diagonal @ 10:30, left, diagonal @ 7:30) 
+type Count = (Int, Int, Int, Int) 
+type CountMap = M.Map (Int, Int) Count  
 
-line :: Val -> [((Int, Int), Val)] -> Int -> Bool
-line v acc n = (inARow v acc acc (1,1) n) ||  (inARow v acc acc (0,1) n) ||  (inARow v acc acc (1,0) n)
+peek :: (Int, Int) -> CountMap -> Count 
+peek p m = case M.lookup p m of 
+               Nothing   -> (0,0,0,0)  
+               (Just c)  -> c  
+
+addCell :: (Int, Int) -> CountMap -> CountMap 
+addCell p@(x,y) m = M.insert p (top + 1, tdiag + 1, left + 1, bdiag + 1) m  
+   where 
+      (top,_,_,_)   = peek (x, y - 1) m 
+      (_,tdiag,_,_) = peek (x - 1, y - 1) m   
+      (_,_,left,_)  = peek (x - 1, y) m 
+      (_,_,_,bdiag) = peek (x - 1, y + 1) m 
+
+checkCell :: Val -> ((Int, Int), Val) -> CountMap -> CountMap 
+checkCell v (p,v') m = if v == v' then addCell p m else m 
+
+-- scans cells downwards by column (the order given by (assocs b) with (x,y) coords) 
+-- each cell's count is the increment of the counts of the four cells before it 
+checkCells :: Board -> Val -> Int 
+checkCells b v = maxCount   
+   where
+      maxCount = foldr (\c m -> let max' = getMaxCount c in if max' > m then max' else m) 0 counts  
+      getMaxCount (l,ld,t,rd) = maximum [l,ld,t,rd] 
+      counts = M.elems processedBoard 
+      processedBoard = foldl (\m c -> checkCell v c m) M.empty (assocs b)  
+
+-- | checks whether a board has i cells containing v in a row 
+inARow :: Board -> Val -> Int -> Bool 
+inARow b v i = checkCells b v >= i  
