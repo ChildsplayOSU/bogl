@@ -106,13 +106,6 @@ makeinput i = do
           Chan.writeChan i (content)
   UI.div #. "message-area" #+ [UI.div #. "send-area" #+ [element in_]]
 
-
-
-makeBoard arr = UI.div #. "boardState" #+ map (\x -> UI.div #. "cell" #+ [(string $ concatMap (show . snd) x)]) (groupBy (\x y -> (fst . fst) x == (fst . fst) y) (assocs arr))
-
-
-
-
-
-
-toGrid x = (groupBy (\x y -> (fst . fst) x == (fst . fst) y) (assocs x))
+makeBoard arr = UI.div #. "boardState" #+ map (\x -> UI.div #. "cell" #+ [(string $ concatMap (show . snd) x)]) (toGrid arr) 
+ 
+toGrid arr = transpose $ (groupBy (\a b -> (fst . fst) a == (fst . fst) b) (assocs arr))
