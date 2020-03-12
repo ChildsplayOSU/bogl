@@ -21,7 +21,13 @@ parserTests = TestList [
   testCheckUpdatedBoard,
   testCheckUpdatedBoard2,
   testRejectBadExprAfterSuccessefulParse,
+<<<<<<< HEAD
   testNoRepeatedParamNames,
+=======
+  testBoardeqn,
+  testNoRepeatedParamNames,
+  testParseEqn,
+>>>>>>> 6dc6b21f5a53eac7bf80cc9822a12f89c6331327
   testNoRepeatedMetaVars
   ]
 
