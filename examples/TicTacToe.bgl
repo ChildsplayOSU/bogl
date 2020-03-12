@@ -16,15 +16,9 @@ initialBoard!(x,y) = Empty
 goFirst : Player
 goFirst = X
 
--- Game ending: game-over condition and game outcome
---
---gameOver(b) = or(threeInARow(b),isFull(b))
-
-
 outcome : (Player, Board) -> Player & {Tie}
 outcome(p, b) = if inARow(3,X,b) then X else
                 if inARow(3,O,b) then O else Tie
-
 
 threeInARow : Board -> Bool
 threeInARow(b) = or(inARow(3,X,b), inARow(3,O,b))
@@ -53,13 +47,3 @@ play(a,b) = outcome(loop(a,b))
 result : Player & {Tie}
 result = play(goFirst, initialBoard)
 
-
-lessTen : Int -> Bool
-lessTen(x) = x < 10
-
-incr : Int -> Int
-incr(x) = x + 1
-
-
-whileTest : Int -> Int
-whileTest(x) = while lessTen(x) do incr(x)

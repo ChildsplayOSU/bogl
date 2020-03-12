@@ -1,4 +1,4 @@
-game TypeError
+game TypeErrors
 
 type Board = Grid(1,1) of {X, O}
 type Input = {X}

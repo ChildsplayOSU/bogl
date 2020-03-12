@@ -1,10 +1,12 @@
 game NoTakTo
 
-type Board = Grid(3,3) of X|O|Empty
+type Position = (Int, Int)  
+
+type Board = Grid(3,3) of {X, Empty}  
 type Input = Position
 
 empty : Board
-empty(x,y) = Empty 
+empty!(x,y) = Empty 
 
 move : Board -> Board
 move(b) = let pos = input(b) in
@@ -17,7 +19,7 @@ gameLoop : Board -> Board
 gameLoop(b) = while status(b) do move(b)
 
 identity : Bool -> Bool 
-identity(b) = b && b  
+identity(b) = or(b,False)   
 
 contrivedGameLoop : Board -> Board
 contrivedGameLoop(b) = while identity(status(b)) do move(b)

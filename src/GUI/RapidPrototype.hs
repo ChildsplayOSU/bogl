@@ -33,7 +33,7 @@ runPrototype f = do
       let x = tc g 
           errs = errors x
           ts = rtypes x
-      forM errs (\x -> traceM ("type error:" ++ show x))
+      forM errs (\x -> traceM ("type error:" ++ show x ++ "\n"))
       replIn <- Chan.newChan
       startGUI defaultConfig
          { jsPort       = Just 8023

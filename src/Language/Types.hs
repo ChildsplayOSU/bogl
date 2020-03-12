@@ -88,9 +88,9 @@ instance Show Xtype where
                 | otherwise = 
                   case b of 
                      Top -> showTypes                     
-                     _   -> show b ++ "|" ++ showTypes
+                     _   -> show b ++ " & " ++ showTypes
                      where
-                        showTypes = intercalate ("|") (map show (S.toList xs))
+                        showTypes = "{" ++ intercalate (", ") (S.toList xs) ++ "}"
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
   show (Hole n) = "?"
   show _ = undefined
