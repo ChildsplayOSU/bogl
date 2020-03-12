@@ -1,5 +1,9 @@
 game ConnectFour
 
+-- this game will crash due to a tuple order error, but it type checks 
+-- outcome expects a (Board,Player) and loop returns a (Player, Board) 
+-- the game crashes once loop ends and its value is passed to outcome 
+ 
 type Player = {A, B} 
 type Position = (Int, Int) 
 
