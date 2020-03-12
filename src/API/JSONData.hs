@@ -45,7 +45,8 @@ instance FromJSON SpielFile where
 -- | representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
     file   :: String,
-    inputs :: [String]
+    inputs :: [String],
+    buffer :: [Val]
   } deriving (Eq, Show, Generic)
 
 instance ToJSON SpielCommand

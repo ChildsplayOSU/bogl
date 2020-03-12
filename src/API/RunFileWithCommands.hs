@@ -34,13 +34,13 @@ handleRunFileWithCommands sc = do
 
 -- runs command as IO
 _runFileWithCommands :: SpielCommand -> IO SpielResponses
-_runFileWithCommands (SpielCommand gameFile inpt) = do
+_runFileWithCommands (SpielCommand gameFile inpt buf) = do
   parsed <- parseGameFile (gameFile)
   case parsed of
     Right game -> do
       let checked = tc game
       if success checked
-        then return $ (SpielTypes (rtypes checked):(serverRepl game gameFile inpt))
+        then return $ (SpielTypes (rtypes checked):(serverRepl game gameFile inpt buf))
         else return $ (SpielTypes (rtypes checked)):map (SpielTypeError . snd) (errors checked)
 
     Left err -> do
@@ -52,26 +52,26 @@ _runFileWithCommands (SpielCommand gameFile inpt) = do
 
 
 -- handles running a command in the repl from the server
-serverRepl :: (Game SourcePos) -> String -> [String] -> [SpielResponse]
-serverRepl _ _ [] = []
-serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) = do
+serverRepl :: (Game SourcePos) -> String -> [String] -> [Val] -> [SpielResponse]
+serverRepl _ _ [] _ = []
+serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) buf = do
   case parseLine inpt of
     Right x -> do
       case tcexpr (environment i b vs) x of
         Right _ -> do -- Right t
-          case runWithBuffer (bindings_ (szx, szy) vs) [] x of
+          case runWithBuffer (bindings_ (szx, szy) vs) buf x of
 
             -- program terminated normally with a value
-            Right (val) -> ((SpielValue val):(serverRepl g fn ils))
+            Right (val) -> ((SpielValue val):(serverRepl g fn ils buf)) -- FIXME FIXME FIXME
 
             -- board and tape returned, returns the board for displaying on the frontend
-            Left (bord@(Vboard _), _) -> ((SpielBoard (encodeBoard bord)):(serverRepl g fn ils)) -- used to be ((Vboard b'), t')
+            Left (bord@(Vboard _), _) -> ((SpielBoard (encodeBoard bord)):(serverRepl g fn ils buf)) -- used to be ((Vboard b'), t')
 
             -- runtime error encountered
-            Left err -> ((SpielRuntimeError (show err)):(serverRepl g fn ils))
+            Left err -> ((SpielRuntimeError (show err)):(serverRepl g fn ils buf))
 
         -- typechecker encountered an error in the environment
-        Left err -> ((SpielTypeError err):(serverRepl g fn ils))
+        Left err -> ((SpielTypeError err):(serverRepl g fn ils buf))
 
     -- bad parse
     Left err ->
@@ -79,7 +79,7 @@ serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) = do
           l = sourceLine position
           c = sourceColumn position
           msg = concatMap messageString $ errorMessages err in
-      (SpielParseError l c fn msg:(serverRepl g fn ils))
+      (SpielParseError l c fn msg:(serverRepl g fn ils buf))
 
 
 -- Orphaned instance here (discuss):
