@@ -29,7 +29,7 @@ This will host an instance of the "game" at an IP address which is reported to y
 or(True, False)
 let x = 2 in 40 + x 
 ```
-You can also try evaluating expressions using the functions in the example1.bgl file: 
+You can also try evaluating expressions using the functions in the Example1.bgl file: 
 ```
 succ(99) 
 ```
