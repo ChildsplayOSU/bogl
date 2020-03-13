@@ -65,7 +65,7 @@ serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) buf = do
             Right (val) -> ((SpielValue val):(serverRepl g fn ils buf)) -- FIXME FIXME FIXME
 
             -- board and tape returned, returns the board for displaying on the frontend
-            Left (bord@(Vboard _), _) -> ((SpielBoard (encodeBoard bord)):(serverRepl g fn ils buf)) -- used to be ((Vboard b'), t')
+            Left (board@(Vboard _), _) -> (SpielValue board:(serverRepl g fn ils buf)) -- used to be ((Vboard b'), t')
 
             -- runtime error encountered
             Left err -> ((SpielRuntimeError (show err)):(serverRepl g fn ils buf))
