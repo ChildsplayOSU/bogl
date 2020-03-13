@@ -40,7 +40,7 @@ data SpielFile = SpielFile {
 instance ToJSON SpielFile where
 
 instance FromJSON SpielFile where
-  parseJSON (Object v) = SpielFile <$> v .: "file" <*> v .: "content"
+  parseJSON (Object v) = SpielFile <$> v .: "fileName" <*> v .: "content"
 
 -- | representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
@@ -99,3 +99,5 @@ instance Show SpielResponse where
 
 
 type SpielResponses = [SpielResponse]
+
+

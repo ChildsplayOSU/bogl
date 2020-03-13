@@ -35,7 +35,7 @@ handleRunFileWithCommands sc = do
 -- runs command as IO
 _runFileWithCommands :: SpielCommand -> IO SpielResponses
 _runFileWithCommands (SpielCommand gameFile inpt buf) = do
-  parsed <- parseGameFile (gameFile)
+  parsed <- parseGameFile (gameFile ++ ".bgl")
   case parsed of
     Right game -> do
       let checked = tc game
