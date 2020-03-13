@@ -1,11 +1,12 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 -- | Spiel language AST.
 -- this slightly deviates from the specified syntax in spots.
 
 module Language.Syntax where
 import Language.Types
 import Data.List
-import Text.JSON.Generic
+import GHC.Generics
+import Data.Aeson
 import Data.Array
 import qualified Data.Set as S
 type Name = String
@@ -18,7 +19,7 @@ data Game a = Game
   , input :: InputDef -- ^ Type of input
   , defns ::[ValDef a] -- ^ List of value definitions
   }
-  deriving (Data)
+  deriving (Generic)
 
 instance Show (Game a) where
   show (Game n b i vs) = "Game : " ++ n ++ "\n"
@@ -26,16 +27,18 @@ instance Show (Game a) where
                          ++ show i ++ "\n"
                          ++ intercalate ("\n\n\n") (map show vs)
 
+
 -- | Signatures are a product of name and type.
 data Signature = Sig Name Type
-   deriving (Eq, Data)
+   deriving (Eq)
+
 
 instance Show Signature where
   show (Sig n t) = n ++ " : " ++ show t
 
 -- | Parameter lists are lists of 'Name'
 data Parlist = Pars [Name]
-   deriving (Eq, Data)
+   deriving (Eq, Generic)
 
 instance Show Parlist where
   show (Pars xs) = "(" ++ intercalate (" , ") (xs) ++ ")"
@@ -48,7 +51,7 @@ instance Show Parlist where
 
 data ValDef a = Val Signature (Equation a) a
   | BVal Signature [BoardEq a] a
-   deriving (Eq, Data)
+   deriving (Eq, Generic)
 
 instance Functor ValDef where
   fmap f (Val s e a) = Val s (fmap f e) (f a)
@@ -65,7 +68,7 @@ ident (BVal (Sig n _) _ _) = n
 -- | Equations:
 data Equation a = Veq Name (Expr a)        -- ^ Value equations (a mapping from 'Name' to 'Expr')
               | Feq Name Parlist (Expr a) -- ^ Function equations (a 'Name', list of params 'Parlist', and the 'Expr' that may use them
-   deriving (Eq, Data)
+   deriving (Eq, Generic)
 
 instance Functor Equation where
   fmap f (Veq n e) = Veq n (fmap f e)
@@ -83,7 +86,7 @@ data BoardEq a = PosDef
     ypos :: Pos,
     boardExpr :: (Expr a)
    }
-   deriving (Eq, Data)
+   deriving (Eq, Generic)
 
 instance Functor BoardEq where
   fmap f (PosDef n p1 p2 e) = PosDef n p1 p2 (fmap f e)
@@ -93,7 +96,7 @@ instance Show (BoardEq a) where
 
 data Pos = Index Int 
          | ForAll Name  
-         deriving (Eq, Data)
+         deriving (Eq, Generic)
 
 instance Show Pos where 
    show (Index i) = show i 
@@ -118,7 +121,7 @@ data Expr a = I Int                     -- ^ Integer expression
           -- the last Expr can always be constructed from the [Name], but it makes the code cleaner to do that only once while parsing
           | Annotation a (Expr a) -- ^ Parameterized by the type of an annotation (could use a cofree comonad, but also this)
           | HE Name -- ^ Type hole
-   deriving (Eq, Data)
+   deriving (Eq, Generic)
 
 -- | this is just "deriving functor"
 instance Functor Expr where
@@ -172,7 +175,7 @@ data Op = Plus
         | Xor
         | Greater
         | Get           -- Gets contents from a position on a board 
-   deriving (Eq, Data)
+   deriving (Eq, Generic)
 
 instance Show Op where
   show Plus     = " + "

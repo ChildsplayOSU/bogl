@@ -29,7 +29,7 @@ runPrototype :: String -> IO ()
 runPrototype f = do
   maybeGame <- parseGameFile f
   case maybeGame of 
-    Just g -> do 
+    Right g -> do
       let x = tc g 
           errs = errors x
           ts = rtypes x

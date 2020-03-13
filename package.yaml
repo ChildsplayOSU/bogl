@@ -38,6 +38,7 @@ dependencies:
 - wai-extra
 - warp
 - attoparsec
+- directory
 library:
   source-dirs: src
 
