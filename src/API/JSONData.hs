@@ -45,7 +45,7 @@ instance FromJSON SpielFile where
 -- | representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
     file   :: String,
-    inputs :: [String],
+    input :: String,
     buffer :: [Val]
   } deriving (Eq, Show, Generic)
 
@@ -61,8 +61,8 @@ type FileName= String
 -- | Represents possible response categories from the server
 -- These are then parsed accordingly on the front-end
 data SpielResponse =
-  -- represents a board that will be printed
-  SpielBoard String |
+  -- represents a prompt for input.
+  SpielPrompt Val [Val] |
   -- represents a win/lose result
   SpielGameResult String |
   -- represents a type error
@@ -82,7 +82,7 @@ instance ToJSON SpielResponse where
 
 instance Show SpielResponse where
   -- shows a board in JSON
-  show (SpielBoard s)                 = show s
+  show (SpielPrompt s t)                 = show s
   -- indicates that the game is over and a player has won
   show (SpielGameResult gr)           = show gr
   -- shows a parse error to the user

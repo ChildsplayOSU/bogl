@@ -40,8 +40,8 @@ _runFileWithCommands (SpielCommand gameFile inpt buf) = do
     Right game -> do
       let checked = tc game
       if success checked
-        then return $ (SpielTypes (rtypes checked):(serverRepl game gameFile inpt buf))
-        else return $ (SpielTypes (rtypes checked)):map (SpielTypeError . snd) (errors checked)
+        then return $ [SpielTypes (rtypes checked), (serverRepl game gameFile inpt buf)]
+        else return $ SpielTypes (rtypes checked) : map (SpielTypeError . snd) (errors checked)
 
     Left err -> do
       let position = errorPos err
@@ -52,9 +52,8 @@ _runFileWithCommands (SpielCommand gameFile inpt buf) = do
 
 
 -- handles running a command in the repl from the server
-serverRepl :: (Game SourcePos) -> String -> [String] -> [Val] -> [SpielResponse]
-serverRepl _ _ [] _ = []
-serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) buf = do
+serverRepl :: (Game SourcePos) -> String -> String -> [Val] -> SpielResponse
+serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
   case parseLine inpt of
     Right x -> do
       case tcexpr (environment i b vs) x of
@@ -62,25 +61,20 @@ serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn (inpt:ils) buf = do
           case runWithBuffer (bindings_ (szx, szy) vs) buf x of
 
             -- program terminated normally with a value
-            Right (val) -> ((SpielValue val):(serverRepl g fn ils buf)) -- FIXME FIXME FIXME
+            Right (val) -> SpielValue val
 
             -- board and tape returned, returns the board for displaying on the frontend
-            Left (board@(Vboard _), _) -> (SpielValue board:(serverRepl g fn ils buf)) -- used to be ((Vboard b'), t')
+            Left (v, t) -> SpielPrompt v t
 
             -- runtime error encountered
-            Left err -> ((SpielRuntimeError (show err)):(serverRepl g fn ils buf))
+            Left err -> SpielRuntimeError (show err)
 
-        -- typechecker encountered an error in the environment
-        Left err -> ((SpielTypeError err):(serverRepl g fn ils buf))
-
+        -- typechecker encountered an error in the expression
+        Left err -> (SpielTypeError err)
     -- bad parse
     Left err ->
       let position = errorPos err
           l = sourceLine position
           c = sourceColumn position
           msg = concatMap messageString $ errorMessages err in
-      (SpielParseError l c fn msg:(serverRepl g fn ils buf))
-
-
--- Orphaned instance here (discuss):
-
+      (SpielParseError l c fn msg)
