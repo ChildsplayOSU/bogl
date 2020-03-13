@@ -24,10 +24,27 @@ data Val = Vi Int                      -- ^ Integer value
          | Deferred                    -- ^ This needs an input.
          deriving Generic
 
+
+
+
+
+encode1DArray :: [((Int,Int),Val)] -> String
+encode1DArray [] = ""
+encode1DArray ((_,val):ls) = "\"" ++ (show val) ++ "\"" ++ (if length ls > 0 then "," else "") ++ (encode1DArray ls)
+
+encode2DArray :: [[((Int, Int), Val)]] -> String
+encode2DArray [] = ""
+encode2DArray (ar:ls) = "[" ++ (encode1DArray ar) ++ "]" ++ (if length ls > 0 then "," else "") ++ (encode2DArray ls)
+
+toGrid x = (groupBy (\x y -> (fst . fst) x == (fst . fst) y) (assocs x))
+
+
+
+
 instance ToJSON Val where
   toJSON (Vi i) = object ["type" .= String "Int", "value" .= i]
   toJSON (Vb b) = object ["type" .= String "Bool", "value" .= b]
-  toJSON (Vboard b) = object ["type" .= String "Board", "value" .= assocs b]
+  toJSON (Vboard b) = object ["type" .= String "Board", "value" .= toGrid b]
   toJSON (Vt vs) = object ["type" .= String "Tuple", "value" .= map toJSON vs]
   toJSON (Vs n) = object ["type" .= String "Symbol", "value" .= n]
   toJSON (Vf args _ e) = object ["type" .= String "Function", "value" .= Null]
