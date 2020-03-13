@@ -1,4 +1,5 @@
-game NestedTupleError
+-- functions for testing nested tuple behavior 
+game Tuples
 
 type Pair = (Int, Int) 
 
@@ -8,11 +9,9 @@ type Input = Int
 b : Board 
 b!(x,y) = 0 
 
--- this fails 
 isZero : (Pair, Board) -> Bool 
 isZero(p, b) = if b ! p == 0 then True else False 
 
--- this succeeds 
 isZero' : (Int, Int, Board) -> Bool 
 isZero'(x,y,b) = if b ! (x,y) == 0 then True else False 
 
@@ -22,14 +21,11 @@ fst(a,b) = a
 snd : Pair -> Int 
 snd(a,b) = b 
 
--- these two functions fail at runtime 
-
 foo : (Pair, Pair) -> Pair 
 foo(l,r) = (fst(l) + fst(r), snd(l) + snd(r))  
 
 bar : (Pair, Int) -> Pair 
 bar(p, i) = (fst(p) + snd(p), i)
-
 
 f : (Int, Int) -> (Int, Int)
 f(x,y) = (x+1, y+1)
@@ -43,3 +39,6 @@ h(x,y) = (x*2, y*2)
 testing : Int -> Int
 testing(k) = let z = h(g(f((k,k)))) in
                  fst(z) + snd(z)
+
+id : Pair -> Pair
+id(a,b) = (a,b) 

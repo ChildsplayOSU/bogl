@@ -81,12 +81,9 @@ putType t = do
 -- | The 'Type' keywords
 types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Positions"]
 -- | The lexer, using the reserved keywords and operation names
-lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["if", "then", "True", "False",
+lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["True", "False",
                                                             "let", "in", "if", "then", "else",
                                                             "while", "do", "game", "type", "Grid", "of", "case", "type"
-                                                            --"place", "remove", "isFull", "inARow", "at"
-                                                            -- "A", "B", "free", "place", "next", "isFull", "inARow",
-                                                            -- "countBoard", "countColumn", "countRow" ]
                                                             ] ++ types,
                                         P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "<", "&", "{", "}"]})
 
@@ -99,7 +96,6 @@ operators = [
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
              [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft, op "<" (Binop Less) AssocLeft, op ">" (Binop Greater) AssocLeft]
             ]
-              -- and so on
 
 -- | Parser for the 'Expr' datatype
 expr :: Parser (Expr SourcePos)
@@ -114,6 +110,7 @@ int = fromInteger <$> P.integer lexer
 reserved = P.reserved lexer
 parens = P.parens lexer
 identifier = P.identifier lexer
+whiteSpace = P.whiteSpace lexer 
 
 -- | Ensure that the object parsed isn't already in state
 new x = do
@@ -344,7 +341,7 @@ typesyn = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "
 -- | Game definition
 game :: [ValDef SourcePos] -> Parser (Game SourcePos)
 game vs =
-  Game <$> (reserved "game" *> identifier) <*>
+  Game <$> ((whiteSpace *> reserved "game") *> identifier) <*>
   (many typesyn *> board) <*> (many typesyn *> input) <*>
   ((\p -> vs ++ catMaybes p) <$> (many decl))
 
