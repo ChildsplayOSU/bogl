@@ -40,7 +40,7 @@ data SpielFile = SpielFile {
 instance ToJSON SpielFile where
 
 instance FromJSON SpielFile where
-  parseJSON (Object v) = SpielFile <$> v .: "fileName" <*> v .: "content"
+  parseJSON (Object v) = SpielFile <$> v .: "file" <*> v .: "content"
 
 -- | representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
@@ -99,20 +99,3 @@ instance Show SpielResponse where
 
 
 type SpielResponses = [SpielResponse]
-
-
-encode1DArray :: [((Int,Int),Val)] -> String
-encode1DArray [] = ""
-encode1DArray ((_,val):ls) = "\"" ++ (show val) ++ "\"" ++ (if length ls > 0 then "," else "") ++ (encode1DArray ls)
-
-encode2DArray :: [[((Int, Int), Val)]] -> String
-encode2DArray [] = ""
-encode2DArray (ar:ls) = "[" ++ (encode1DArray ar) ++ "]" ++ (if length ls > 0 then "," else "") ++ (encode2DArray ls)
-
-toGrid x = (groupBy (\x y -> (fst . fst) x == (fst . fst) y) (assocs x))
-
-encodeBoard :: Val -> String
-encodeBoard v@(Vboard b) = "{\"board\": ["++(encode2DArray (toGrid b))++"]}"
-encodeBoard _ = "Cannot encode non-board!"
-
-
