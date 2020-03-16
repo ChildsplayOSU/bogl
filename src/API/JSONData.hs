@@ -16,6 +16,9 @@ import GHC.Generics
 import Data.Aeson
 import Data.Aeson.TH
 import Runtime.Values
+import Runtime.Eval
+import Parser.Parser
+import Runtime.Monad
 import Typechecker.Monad (TypeError)
 import Data.List
 import Data.Array
@@ -42,6 +45,15 @@ instance ToJSON SpielFile where
 instance FromJSON SpielFile where
   parseJSON (Object v) = SpielFile <$> v .: "fileName" <*> v .: "content"
 
+instance FromJSON Val where
+  parseJSON (Object v) = do
+    t <- v .: "input"
+    case parseLine t of
+      Right x -> case runWithBuffer (emptyEnv (0,0)) [] x of
+        Right v' -> return v'
+        Left err -> fail "failed to parse..." -- FIXME
+      Left err -> fail "failed to parse..."
+  parseJSON _ = fail "FAILURE?"
 -- | representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
     file   :: String,
