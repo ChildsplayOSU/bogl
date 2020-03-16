@@ -50,16 +50,6 @@ instance ToJSON Val where
   toJSON (Vf args _ e) = object ["type" .= String "Function", "value" .= Null]
   toJSON (Err s) = object ["type" .= String "ERROR", "value" .= Null] -- null or something
 
-instance FromJSON Val where
-  parseJSON (Object v) = do
-    t <- v .: "type"
-    case t of
-      (String "int") -> Vi <$> (v .: "value")
-      (String "position") -> do
-        x <- v .: "x"
-        y <- v .: "y"
-        return $ Vt [(Vi x), (Vi y)]
-  parseJSON _ = fail "FAILURE?"
 
 
 -- | Can't compare two functions.
