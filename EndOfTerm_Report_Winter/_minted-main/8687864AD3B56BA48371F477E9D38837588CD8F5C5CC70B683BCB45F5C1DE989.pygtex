@@ -1,0 +1,12 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{p}{(}\PYG{k+kt}{If}
+    \PYG{p}{(}\PYG{k+kt}{App} \PYG{l+s}{\PYGZdq{}inARow\PYGZdq{}} \PYG{p}{[}\PYG{k+kt}{I} \PYG{l+m+mi}{3}\PYG{p}{,}\PYG{k+kt}{N} \PYG{l+s}{\PYGZdq{}A\PYGZdq{}}\PYG{p}{,}\PYG{k+kt}{N} \PYG{l+s}{\PYGZdq{}b\PYGZdq{}}\PYG{p}{])}
+    \PYG{p}{(}\PYG{k+kt}{N} \PYG{l+s}{\PYGZdq{}A\PYGZdq{}}\PYG{p}{)}
+    \PYG{p}{(}\PYG{k+kt}{If}
+        \PYG{p}{(}\PYG{k+kt}{App} \PYG{l+s}{\PYGZdq{}inARow\PYGZdq{}} \PYG{p}{[}\PYG{k+kt}{I} \PYG{l+m+mi}{3}\PYG{p}{,}\PYG{k+kt}{N} \PYG{l+s}{\PYGZdq{}B\PYGZdq{}}\PYG{p}{,}\PYG{k+kt}{N} \PYG{l+s}{\PYGZdq{}b\PYGZdq{}}\PYG{p}{])}
+        \PYG{p}{(}\PYG{k+kt}{N} \PYG{l+s}{\PYGZdq{}B\PYGZdq{}}\PYG{p}{)}
+        \PYG{p}{(}\PYG{k+kt}{If}
+            \PYG{p}{(}\PYG{k+kt}{App} \PYG{l+s}{\PYGZdq{}isFull\PYGZdq{}} \PYG{p}{[}\PYG{k+kt}{N} \PYG{l+s}{\PYGZdq{}b\PYGZdq{}}\PYG{p}{])}
+            \PYG{p}{(}\PYG{k+kt}{N} \PYG{l+s}{\PYGZdq{}Tie\PYGZdq{}}\PYG{p}{)}
+            \PYG{p}{(}\PYG{k+kt}{N} \PYG{l+s}{\PYGZdq{}Continue\PYGZdq{}}\PYG{p}{))))}
+\end{Verbatim}

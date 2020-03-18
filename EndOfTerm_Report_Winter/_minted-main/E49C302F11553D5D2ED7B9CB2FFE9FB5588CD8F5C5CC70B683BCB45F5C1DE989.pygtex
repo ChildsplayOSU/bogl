@@ -1,0 +1,9 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZhy{}\PYGZhy{} parser fragment}
+\PYG{n+nf}{equation} \PYG{o+ow}{::} \PYG{k+kt}{Parser} \PYG{k+kt}{Equation}
+\PYG{n+nf}{equation} \PYG{o+ow}{=}
+  \PYG{p}{(}\PYG{n}{try} \PYG{o}{\PYGZdl{}} \PYG{p}{(}\PYG{k+kt}{Veq} \PYG{o}{\PYGZlt{}\PYGZdl{}\PYGZgt{}} \PYG{n}{identifier} \PYG{o}{\PYGZlt{}*\PYGZgt{}} \PYG{p}{(}\PYG{n}{reservedOp} \PYG{l+s}{\PYGZdq{}=\PYGZdq{}} \PYG{o}{*\PYGZgt{}} \PYG{n}{expr}\PYG{p}{)))}
+  \PYG{o}{\PYGZlt{}|\PYGZgt{}}
+  \PYG{p}{(}\PYG{n}{try} \PYG{o}{\PYGZdl{}} \PYG{p}{(}\PYG{k+kt}{Feq} \PYG{o}{\PYGZlt{}\PYGZdl{}\PYGZgt{}} \PYG{n}{identifier} \PYG{o}{\PYGZlt{}*\PYGZgt{}}
+  \PYG{p}{(}\PYG{k+kt}{Pars} \PYG{o}{\PYGZlt{}\PYGZdl{}\PYGZgt{}} \PYG{n}{parens} \PYG{p}{(}\PYG{n}{commaSep1} \PYG{p}{(}\PYG{n}{identifier}\PYG{p}{)))} \PYG{o}{\PYGZlt{}*\PYGZgt{}} \PYG{p}{(}\PYG{n}{reservedOp} \PYG{l+s}{\PYGZdq{}=\PYGZdq{}} \PYG{o}{*\PYGZgt{}} \PYG{n}{expr}\PYG{p}{)))}
+\end{Verbatim}
