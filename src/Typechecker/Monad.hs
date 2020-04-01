@@ -19,6 +19,8 @@ import qualified Data.Set as S
 import Language.Syntax hiding (piece, input, size)
 import Runtime.Builtins
 
+import Parser.ParseError 
+
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]
 
@@ -132,18 +134,21 @@ unify a b = mismatch (Plain a) (Plain b)
 t :: Btype -> Typechecked Xtype
 t b = return (X b S.empty)
 -- | Encoding the different type errors as types should let us do interesting things with them
-data TypeError = Mismatch Type Type (Expr SourcePos) SourcePos     -- ^ Couldn't match two types in an expression
-               | NotBound Name SourcePos              -- ^ Name isn't (yet) bound in the enviroment
-               | SigMismatch Name Type Type SourcePos  -- ^ couldn't match the type of an equation with its signature
-               | Unknown String SourcePos             -- ^ Errors that "shouldn't happen"
-               | BadOp Op Type Type (Expr SourcePos) SourcePos    -- ^ Can't perform a primitive operation
-               | OutOfBounds Pos Pos SourcePos
+data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos}      -- ^ Couldn't match two types in an expression
+               | NotBound {name :: Name, srcPos :: SourcePos}                                              -- ^ Name isn't (yet) bound in the enviroment
+               | SigMismatch {name :: Name, sigType :: Type, actualType :: Type, srcPos :: SourcePos}      -- ^ couldn't match the type of an equation with its signature
+               | Unknown {msg :: String, srcPos :: SourcePos}                                              -- ^ Errors that "shouldn't happen"
+               | BadOp {op :: Op, t1 ::Type, t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos} -- ^ Can't perform a primitive operation
+               | OutOfBounds {xpos :: Pos, ypos :: Pos, srcPos :: SourcePos} 
                deriving (Eq)
 
 instance ToJSON TypeError where
-  toJSON (Mismatch t1 t2 _ src) = object ["errtype" .= String "mismatch", "left" .= t1, "right" .= t2, "line" .= sourceLine src, "col" .= sourceColumn src]
+  {-toJSON (Mismatch t1 t2 _ src) = object ["errtype" .= String "mismatch", "left" .= t1, "right" .= t2, "line" .= sourceLine src, "col" .= sourceColumn src]
   toJSON (NotBound n src) = object ["errtype" .= String "notBound", "name" .= n, "line" .= sourceLine src, "col" .= sourceColumn src]
   toJSON _ = object ["errtype" .= String "ERROR TODO"]
+  -} 
+  --toJSON te = object ["message" .= (show te)]
+  toJSON te = let src = srcPos te in object ["message" .= (show te), "line" .= sourceLine src, "col" .= sourceColumn src]
 
 -- | smart constructors for type errors
 mismatch :: Type -> Type -> Typechecked a
@@ -163,9 +168,15 @@ outofbounds p sz = getPos >>= \x -> throwError $ OutOfBounds p sz x
 extensions :: Xtype -> Typechecked (S.Set Name)
 extensions (X _ xs) = return xs
 
+errString :: SourcePos -> String 
+errString p = case sourceName p of 
+               "" -> str ++ " in the REPL expression" ++ "\n" 
+               _  -> str ++ "\n"  
+            where str = "Type error at: " ++ show p
+ 
 instance Show TypeError where
-  show (Mismatch t1 t2 e p) = "Error at: " ++ show p ++ "\n\t Could not match types " ++ show t1 ++ " and " ++ show t2 ++ "\n\t\t in expression: " ++ show e
-  show (NotBound n p) = "Error at: " ++ show p ++ "\n\t You did not define " ++ n ++ " in this program"
-  show (SigMismatch n sig t p) = show p ++ "Signature for definition " ++ n ++ ": " ++ show sig ++ "\n does not match inferred type: " ++ show t
-  show (Unknown s p) = s
-  show (BadOp o t1 t2 e p) = "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ "\n in expression: " ++ show e
+  show (Mismatch t1 t2 e p)    = errString p ++ "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
+  show (NotBound n p)          = errString p ++ "You did not define " ++ n 
+  show (SigMismatch n sig t p) = errString p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show t
+  show (Unknown s p)           = errString p ++ s
+  show (BadOp o t1 t2 e p)     = errString p ++ "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ "in expression:\n\t" ++ show e
