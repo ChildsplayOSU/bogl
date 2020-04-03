@@ -47,9 +47,8 @@ _runFileWithCommands (SpielCommand gameFile inpt buf) = do
       let position = errorPos err
           l = sourceLine position
           c = sourceColumn position
-          msg = concatMap (messageString) (errorMessages err) in
-        return $ [SpielParseError l c gameFile (show msg)]
-
+          in 
+        return $ [SpielParseError l c gameFile (show err)]
 
 -- handles running a command in the repl from the server
 serverRepl :: (Game SourcePos) -> String -> String -> [Val] -> SpielResponse
@@ -76,5 +75,4 @@ serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
       let position = errorPos err
           l = sourceLine position
           c = sourceColumn position
-          msg = concatMap messageString $ errorMessages err in
-      (SpielParseError l c fn msg)
+      (SpielParseError l c fn (show err))

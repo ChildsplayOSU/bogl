@@ -170,7 +170,7 @@ atom' =
             [x] -> x
             xs -> Tuple xs
       return $ While c e names exprs')
-  <?> "Parse error, expected expression"
+  <?> "expression"
 
 params :: Name -> Parser [Name] 
 params n = do 
