@@ -1,7 +1,11 @@
 #!/bin/bash
 
+#
+# Mac release script
+#
+
 echo ""
-echo -e "\033[92mBuilding 'spielserver' binary for a mac release\033[0m"
+echo -e "\033[92mBuilding 'spielserver' binary for Mac release\033[0m"
 echo ""
 
 # freh build with static compilation on
@@ -18,5 +22,5 @@ cp $HOME/.local/bin/spielserver .
 otool -L spielserver
 
 echo ""
-echo -e "\033[92mDone building mac release\033[0m"
+echo -e "\033[92mDone building Mac release\033[0m"
 echo ""
