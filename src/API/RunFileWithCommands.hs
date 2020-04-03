@@ -74,5 +74,5 @@ serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
     Left err ->
       let position = errorPos err
           l = sourceLine position
-          c = sourceColumn position
+          c = sourceColumn position in 
       (SpielParseError l c fn (show err))
