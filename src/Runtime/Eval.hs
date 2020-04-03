@@ -17,13 +17,7 @@ import Control.Monad.Writer
 
 import Text.Parsec.Pos
 
-
 import Debug.Trace
-
-
-
-
-
 
 -- | Produce all of the bindings from a list of value definitions. This is done sequentially. Errors are reported as they're found.
 bindings :: (Int, Int) -> [ValDef a] -> Writer [Exception] Env
@@ -58,9 +52,6 @@ updateBoard :: Board -> (Int, Int) -> (BoardEq a) -> Val -> Board
 updateBoard b sz d v = let indices = range ((1,1), sz) in
                               b // zip (filter (posMatches (xpos d) (ypos d)) indices) (repeat v)
 
-
-
-
 -- | Check if a Pos matches a coordinate pair
 posMatches :: Pos -> Pos -> (Int, Int) -> Bool
 posMatches xp yp (x, y) = match xp x && match yp y
@@ -77,10 +68,6 @@ evalBinOp Times l r = evalNumOp (*) l r
 evalBinOp Div l r   = evalNumOp div l r
 evalBinOp Mod l r   = evalNumOp mod l r
 evalBinOp Equiv l r = evalEquiv l r
-evalBinOp Or l r    = evalBoolOp (||) l r
-evalBinOp Less l r  = evalCompareOp (<) l r
-evalBinOp And l r   = evalBoolOp (&&) l r
-evalBinOp Xor l r   = evalBoolOp (/=) l r
 evalBinOp Get l r   = do
                         board <- eval l
                         pos   <- eval r
@@ -96,15 +83,6 @@ evalEquiv l r = do
                   v2 <- eval r
                   return $ Vb (v1 == v2)
 
--- | evaluates comparison operations (except for ==)
-evalCompareOp :: (Int -> Int -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
-evalCompareOp f l r = do
-                     v1 <- eval l
-                     v2 <- eval r
-                     case (v1, v2) of
-                        (Vi l', Vi r') -> return (Vb (f l' r'))
-                        _ -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
-
 -- | evaluates numerical operations
 evalNumOp :: (Int -> Int -> Int) -> (Expr a) -> (Expr a) -> Eval Val
 evalNumOp f l r = do
@@ -113,16 +91,6 @@ evalNumOp f l r = do
                      case (v1, v2) of
                         (Vi l', Vi r') -> return (Vi (f l' r'))
                         _ -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
-
--- | evaluates boolean operations
-evalBoolOp :: (Bool -> Bool -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
-evalBoolOp f l r = do
-                     v1 <- eval l
-                     v2 <- eval r
-                     case (v1, v2) of
-                        (Vb l', Vb r') -> return (Vb (f l' r'))
-                        _ -> return $ Err $ "Could not do boolean operation on " ++ (show l) ++ " to " ++ (show r)
-
 
 eval :: (Expr a) -> Eval Val
 eval (Annotation a e) = eval e

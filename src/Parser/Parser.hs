@@ -24,7 +24,6 @@ import Data.List
 
 type SrcExpr = Expr Pos
 
-
 -- | State for the parser
 data ParState = PS {
   ctype :: Maybe Type,
@@ -85,16 +84,14 @@ lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["True", "False",
                                                             "let", "in", "if", "then", "else",
                                                             "while", "do", "game", "type", "Grid", "of", "case", "type"
                                                             ] ++ types,
-                                        P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "<", "&", "{", "}"]})
-
-
+                                        P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "{", "}"]})
 
 -- | Operators (might want to fix the order of operations)
 operators = [
              [op "!" (Binop Get) AssocLeft],
              [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "mod" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
-             [op "==" (Binop Equiv) AssocLeft, op "&&" (Binop And) AssocLeft, op "||" (Binop Or) AssocLeft, op "<" (Binop Less) AssocLeft, op ">" (Binop Greater) AssocLeft]
+             [op "==" (Binop Equiv) AssocLeft]
             ]
 
 -- | Parser for the 'Expr' datatype
@@ -127,12 +124,9 @@ reservedOp = P.reservedOp lexer
 charLiteral = P.charLiteral lexer
 comma = P.comma lexer
 
-
-
 atom :: Parser (Expr SourcePos)
 atom =
   Annotation <$> getPosition <*> atom'
-
 
 -- | Atomic expressions
 atom' :: Parser (Expr SourcePos)
@@ -230,12 +224,8 @@ btype =
   <|>
   reserved "AnySymbol" *> pure AnySymbol
 
-
-
-
 enum :: Parser (S.Set Name)
 enum = reservedOp "{" *> (S.fromList <$> (commaSep1 capIdentifier)) <* reservedOp "}"
-
 
 -- | Extended types: types after the first are restricted to symbols
 xtype :: Parser Xtype
@@ -249,8 +239,6 @@ xtype = (try $ do
   <|>
       xtype'
 
-
-
 xtype' :: Parser Xtype
 xtype' =
   (try $ capIdentifier >>= lookupSyn)
@@ -260,10 +248,6 @@ xtype' =
   (try $ X <$> btype <*> (pure S.empty))
   <|>
   (try $ Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype))))
-
-
-
-
 
 -- |
 --
@@ -334,7 +318,6 @@ board =
 input :: Parser InputDef
 input =
   reserved "type" *> reserved "Input" *> reservedOp "=" *> (InputDef <$> xtype)
-
 
 typesyn = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn))
 

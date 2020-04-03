@@ -13,34 +13,19 @@ import Runtime.Monad
 import Runtime.Values
 
 evalTests :: Test
-evalTests = TestList [testEvalBinOps,
+evalTests = TestList [
   testEvalEquiv,
-  testEvalLess,
   testEvalPlusMinusTimes,
   testBadTypesPlus,
   testEval2,
   testEvalTuple,
   testEvalLetRef]
 
--- Evaluate an expression in the Eval Monad
-testEvalBinOps :: Test
-testEvalBinOps = TestCase (
-  assertEqual "Evaluate False w/ Binop that evals to false"
-  (Right (Vb True))
-  (evalTest (eval (Binop Equiv (B False) (Binop And (B True) (B False))))))
-
-
 testEvalEquiv :: Test
 testEvalEquiv = TestCase (
   assertEqual "Test equiv in eval"
   (Right (Vb False))
   (evalTest (eval (Binop Equiv (I 3) (I 4)))))
-
-testEvalLess :: Test
-testEvalLess = TestCase (
-  assertEqual "Test less in eval"
-  (Right (Vb True))
-  (evalTest (eval (Binop Less (I 3) (I 4)))))
 
 testEvalPlusMinusTimes :: Test
 testEvalPlusMinusTimes = TestCase (
