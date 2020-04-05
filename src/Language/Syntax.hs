@@ -27,7 +27,6 @@ instance Show (Game a) where
                          ++ show i ++ "\n"
                          ++ intercalate ("\n\n\n") (map show vs)
 
-
 -- | Signatures are a product of name and type.
 data Signature = Sig Name Type
    deriving (Eq)
@@ -44,11 +43,6 @@ instance Show Parlist where
   show (Pars xs) = "(" ++ intercalate (" , ") (xs) ++ ")"
 
 -- | Top level values are signatures paired with either an ordinary 'Equation'
-
-
-
-
-
 data ValDef a = Val Signature (Equation a) a
   | BVal Signature [BoardEq a] a
    deriving (Eq, Generic)
@@ -138,7 +132,6 @@ instance Functor Expr where
   fmap f (S n) = (S n)
   fmap f (I x) = (I x)
 
-
 deAnnotate :: Expr a -> Expr a
 deAnnotate (Annotation a e) = e
 deAnnotate x = x
@@ -146,21 +139,19 @@ deAnnotate x = x
 clearAnn :: Expr a -> Expr ()
 clearAnn = (() <$)
 
-
-
 instance Show (Expr a) where
   show (Annotation _ e) = show e -- can refactor
-  show (HE n) = "?" ++ n
-  show (I i) = show i
-  show (S s) = s
-  show (B b) = show b
-  show (Ref n) = n
-  show (Tuple e) = "(" ++ intercalate " , " (map show e) ++ ")"
-  show (App n es) = n ++ show es
-  show (Binop o e1 e2) = show e1 ++ show o ++ show e2
-  show (Let n e1 e2) = "Let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
-  show (If e1 e2 e3) = "If " ++ show e1 ++ " Then " ++ show e2 ++ " Else " ++ show e3
-  show (While c b n e ) = "While " ++ show c ++ " do " ++ show b ++ "(with names, values from wrapper: " ++ show n ++ ", " ++ show e ++ ")" 
+  show (HE n)           = "?" ++ n
+  show (I i)            = show i
+  show (S s)            = s
+  show (B b)            = show b
+  show (Ref n)          = n
+  show (Tuple e)        = "(" ++ intercalate " , " (map show e) ++ ")"
+  show (App n es)       = n ++ show es
+  show (Binop o e1 e2)  = show e1 ++ show o ++ show e2
+  show (Let n e1 e2)    = "let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
+  show (If e1 e2 e3)    = "if " ++ show e1 ++ " then " ++ show e2 ++ " else " ++ show e3
+  show (While c b n e ) = "while " ++ show c ++ " do " ++ show b 
 
 -- | Binary operations
 data Op = Plus
@@ -169,11 +160,6 @@ data Op = Plus
         | Div
         | Mod
         | Equiv
-        | Or
-        | And
-        | Less
-        | Xor
-        | Greater
         | Get           -- Gets contents from a position on a board 
    deriving (Eq, Generic)
 
@@ -184,9 +170,4 @@ instance Show Op where
   show Div      = " / "
   show Mod      = " % "
   show Equiv    = " == "
-  show Or       = " or "
-  show And      = " and "
-  show Less     = " < "
-  show Xor      = " xor "
-  show Greater  = " > "
   show Get      = " ! " 

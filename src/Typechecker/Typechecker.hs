@@ -119,12 +119,7 @@ exprtype (Binop x e1 e2) = do
   case (t') of
     (X Itype s1) | S.null s1 -> if x `elem` [Plus, Minus, Times, Div, Mod]
                                               then t Itype
-                                              else if x `elem` [Less, Greater]
-                                                   then t Booltype
-                                                   else badop x (Plain t1) (Plain t2)
-    (X Booltype s1) -> if x `elem` [And, Or, Xor] && S.null s1
-                                                    then t Booltype
-                                                    else badop x (Plain t1) (Plain t2)
+                                              else badop x (Plain t1) (Plain t2)
     _ -> badop x (Plain t1) (Plain t2)
 exprtype (If e1 e2 e3) = do
   t1 <- exprtype e1
