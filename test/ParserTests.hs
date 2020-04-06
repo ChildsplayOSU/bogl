@@ -1,4 +1,4 @@
-module ParserTests(parserTests) where
+module ParserTests(parserTests, checkParseAllExamples) where
 
 --
 -- Parser Tests
@@ -10,7 +10,9 @@ import Language.Syntax
 import Language.Types
 import qualified Data.Set as S
 import Text.Parsec.Error
-
+import System.Directory 
+import System.FilePath  
+import Data.Either
 --
 -- exported tests for the Parser
 --
@@ -101,22 +103,25 @@ testParseLongExpr = TestCase (
     (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False))) ())))
 -} -- parsing is a nightmare with annotations...
 
-{--
-checkGameParse :: IO (Maybe Game) -> IO Bool
-checkGameParse a = do
-    q <- a
-    case q of
-      Just _  -> return (True)
-      Nothing -> return (False)
+-- relative to top-level spiel directory 
+examplesPath = "examples/" 
+tutorialsPath = examplesPath ++ "tutorials/"  
 
--- tests the initial example file we have
-testExampleFile1 :: Test
-testExampleFile1 = TestCase (
-  assertBool "Tests that example file 1 can be loaded"
-  (checkGameParse (parseGameFile "../examples/example1.bgl")))
---}
-
-
+-- | Check whether all 
+checkParseAllExamples :: IO Bool
+checkParseAllExamples = do
+    exampleFiles  <- listDirectory examplesPath
+    tutorialFiles <- listDirectory tutorialsPath 
+    let fullPaths = (map ((++) examplesPath) exampleFiles) ++ (map ((++) tutorialsPath) tutorialFiles)
+    let bglFiles  = filter (isExtensionOf ".bgl") (fullPaths)   
+    putStrLn $ "\n***Parsing***\n"
+    mapM putStrLn bglFiles
+    results <- mapM parseGameFile bglFiles 
+    let failures = lefts results 
+    putStrLn $ "\n***Failures:***"
+    mapM (putStrLn . (++) "\n" . show) failures
+    return $ null failures 
+    
 testNoRepeatedParamNames :: Test 
 testNoRepeatedParamNames = TestCase $  
    assertEqual "Test parse error on repeated params" 

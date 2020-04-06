@@ -15,4 +15,5 @@ spielTests = TestList [parserTests,evalTests]
 main :: IO ()
 main =  do
   result <- runTestTT spielTests
-  if (errors result) > 0 || (failures result) > 0 then exitFailure else exitSuccess
+  parseResult <- checkParseAllExamples
+  if (errors result) > 0 || (failures result) > 0 || not parseResult then exitFailure else exitSuccess

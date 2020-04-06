@@ -26,7 +26,8 @@ builtinT = \i -> [
   ("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
   ("not", Function (Ft (single (X Booltype S.empty)) (X Booltype S.empty))), 
   ("or", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))),
-  ("and", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty)))
+  ("and", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))), 
+  ("less", Function (Ft (Tup [X Itype S.empty, X Itype S.empty]) (X Booltype S.empty))) 
   -- place and inARow should be polymorphic over all types instead of over all symbols.
            ]
 
@@ -40,7 +41,8 @@ builtins = [
   ("next", \[Vs s] -> return $ if s == "X" then Vs "O" else Vs "X"),
   ("not", \[Vb b] -> return $ Vb (not b)),
   ("or", \[Vb a, Vb b] -> return $ Vb (a || b)),
-  ("and", \[Vb a, Vb b] -> return $ Vb (a && b))
+  ("and", \[Vb a, Vb b] -> return $ Vb (a && b)), 
+  ("less", \[Vi n, Vi m] -> return $ Vb (n < m))
   ]
 
 builtinRefs :: [(Name, Eval Val)]

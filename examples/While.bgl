@@ -4,7 +4,7 @@ type Board = Grid(3,3) of AnySymbol
 type Input = Int 
 
 lessThanTen : Int -> Bool
-lessThanTen(x) = x < 10
+lessThanTen(x) = less(x, 10)
 
 weirdAdd : (Int, Int) -> (Int, Int) 
 weirdAdd(x,y) = (x + y, y) 
@@ -21,11 +21,8 @@ inf(n) = while True do succ(n)
 identity : Int -> Int 
 identity(n) = while False do succ(n) 
 
-lessTen : Int -> Bool
-lessTen(x) = x < 10
-
 incr : Int -> Int
 incr(x) = x + 1
 
 whileTest : Int -> Int
-whileTest(x) = while lessTen(x) do incr(x)
+whileTest(x) = while lessThanTen(x) do incr(x)
