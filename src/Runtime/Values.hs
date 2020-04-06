@@ -36,7 +36,7 @@ encode2DArray :: [[((Int, Int), Val)]] -> String
 encode2DArray [] = ""
 encode2DArray (ar:ls) = "[" ++ (encode1DArray ar) ++ "]" ++ (if length ls > 0 then "," else "") ++ (encode2DArray ls)
 
-toGrid x = (groupBy (\x y -> (fst . fst) x == (fst . fst) y) (assocs x))
+toGrid x = transpose (groupBy (\x y -> (fst . fst) x == (fst . fst) y) (assocs x))
 
 
 
