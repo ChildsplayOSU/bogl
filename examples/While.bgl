@@ -1,6 +1,6 @@
 game While 
 
-type Board = Grid(3,3) of AnySymbol
+type Board = Array(3,3) of AnySymbol
 type Input = Int 
 
 lessThanTen : Int -> Bool

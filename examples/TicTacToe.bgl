@@ -5,7 +5,7 @@ type Position = (Int,Int)
 
 -- Board and input type definitions
 --
-type Board = Grid (3,3) of {X, O, Empty}
+type Board = Array (3,3) of {X, O, Empty}
 type Input = Position
 
 -- Game setup

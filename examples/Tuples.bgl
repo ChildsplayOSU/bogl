@@ -3,7 +3,7 @@ game Tuples
 
 type Pair = (Int, Int) 
 
-type Board = Grid (3,3) of Int 
+type Board = Array (3,3) of Int 
 type Input = Int 
 
 b : Board 

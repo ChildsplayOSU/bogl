@@ -2,7 +2,7 @@ game NoTakTo
 
 type Position = (Int, Int)  
 
-type Board = Grid(3,3) of {X, Empty}  
+type Board = Array(3,3) of {X, Empty}  
 type Input = Position
 
 empty : Board

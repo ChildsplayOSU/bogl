@@ -1,6 +1,6 @@
 game Example1
 
-type Board = Grid(1,1) of Int
+type Board = Array(1,1) of Int
 type Input = Int 
 
 succ : Int -> Int

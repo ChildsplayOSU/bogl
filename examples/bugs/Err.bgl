@@ -3,7 +3,7 @@ game Error
 -- this does not type check as expected, which does not help to explain why 
 -- BadConnectFour does type check
  
-type Board = Grid (3,3) of Int 
+type Board = Array (3,3) of Int 
 type Input = Int 
 
 b : Board 

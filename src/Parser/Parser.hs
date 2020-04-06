@@ -82,7 +82,7 @@ types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Positions"]
 -- | The lexer, using the reserved keywords and operation names
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["True", "False",
                                                             "let", "in", "if", "then", "else",
-                                                            "while", "do", "game", "type", "Grid", "of", "case", "type"
+                                                            "while", "do", "game", "type", "Array", "of", "case", "type"
                                                             ] ++ types,
                                         P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "{", "}"]})
 
@@ -310,7 +310,7 @@ board :: Parser BoardDef
 board =
   (reserved "type" *> reserved "Board" *> reservedOp "=") *>
   (BoardDef <$>
-    ((,) <$> (reserved "Grid" *> (lexeme . char) '(' *> int) <*>
+    ((,) <$> (reserved "Array" *> (lexeme . char) '(' *> int) <*>
      ((lexeme . char) ',' *> int <* (lexeme . char) ')')) <*>
   (reserved "of" *> xtype)) -- fixme
 

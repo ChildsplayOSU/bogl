@@ -1,6 +1,6 @@
 game TypeErrors
 
-type Board = Grid(1,1) of {X, O}
+type Board = Array(1,1) of {X, O}
 type Input = {X}
 
 typeError : Int -> Bool
