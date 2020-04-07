@@ -76,6 +76,7 @@ instance ToJSON Btype where
 
 
 -- | Xtypes are sum types (or tuples of sum types), but restricted by the semantics to only contain Symbols after the atomic type.
+--   Note: ttypes are subsumed by xtypes in our implementation 
 data Xtype = X Btype (S.Set Name)
            | Tup [Xtype]
            | Hole Name

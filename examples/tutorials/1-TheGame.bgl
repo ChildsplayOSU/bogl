@@ -1,0 +1,12 @@
+-- Lesson 1: A really boring game that ends immediately
+game TheGame 
+
+-- Arbitrary Board/Input; they do not matter for this game. 
+type Board = Array (1,1) of Bool
+type Input = Bool
+
+-- a type synonym
+type Result = {YouHaveLostTheGame}
+
+play : Result
+play = YouHaveLostTheGame

@@ -313,7 +313,7 @@ board = do
   (lexeme . char) ',' 
   y <- int
   (lexeme . char) ')'
-  boardType <- reserved "of" *> xtype -- fixme
+  boardType <- reserved "of" *> xtype
   guard (x > 0 && y > 0) <?> "board dimensions to be >= 1" 
   return $ BoardDef (x,y) boardType
 

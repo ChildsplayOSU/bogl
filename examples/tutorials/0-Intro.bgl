@@ -1,0 +1,24 @@
+{- Welcome to Spiel, an implementation of the BoGL programming language.  
+ - Comments are the same as in Haskell. 
+-} 
+
+-- This is a single line comment.
+ 
+game Intro -- Every game must begin keyword "game". 
+           -- Every game must have a name beginning with an uppercase letter. 
+
+-- Every game must declare the type of the board. 
+-- type Board = Array <size> of <types>  
+-- 
+-- <size> is a tuple of positive integers 
+-- <type> is any ptype (see the grammar for more detail)  
+-- This sets every board in the game to be 
+-- a 10 by 10 board which can only hold integers.
+-- Note that it does not actually create a board. 
+type Board = Array (10,10) of Int
+
+-- This is used to dynamically create a function called input which parses and
+-- evaluates user input and returns it (it also displays the board).
+type Input = Int
+
+-- This is the simplest possible game definition. It does almost nothing.
