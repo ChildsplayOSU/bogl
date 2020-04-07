@@ -307,12 +307,15 @@ decl = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" 
 
 -- | Board definition
 board :: Parser BoardDef
-board =
-  (reserved "type" *> reserved "Board" *> reservedOp "=") *>
-  (BoardDef <$>
-    ((,) <$> (reserved "Array" *> (lexeme . char) '(' *> int) <*>
-     ((lexeme . char) ',' *> int <* (lexeme . char) ')')) <*>
-  (reserved "of" *> xtype)) -- fixme
+board = do
+  (reserved "type" *> reserved "Board" *> reservedOp "=") *> (reserved "Array" *> (lexeme . char) '(')
+  x <- int 
+  (lexeme . char) ',' 
+  y <- int
+  (lexeme . char) ')'
+  boardType <- reserved "of" *> xtype -- fixme
+  guard (x > 0 && y > 0) <?> "board dimensions to be >= 1" 
+  return $ BoardDef (x,y) boardType
 
 -- | Input definition
 input :: Parser InputDef
