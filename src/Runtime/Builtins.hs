@@ -15,19 +15,18 @@ import Data.Map (Map)
 import qualified Data.Map as M  
 
 single x = Tup [x]
-builtinT :: Xtype -> [(String, Type)]
-builtinT = \i -> [
-  ("input", Function (Ft (single (X Board S.empty)) i)),
-  ("place", Function (Ft (Tup [(X AnySymbol S.empty), (X Board S.empty), (Tup [X Itype S.empty, X Itype S.empty])]) (X Board S.empty))),
+builtinT :: Xtype -> Xtype -> [(String, Type)]
+builtinT = \inputT pieceT -> [
+  ("input", Function (Ft (single (X Board S.empty)) inputT)),
+  ("place", Function (Ft (Tup [pieceT, (X Board S.empty), (Tup [X Itype S.empty, X Itype S.empty])]) (X Board S.empty))),
   ("remove", Function (Ft (Tup [(X Board S.empty), (Tup [X Itype S.empty, X Itype S.empty])]) (X Board S.empty))),
   ("isFull", Function (Ft (single (X Board S.empty)) (X Booltype S.empty))),
-  ("inARow", Function (Ft (Tup [X Itype S.empty, X AnySymbol S.empty, X Board S.empty]) (X Booltype S.empty))),
+  ("inARow", Function (Ft (Tup [X Itype S.empty, pieceT, X Board S.empty]) (X Booltype S.empty))),
   ("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
   ("not", Function (Ft (single (X Booltype S.empty)) (X Booltype S.empty))), 
   ("or", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))),
   ("and", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))), 
   ("less", Function (Ft (Tup [X Itype S.empty, X Itype S.empty]) (X Booltype S.empty))) 
-  -- place and inARow should be polymorphic over all types instead of over all symbols.
            ]
 
 builtins :: [(Name, [Val] -> Eval Val)]

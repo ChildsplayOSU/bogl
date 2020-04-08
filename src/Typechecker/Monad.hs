@@ -104,8 +104,9 @@ getSrc = do
 getType :: Name -> Typechecked Type
 getType n = do
   env <- getEnv
-  i <- getInput
-  case (lookup n env, lookup n (builtinT i)) of
+  inputT <- getInput
+  pieceT <- getPiece
+  case (lookup n env, lookup n (builtinT inputT pieceT)) of
     (Just e, _) -> return e
     (_, Just e) -> return e
     _ -> notbound n
