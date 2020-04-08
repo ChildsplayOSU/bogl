@@ -20,6 +20,10 @@ builtinT = \inputT pieceT -> [
   ("input", Function (Ft (single (X Board S.empty)) inputT)),
   ("place", Function (Ft (Tup [pieceT, (X Board S.empty), (Tup [X Itype S.empty, X Itype S.empty])]) (X Board S.empty))),
   ("remove", Function (Ft (Tup [(X Board S.empty), (Tup [X Itype S.empty, X Itype S.empty])]) (X Board S.empty))),
+  ("countBoard", Function (Ft (Tup [pieceT, (X Board S.empty)]) (X Itype S.empty))),
+  ("countCol", Function (Ft (Tup [pieceT, (X Board S.empty)]) (X Itype S.empty))),
+  ("countRow", Function (Ft (Tup [pieceT, (X Board S.empty)]) (X Itype S.empty))),
+  ("countDiag", Function (Ft (Tup [pieceT, (X Board S.empty)]) (X Itype S.empty))),
   ("isFull", Function (Ft (single (X Board S.empty)) (X Booltype S.empty))),
   ("inARow", Function (Ft (Tup [X Itype S.empty, pieceT, X Board S.empty]) (X Booltype S.empty))),
   ("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
@@ -34,6 +38,10 @@ builtins = [
   ("input", \[v] -> readTape v),
   ("place", \[v, Vboard arr, Vt [Vi x, Vi y]] -> return $ Vboard $ arr // [((x,y), v)]),
   ("remove", \[Vboard arr, Vt [Vi x, Vi y]] -> return $ Vboard $ arr // pure ((x,y), Vs "Empty")),
+  ("countBoard", \[v, Vboard arr] -> return $ Vi $ length $ filter (== v) (elems arr)),
+  ("countCol", \[v, Vboard arr] -> return $ Vi $ countCol arr v),
+  ("countRow", \[v, Vboard arr] -> return $ Vi $ countRow arr v),
+  ("countDiag", \[v, Vboard arr] -> return $ Vi $ countDiag arr v),
   ("isFull", \[Vboard arr] -> return $ Vb $ all (/= Vs "Empty") $ elems arr),
   ("inARow", \[Vi i, v, Vboard arr] -> return $ Vb $ inARow arr v i),
   ("next", \[Vs s] -> return $ if s == "X" then Vs "O" else Vs "X"),
@@ -65,14 +73,28 @@ checkCell v (p,v') m = if v == v' then addCell p m else m
 
 -- scans cells downwards by column (the order given by (assocs b) with (x,y) coords) 
 -- each cell's count is the increment of the counts of the four cells before it 
-checkCells :: Board -> Val -> Int 
-checkCells b v = maxCount   
+check_Cells :: Board -> Val -> Int 
+check_Cells b v = maxCount   
    where
       maxCount = foldr (\c m -> let max' = getMaxCount c in if max' > m then max' else m) 0 counts  
       getMaxCount (l,ld,t,rd) = maximum [l,ld,t,rd] 
       counts = M.elems processedBoard 
       processedBoard = foldl (\m c -> checkCell v c m) M.empty (assocs b)  
 
+
+checkCells :: Board -> Val -> [Int]
+checkCells b v = maxCount   
+   where
+      maxCount = foldr (\c acc -> update c acc) [0,0,0,0] counts  
+      update (t,td,l,bd) r = zipWith max [t,td,l,bd] r 
+      counts = M.elems processedBoard 
+      processedBoard = foldl (\m c -> checkCell v c m) M.empty (assocs b)  
+
+countCol, countRow, countDiag :: Board -> Val -> Int
+countCol b v = checkCells b v !! 0
+countRow b v = checkCells b v !! 2 
+countDiag b v = max (checkCells b v !! 1) (checkCells b v !! 3)
+
 -- | checks whether a board has i cells containing v in a row 
 inARow :: Board -> Val -> Int -> Bool 
-inARow b v i = checkCells b v >= i  
+inARow b v i = maximum (checkCells b v) >= i  
