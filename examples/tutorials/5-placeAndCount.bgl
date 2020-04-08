@@ -1,0 +1,44 @@
+game placeAndCount 
+
+type Board = Array (5,5) of Int & {P, Empty}
+type Input = (Int, Int)
+
+type Player = {P}
+
+-- we'll be putting P's on this board
+board : Board 
+board!(x, y) = Empty
+
+-- we'll be using this board to store counts of what is on the previous board
+counter : Board
+counter!(x,y) = 8 
+
+placeAndCount : (Board, Board) -> (Board, Board)
+placeAndCount(board, counter) = while less(countBoard(P,board),6) do
+
+   -- place a P at user-specified location
+   let pos = input(board)               in 
+   let newBoard  = place(P, board, pos) in 
+   
+   -- get counts of the pieces on the board
+   let count = countBoard(P,newBoard) in     -- counts all the pieces
+   let row   = countRow(P,newBoard)   in     -- counts rows (horizontal)
+   let col   = countCol(P,newBoard)   in 
+   let diag  = countDiag(P,newBoard)  in  
+   
+   -- inARow behaves like max(countRow, countCol, countDiag)
+   let fourInARow = inARow(4, P, newBoard) in 
+   let num = if fourInARow then 1 else 0   in  
+   
+   -- update a separate board with the counts
+   let c1  = place(count, counter, (1,1)) in 
+   let c2  = place(row, c1, (2,1))        in 
+   let c3  = place(col, c2, (3,1))        in 
+   let c4  = place(diag, c3, (4,1))       in 
+   let c5  = place(num, c4, (5,1))        in 
+   
+   -- we need to call input to display the count board, but we don't use it
+   let junk = input(c5) in                  
+   
+   -- we need to satisy the (Board, Board) type
+   (newBoard,c5)

@@ -55,11 +55,12 @@ builtins = [
 type Count = (Int, Int, Int, Int) 
 type CountMap = M.Map (Int, Int) Count  
 
+-- | A safe map lookup function which returns a default value for keys not in the map
 peek :: (Int, Int) -> CountMap -> Count 
 peek p m = case M.lookup p m of 
                Nothing   -> (0,0,0,0)  
-               (Just c)  -> c  
-
+               (Just c)  -> c
+                 
 addCell :: (Int, Int) -> CountMap -> CountMap 
 addCell p@(x,y) m = M.insert p (top + 1, tdiag + 1, left + 1, bdiag + 1) m  
    where 
@@ -73,15 +74,6 @@ checkCell v (p,v') m = if v == v' then addCell p m else m
 
 -- scans cells downwards by column (the order given by (assocs b) with (x,y) coords) 
 -- each cell's count is the increment of the counts of the four cells before it 
-check_Cells :: Board -> Val -> Int 
-check_Cells b v = maxCount   
-   where
-      maxCount = foldr (\c m -> let max' = getMaxCount c in if max' > m then max' else m) 0 counts  
-      getMaxCount (l,ld,t,rd) = maximum [l,ld,t,rd] 
-      counts = M.elems processedBoard 
-      processedBoard = foldl (\m c -> checkCell v c m) M.empty (assocs b)  
-
-
 checkCells :: Board -> Val -> [Int]
 checkCells b v = maxCount   
    where

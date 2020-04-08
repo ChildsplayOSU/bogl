@@ -18,10 +18,10 @@ board!(x, y) = Empty
 --    The condition (between while and do) must evaluate to a boolean. 
 --    The body (after do) must have a type T -> T
 --
--- If these stipulations seem strange, think of them as recursion with a base
--- case for a false result in the condition. 
+-- If these stipulations seem strange, think of them as recursion.
+-- The base case is triggered on a false result in the condition. 
 loop : (Player, Board) -> (Player, Board)
-loop(p, b) = while not(inARow(3, p, b)) do (p, place(p, b, input(b)))
+loop(p, b) = while less(countRow(p, b), 3) do (p, place(p, b, input(b)))
 
 play : Board -> {Finished} 
 play(b) = let pair = loop(P, board) in Finished
