@@ -11,7 +11,7 @@
 -- Help him keep his job by running the placeAndCount function and checking
 -- that the functions are indeed correct. 
 
-game placeAndCount 
+game boardCount 
 
 type Board = Array (5,5) of Int & {P, Empty}
 type Input = (Int, Int)

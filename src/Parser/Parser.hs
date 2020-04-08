@@ -8,6 +8,8 @@ import Language.Types
 import Debug.Trace(trace)
 import System.Directory
 
+import Runtime.Builtins
+
 import qualified Text.Parsec.Token as P
 
 import Text.Parsec.Char 
@@ -31,8 +33,8 @@ data ParState = PS {
   ids :: [Name],
   syn :: [(Name, Xtype)]
                    }
--- | An empty parse context
-emptyState = PS Nothing ("", []) [] []
+-- | A parse context with builtins
+startState = PS Nothing ("", []) (map fst builtins) []
 
 type Parser = Parsec String (ParState)
 
@@ -79,6 +81,7 @@ putType t = do
   putState (PS (Just t) w ids x)
 -- | The 'Type' keywords
 types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Positions"]
+
 -- | The lexer, using the reserved keywords and operation names
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["True", "False",
                                                             "let", "in", "if", "then", "else",
@@ -333,7 +336,7 @@ game vs =
 
 -- | Uses the parser p to parse all input, throws an error if anything is left over
 parseAll :: Parser a -> String -> String -> Either ParseError a
-parseAll p s = runParser (p <* eof) emptyState s
+parseAll p s = runParser (p <* eof) startState s
 
 -- | Read from the file, and parse
 parseFromFile p fname = do
