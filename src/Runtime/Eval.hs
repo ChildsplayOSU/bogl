@@ -104,10 +104,8 @@ eval (Tuple es) = mapM eval es >>= (return . Vt)
 
 eval (Ref n) = do
   e <- lookupName n
-  let b = lookup n builtinRefs
-  case (e, b) of
-        (Just v, _) -> return $ v
-        (_, Just v) -> v
+  case e of
+        Just v -> return $ v
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 
 eval (App n es) = do

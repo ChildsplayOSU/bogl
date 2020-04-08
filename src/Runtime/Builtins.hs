@@ -18,11 +18,10 @@ single x = Tup [x]
 builtinT :: Xtype -> [(String, Type)]
 builtinT = \i -> [
   ("input", Function (Ft (single (X Board S.empty)) i)),
-  ("positions", Plain (X Positions S.empty)),
   ("place", Function (Ft (Tup [(X AnySymbol S.empty), (X Board S.empty), (Tup [X Itype S.empty, X Itype S.empty])]) (X Board S.empty))),
   ("remove", Function (Ft (Tup [(X Board S.empty), (Tup [X Itype S.empty, X Itype S.empty])]) (X Board S.empty))),
-  ("inARow", Function (Ft (Tup [X Itype S.empty, X AnySymbol S.empty, X Board S.empty]) (X Booltype S.empty))),
   ("isFull", Function (Ft (single (X Board S.empty)) (X Booltype S.empty))),
+  ("inARow", Function (Ft (Tup [X Itype S.empty, X AnySymbol S.empty, X Board S.empty]) (X Booltype S.empty))),
   ("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
   ("not", Function (Ft (single (X Booltype S.empty)) (X Booltype S.empty))), 
   ("or", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))),
@@ -44,9 +43,6 @@ builtins = [
   ("and", \[Vb a, Vb b] -> return $ Vb (a && b)), 
   ("less", \[Vi n, Vi m] -> return $ Vb (n < m))
   ]
-
-builtinRefs :: [(Name, Eval Val)]
-builtinRefs = [("positions", (getBounds) >>= \(szx, szy) -> return $ Vt [Vt [Vi x, Vi y] | x <- [1..szx], y <- [1..szy]])]
 
 -- the count of adjacent cells in four directions (above, diagonal @ 10:30, left, diagonal @ 7:30) 
 type Count = (Int, Int, Int, Int) 
