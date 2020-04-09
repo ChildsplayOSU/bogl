@@ -74,7 +74,7 @@ type FileName= String
 -- These are then parsed accordingly on the front-end
 data SpielResponse =
   -- represents a prompt for input.
-  SpielPrompt Val [Val] |
+  SpielPrompt Val |
   -- represents a win/lose result
   SpielGameResult String |
   -- represents a type error
@@ -94,7 +94,7 @@ instance ToJSON SpielResponse where
 
 instance Show SpielResponse where
   -- shows a board in JSON
-  show (SpielPrompt s t)                 = show s
+  show (SpielPrompt s)                 = show s
   -- indicates that the game is over and a player has won
   show (SpielGameResult gr)           = show gr
   -- shows a parse error to the user
