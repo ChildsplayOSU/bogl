@@ -63,7 +63,7 @@ serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
             Right (val) -> SpielValue val
 
             -- board and tape returned, returns the board for displaying on the frontend
-            Left (v, t) -> SpielPrompt v t
+            Left (v, t) -> SpielPrompt v
 
             -- runtime error encountered
             Left err -> SpielRuntimeError (show err)
