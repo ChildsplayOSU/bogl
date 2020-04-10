@@ -10,5 +10,6 @@ This is the back end of the implementation which includes the interpreter itself
    * *optional:* Install [doctest](https://hackage.haskell.org/package/doctest) for haskell to run the test suite
    * These tests can be run with `stack test`
    
+   This will put a spielserver executable in your path which the front end can then use. 
 ## Examples 
 To see an example of a program in the language look at the [examples](examples/) directory.
