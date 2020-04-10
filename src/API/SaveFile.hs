@@ -18,7 +18,7 @@ import Control.Exception hiding (Handler)
 handleSaveFile :: SpielFile -> Handler SpielResponses
 handleSaveFile (SpielFile fn contents) = liftIO $ do
     -- TODO needs to check if this file was successfully written, rather than just assuming it is (@montymxb)
-    success <- try $ writeFile (fn ++ ".bgl") contents :: IO (Either IOException ())
+    success <- try $ writeFile (fn) contents :: IO (Either IOException ())
     case success of
-      Right _ -> return [(Log (fn ++ ".bgl" ++ " written successfully"))]
+      Right _ -> return [(Log (fn ++ " written successfully"))]
       Left e -> return [(Log ("Exception: " ++ displayException e))]
