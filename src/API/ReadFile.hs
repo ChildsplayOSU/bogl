@@ -20,5 +20,5 @@ handleReadFile rf = do
 -- internally attempts to read and return a file
 _handleReadFile :: SpielRead -> IO SpielFile
 _handleReadFile (SpielRead fn) = do
-  contents <- readFile (fn ++ ".bgl")
+  contents <- readFile (fn)
   return (SpielFile fn contents)
