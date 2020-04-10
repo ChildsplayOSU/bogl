@@ -49,7 +49,6 @@ data Btype = Booltype      -- ^ Boolean
            | Input         -- ^ The input type specified at the top of the program
            | Board         -- ^ A game board
            | Player        -- ^ A player
-           | Positions     -- ^ The list of all positions
            | Top           -- ^ Really this is bottom FIXME
            | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type.
    deriving (Generic, Eq)
@@ -62,15 +61,14 @@ instance Ord Btype where
 
 
 instance Show Btype where
-  show Booltype = "Bool"
-  show Itype = "Int"
-  show Top = "T"
-  show Input = "Input"
-  show Board = "Board"
-  show Player = "Player"
-  show Positions = "Positions"
+  show Booltype  = "Bool"
+  show Itype     = "Int"
+  show Top       = "T"
+  show Input     = "Input"
+  show Board     = "Board"
+  show Player    = "Player"
   show AnySymbol = "AnySymbol"
-  show Undef = "?"
+  show Undef     = "?"
 
 instance ToJSON Btype where
 

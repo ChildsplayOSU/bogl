@@ -80,7 +80,7 @@ putType t = do
   PS c w ids x <- getState
   putState (PS (Just t) w ids x)
 -- | The 'Type' keywords
-types = ["Bool", "Int", "AnySymbol", "Input", "Board", "Positions"]
+types = ["Bool", "Int", "AnySymbol", "Input", "Board"]
 
 -- | The lexer, using the reserved keywords and operation names
 lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["True", "False",
@@ -222,8 +222,6 @@ btype =
   reserved "Input" *> pure Input
   <|>
   reserved "Board" *> pure Board
-  <|>
-  reserved "Positions" *> pure Positions
   <|>
   reserved "AnySymbol" *> pure AnySymbol
 
