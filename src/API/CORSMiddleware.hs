@@ -37,6 +37,6 @@ appCorsResourcePolicy = CorsResourcePolicy {
   , corsExposedHeaders = Nothing
   , corsMaxAge         = Nothing
   , corsVaryOrigin     = True
-  , corsRequireOrigin  = True
+  , corsRequireOrigin  = False
   , corsIgnoreFailures = True
 }
