@@ -76,7 +76,7 @@ Fall 2019\\
         By restricting the domain of the language in this way, we will be able to provide a simpler language.
         
     \subsection{Product Overview}
-         This product, \name, is to be a software based solution to assist middle school students (ages 11 - 14) in their comprehension of early computer science concepts. This will be mainly accomplished by the primary product: a domain specific language (DSL) that describes simple board games and an interpreter for the DSL. Writers of the DSL will be able take elements from one game that is represented in the language and apply it to another. The language will be written in Haskell, a purely functional programming language. The primary product may be accompanied by a syntax-directed editor for the language or an artificially intelligent agent that attempts to play the described games. Both of these potential sub-products will be created in order to provide a richer learning experience to \name's audience. 
+         This product, \name, is to be a software based solution to assist middle school students (ages 11 - 14) in their comprehension of early computer science concepts. This will be mainly accomplished by the primary product: a domain specific language (DSL) that describes simple board games and an interpreter for the DSL. Writers of the DSL will be able take elements from one game that is represented in the language and apply it to another. The language will be written in Haskell, a purely functional programming language. The primary product may be accompanied by a syntax-directed editor for the language or an artificially intelligent agent that attempts to play the described games. Both of these potential sub-products will be created in order to provide a richer learning experience to \name's audience. The product will be served primarily as a web-based application, but is also capable of being distributed as a stand alone executable as well.
     \subsubsection{Product Perspective}
         Our product, \name, is related to the products 'Zillions of Games' and distantly related to 'Scratch'\cite{scratch}. Zillions of Games provides a language that is intended to purely express as many games as possible in a singular language. Our product differs by our focus on board games specifically, and to use the language as a means to teach basic understanding of algorithms. Ideally, the restriction of focus will result in a simpler language. In addition, Scratch also seeks to teach an understanding of coding, including algorithms, but through a block-based approach. This is different than what we are attempting here.
         
@@ -107,7 +107,7 @@ Fall 2019\\
     \subsection{External Interfaces}
         All of our subsystems will utilize a visual interface by means of a standard computer monitor (present on most laptops and desktops). Input will be enabled through use of a keyboard and mouse, and in other cases it may be enabled through a touch screen (substituting as both a mouse and a keyboard).
         
-        The initial input to our software system is a program written in the language \name through a text file. This can be done in an editor of the user's choice or through our syntax-directed editor. This text file will be provided to our translator which will then produce a game. This game will finally be playable by users through the keyboard or touch interface by requesting input from the users and outputting a graphical representation of the game. 
+        The initial input to our software system is a program written in the language \name through a text file. This will be done in an editor of the user's choice or through our syntax-directed editor. This text file will be provided to our translator service, running as a backend web application, which will then produce a game. This game will finally be playable by users through the keyboard or touch interface by requesting input from the users and outputting a graphical representation of the game in their browser
         
     \subsection{Functions}
         The translator takes a description of a board game in our DSL and allows for execution of the complete game according to the rules described. This will include handling player turns, keeping track of previous moves, providing informative error messages when a move is not permitted, and determining a winner. When checking the validity of inputs, the translator will produce an error message detailing the syntax error and its location in the source program and then terminate execution. 
@@ -131,6 +131,7 @@ Fall 2019\\
             \item the software should run on most modern computing systems that are capable of running Haskell
             \item the software should not unreasonably consume resources in a way that makes it unusable
             \item the visual aspect of this software must remain remain responsive in all cases
+            \item The interface should be functional in both a web-based and desktop based context.
         \end{enumerate}
         
         All of the games within the scope of this project are played turn-by-turn so simultaneous users will not be supported. 
@@ -148,7 +149,7 @@ Fall 2019\\
         
         
         % security...
-        Security implications with our product will be minimal as we intend to collect no data for storage nor connect with other software, devices, or systems during use. Security implications that we could face would be related to unintended manipulation or misuse of our product in order to achieve a malicious intent. This would most likely include targeting a separate process within the same system. To circumvent these kinds of attacks, we intend to ensure data integrity of the input provided such that our program cannot be used in a way that can lead to unintended usage or illegal behavior.
+        Security implications with our product will be minimal as we intend to collect no data for storage nor connect with other software, devices, or systems during use. Security implications that we could face would be related to unintended manipulation or misuse of our product in order to achieve a malicious intent. This would most likely include targeting a separate process within the same system. To circumvent these kinds of attacks, we intend to ensure data integrity of the input provided such that our program cannot be used in a way that can lead to unintended usage or illegal behavior. Additional security concerns are present with the usage of a web-based system, which will be sending and receiving data from a remote source. As such, the data will need to be secured in a fashion to prevent tampering and inspection by an unauthorized user.
         
         
         % maintainability
@@ -162,7 +163,7 @@ Fall 2019\\
         
         
         % portability
-        The product will built to be reasonable portable for at least one platform (Windows, Mac, Linux). Portability may be limited by the graphical interface of our product, which may depend on using system specific implementations. However, barring this our product should be platform independent, with independence qualifying capability of usage on Windows, Mac, and Linux platforms.
+        The product will built to be reasonable portable for at least one platform (Windows, Mac, Linux). Portability may be limited by the graphical interface of our product, which may depend on using system specific implementations. However, barring this our product should be platform independent, with independence qualifying capability of usage on Windows, Mac, and Linux platforms. In the web-based version our application will be functional on Firefox, Safari, Chrome, and Edge, allowing for a high degree of portability.
     \subsection{Supporting Information}
         There are no current supporting documents that we are ready to formally list. Documents that we collectively agree upon will be added into this section accordingly.
 
