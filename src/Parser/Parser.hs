@@ -1,18 +1,18 @@
 -- | Parser for BOGL
 
-module Parser.Parser (parseLine, parseGameFile, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, Parser) where
+module Parser.Parser (parseLine, parseGameFile, parsePreludeAndGameFiles, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, Parser) where
 
-import Parser.ParseError 
+import Parser.ParseError
 import Language.Syntax hiding (input, board)
 import Language.Types
-import Debug.Trace(trace)
+import Debug.Trace(trace, traceM)
 import System.Directory
 
 import Runtime.Builtins
 
 import qualified Text.Parsec.Token as P
 
-import Text.Parsec.Char 
+import Text.Parsec.Char
 import Text.Parsec.Language
 import Text.Parsec.Expr
 import Data.Maybe
@@ -22,7 +22,7 @@ import Text.Parsec
 import qualified Data.Set as S
 
 import Data.Either
-import Data.List 
+import Data.List
 
 type SrcExpr = Expr Pos
 
@@ -106,11 +106,11 @@ op s f assoc = Infix (reservedOp s *> pure f) assoc
 
 lexeme = P.lexeme lexer
 integer = P.integer lexer
-int = fromInteger <$> P.integer lexer 
+int = fromInteger <$> P.integer lexer
 reserved = P.reserved lexer
 parens = P.parens lexer
 identifier = P.identifier lexer
-whiteSpace = P.whiteSpace lexer 
+whiteSpace = P.whiteSpace lexer
 
 -- | Ensure that the object parsed isn't already in state
 new x = do
@@ -159,8 +159,8 @@ atom' =
   (do
       reserved "while"
       c <- atom
-      reserved "do" 
-      e <- atom 
+      reserved "do"
+      e <- atom
       (recurse, names) <- getWhileNames
       let exprs = map Ref names
       let exprs' = case exprs of
@@ -169,14 +169,14 @@ atom' =
       return $ While c e names exprs')
   <?> "expression"
 
-params :: Name -> Parser [Name] 
-params n = do 
-   params <- parens $ commaSep1 identifier 
-   let paramSet = nub params 
+params :: Name -> Parser [Name]
+params n = do
+   params <- parens $ commaSep1 identifier
+   let paramSet = nub params
    if paramSet == params
-      then return params 
-      else 
-         let repeats = params \\ paramSet in unexpected $ errRepeatParam repeats n     
+      then return params
+      else
+         let repeats = params \\ paramSet in unexpected $ errRepeatParam repeats n
 
 -- | Equations
 equation :: Parser (Equation SourcePos)
@@ -185,7 +185,7 @@ equation =
   <|>
   (try $ do
     name <- identifier
-    params <- params name  
+    params <- params name
     putWhileNames (name, params)
     reservedOp "="
     e <- expr
@@ -193,24 +193,24 @@ equation =
 
 position :: Parser Pos
 position =
-   Index <$> int 
+   Index <$> int
    <|>
    ForAll <$> identifier
 
 -- | Board equations
 boardeqn :: String -> Parser (BoardEq SourcePos)
-boardeqn n = do 
-   name <- string n <* (lexeme ((lexeme (char '!')) *> char '('))  
-   xpos <- lexeme position <* lexeme comma 
-   ypos <- lexeme position <* (lexeme (char ')') <* reservedOp "=") 
-   case (xpos, ypos) of 
-      (ForAll xn, ForAll yn) -> if xn == yn then unexpected (errRepeatParam [xn] name) 
-         else do 
+boardeqn n = do
+   name <- string n <* (lexeme ((lexeme (char '!')) *> char '('))
+   xpos <- lexeme position <* lexeme comma
+   ypos <- lexeme position <* (lexeme (char ')') <* reservedOp "=")
+   case (xpos, ypos) of
+      (ForAll xn, ForAll yn) -> if xn == yn then unexpected (errRepeatParam [xn] name)
+         else do
             exp <- expr
-            return $ PosDef name xpos ypos exp  
-      _ -> do 
+            return $ PosDef name xpos ypos exp
+      _ -> do
             exp <- expr
-            return $ PosDef name xpos ypos exp  
+            return $ PosDef name xpos ypos exp
 
 -- | Atomic types
 btype :: Parser Btype
@@ -299,8 +299,8 @@ valdef = do
   (Sig n t) <- sig
   b <- getCtype
   case b of
-    Just (Plain (X Board set)) | S.null set  -> (BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition 
-    _ -> (Val (Sig n t)) <$> (equation) <*> getPosition 
+    Just (Plain (X Board set)) | S.null set  -> (BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition
+    _ -> (Val (Sig n t)) <$> (equation) <*> getPosition
 
 decl :: Parser (Maybe (ValDef SourcePos))
 decl = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn) >> return Nothing)
@@ -310,12 +310,12 @@ decl = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" 
 board :: Parser BoardDef
 board = do
   (reserved "type" *> reserved "Board" *> reservedOp "=") *> (reserved "Array" *> (lexeme . char) '(')
-  x <- int 
-  (lexeme . char) ',' 
+  x <- int
+  (lexeme . char) ','
   y <- int
   (lexeme . char) ')'
   boardType <- reserved "of" *> xtype
-  guard (x > 0 && y > 0) <?> "board dimensions to be >= 1" 
+  guard (x > 0 && y > 0) <?> "board dimensions to be >= 1"
   return $ BoardDef (x,y) boardType
 
 -- | Input definition
@@ -340,18 +340,20 @@ parseAll p s = runParser (p <* eof) startState s
 parseFromFile p fname = do
   input <- readFile fname
   return (parseAll p fname input)
- 
+
 parseLine :: String -> Either ParseError (Expr SourcePos)
 parseLine = parseAll expr ""
 
--- | Parse a game file, displaying an error if there's a problem (used in repl)
 parseGameFile :: String -> IO (Either ParseError (Game SourcePos))
-parseGameFile f = do
-  exists <- doesFileExist "./Prelude.bglp"
-  prel <- if exists then
-             Parser.Parser.parseFromFile (many decl) "./Prelude.bglp" >>= \x -> case x of
-              Right x -> return x
-              Left err -> return [] -- FIXME. Need to warn the teacher that they wrote a corrupt Prelude.
-            else return []
-  parsed <- Parser.Parser.parseFromFile (game (catMaybes prel)) f
-  return parsed
+parseGameFile = parseFromFile (game [])
+
+-- | Parse a game file, displaying an error if there's a problem (used in repl)
+parsePreludeAndGameFiles :: String -> String -> IO (Either ParseError (Game SourcePos))
+parsePreludeAndGameFiles p f = do
+  exists <- doesFileExist p
+  prel <- if exists
+            then Parser.Parser.parseFromFile (many decl) p
+            else return $ fail "Prelude.bglp does not exist"
+  case prel of
+   Right x -> Parser.Parser.parseFromFile (game (catMaybes x)) f
+   Left err -> return $ Left err

@@ -56,6 +56,7 @@ instance FromJSON Val where
   parseJSON _ = fail "FAILURE?"
 -- | representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
+    prelude :: String,
     file   :: String,
     input :: String,
     buffer :: [Val]
