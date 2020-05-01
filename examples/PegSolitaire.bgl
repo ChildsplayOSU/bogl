@@ -1,0 +1,68 @@
+game PegSolitaire
+
+type Position = (Int,Int)
+
+-- Board and input type definitions
+type Board = Array (5,5) of {Peg, Blocked, Empty}
+type Input = Position
+
+--isValidHop : (Board, Position, Position) ->
+--isValidHop(b, from, to) = if
+
+-- Game setup
+triangle : Board
+triangle!(x,y) = Blocked
+triangle!(x,5) = Peg
+triangle!(1,4) = Peg
+triangle!(2,4) = Peg
+triangle!(3,4) = Peg
+triangle!(4,4) = Peg
+triangle!(1,3) = Peg
+triangle!(2,3) = Peg
+triangle!(3,3) = Peg
+triangle!(1,2) = Peg
+triangle!(2,2) = Peg
+triangle!(1,1) = Empty
+
+-- extract the first element from a tuple of Ints
+fst : Position -> Int
+fst(x,y) = x
+
+-- extract the second element from a tuple of Ints
+snd : Position -> Int
+snd(x,y) = y
+
+-- verifies that the first position has a Peg and that the second has an Empty
+isPegToEmpty : (Board, Position, Position) -> Bool
+isPegToEmpty(b,from,to) = if and(b ! from == Peg, b ! to == Empty)
+                            then True
+                            else False
+
+-- gets the coordinate difference of two positions
+posDifference : (Position, Position) -> Position
+posDifference(a,b) = (fst(b) - fst(a), snd(b) - snd(a))
+
+-- verifies that a position is within the bounds of a 5x5 board
+inBounds : Position -> Bool
+inBounds(x,y) = and(
+                     and(geq(x,1), leq(x,5)),
+                     and(geq(y,1), leq(y,5))
+                   )
+
+-- functions like this cannot be written
+--isMoveInBounds : (Position, Position) -> Bool
+--isMoveInBound(p1,p2) = and(inBounds(p1), inBounds(p2))
+
+isValidMove : (Board, Position, Position) -> Bool
+isValidMove(b,from,to) = and(
+                            and(inBounds(from), inBounds(to)),
+                            isPegToEmpty(b,from,to)
+                            )
+
+-- models the action of hopping one peg over another
+-- the btwn value should be calculated by another function
+-- all validation should be done before this function (e.g. w/ isValidMove)
+hop : (Board, Position, Position, Position) -> Board
+hop(b,from,btwn,to) = let lift = place(Empty,b,from) in
+                      let remove = place(Empty,lift,btwn) in
+                          place(Peg, remove, to)
