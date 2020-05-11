@@ -54,6 +54,8 @@ instance FromJSON Val where
         Left err -> fail "failed to parse..." -- FIXME
       Left err -> fail "failed to parse..."
   parseJSON _ = fail "FAILURE?"
+
+
 -- | representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
     prelude :: String,
@@ -62,14 +64,17 @@ data SpielCommand = SpielCommand {
     buffer :: [Val]
   } deriving (Eq, Show, Generic)
 
+
 instance ToJSON SpielCommand
 instance FromJSON SpielCommand
+
 
 -- | for errors
 type Message = String
 type LineNum = Int
 type ColNum  = Int
 type FileName= String
+
 
 -- | Represents possible response categories from the server
 -- These are then parsed accordingly on the front-end
@@ -95,22 +100,20 @@ instance ToJSON SpielResponse where
 
 instance Show SpielResponse where
   -- shows a board in JSON
-  show (SpielPrompt s)                 = show s
+  show (SpielPrompt s)                  = show s
   -- indicates that the game is over and a player has won
-  show (SpielGameResult gr)           = show gr
+  show (SpielGameResult gr)             = show gr
   -- shows a parse error to the user
-  show (SpielParseError ln cn fn m)   = "{tag: \"parseError\", lineNum: "++show ln++", colNum: "++ show cn ++", fileName: \""++ fn ++"\", message: \""++ m ++"\"}"
+  show (SpielParseError ln cn fn m)     = "{tag: \"parseError\", lineNum: "++show ln++", colNum: "++ show cn ++", fileName: \""++ fn ++"\", message: \""++ m ++"\"}"
   -- shows a runtime error in spiel
   -- show a spiel value
-  show (SpielValue m)                 = show m
+  show (SpielValue m)                   = show m
   -- show a typed hole
   -- TODO this one needs cleaning up
-  show (SpielTypeHole m x y)              = show m
+  show (SpielTypeHole m x y)            = show m
   -- show a fallback error, such as reading a bad-file
-  show (SpielError m)                 = show m
+  show (SpielError m)                   = show m
 
 
 
 type SpielResponses = [SpielResponse]
-
-
