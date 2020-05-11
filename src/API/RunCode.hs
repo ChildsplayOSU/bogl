@@ -10,19 +10,9 @@ module API.RunCode (handleRunCode) where
 import API.Run
 import API.JSONData
 import Servant
-import Data.Bifunctor
-import Parser.Parser
-import Language.Syntax
-import Language.Types
-import Text.Parsec.Pos
-import Text.Parsec (errorPos)
-import Text.Parsec.Error
 import Control.Exception hiding (Handler)
 
-import Typechecker.Typechecker
-import Runtime.Eval
 import Control.Monad.IO.Class
-import Runtime.Values
 
 
 -- |Runs literal code, lifting it into Handler
@@ -30,7 +20,7 @@ import Runtime.Values
 -- Once these both succeed, the new temporary files are parsed
 -- , and the response is returned
 handleRunCode :: SpielCommand -> Handler SpielResponses
-handleRunCode sc@(SpielCommand preludeContents gameFileContents inpt buf) = liftIO $ do
+handleRunCode (SpielCommand preludeContents gameFileContents inpt buf) = liftIO $ do
   -- attempt to write temporary prelude & game files
   success1 <- try $ writeFile ("tmp_prelude.bgl") preludeContents :: IO (Either IOException ())
   success2 <- try $ writeFile ("tmp_tmp.bgl") gameFileContents :: IO (Either IOException ())

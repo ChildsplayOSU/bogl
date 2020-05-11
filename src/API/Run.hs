@@ -8,25 +8,21 @@
 module API.Run (_runFileWithCommands) where
 
 import API.JSONData
-import Servant
-import Data.Bifunctor
 import Parser.Parser
 import Language.Syntax
 import Language.Types
 import Text.Parsec.Pos
 import Text.Parsec (errorPos)
-import Text.Parsec.Error
 
 import Typechecker.Typechecker
 import Runtime.Eval
-import Control.Monad.IO.Class
 import Runtime.Values
 
 
 -- |Runs this code under the IO monad
 _runFileWithCommands :: SpielCommand -> IO SpielResponses
-_runFileWithCommands (SpielCommand prelude gameFile inpt buf) = do
-  parsed <- parsePreludeAndGameFiles prelude gameFile
+_runFileWithCommands (SpielCommand _prelude gameFile inpt buf) = do
+  parsed <- parsePreludeAndGameFiles _prelude gameFile
   case parsed of
     Right game -> do
       let checked = tc game
@@ -44,7 +40,7 @@ _runFileWithCommands (SpielCommand prelude gameFile inpt buf) = do
 
 -- |Handles running a command in the repl from the server
 serverRepl :: (Game SourcePos) -> String -> String -> [Val] -> SpielResponse
-serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
+serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
   case parseLine inpt of
     Right x -> do
       case tcexpr (environment i b vs) x of
@@ -55,7 +51,7 @@ serverRepl g@(Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
             Right (val) -> SpielValue val
 
             -- board and tape returned, returns the board for displaying on the frontend
-            Left (v, t) -> SpielPrompt v
+            Left (v, _) -> SpielPrompt v
 
             -- runtime error encountered
             Left err -> SpielRuntimeError (show err)
