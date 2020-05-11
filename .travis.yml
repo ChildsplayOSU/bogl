@@ -1,0 +1,29 @@
+language: haskell
+
+sudo: false
+
+# Caching so the next build will be fast too.
+cache:
+  directories:
+  - $HOME/.stack
+
+ghc:
+  - "8.6"
+
+before_install:
+# Download and unpack the stack executable
+- mkdir -p ~/.local/bin
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+
+install: stack setup && stack build
+
+script: stack --no-terminal --skip-ghc-check test --coverage
+
+# TODO reimplement code coverage, doesn't work currently
+#after_script:
+#- stack install codecov-haskell
+#- mkdir -p dist/hpc/tix/all
+#- cp -r $(stack path --local-hpc-root)/Spiel-Lang/Spiel-Lang-test/* ./dist/hpc/tix/all/
+#- codecov-haskell Spiel-Lang

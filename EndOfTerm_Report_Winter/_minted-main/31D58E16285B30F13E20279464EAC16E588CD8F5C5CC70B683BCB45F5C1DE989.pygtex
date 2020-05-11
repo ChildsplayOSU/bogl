@@ -1,0 +1,13 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZhy{}\PYGZhy{} Expr Datatype}
+\PYG{k+kr}{data} \PYG{k+kt}{Expr} \PYG{o+ow}{=} \PYG{k+kt}{I} \PYG{k+kt}{Integer}
+          \PYG{o}{|} \PYG{k+kt}{S} \PYG{k+kt}{String}
+          \PYG{o}{|} \PYG{k+kt}{B} \PYG{k+kt}{Bool}
+          \PYG{o}{|} \PYG{k+kt}{N} \PYG{k+kt}{Name}
+          \PYG{o}{|} \PYG{k+kt}{Tuple} \PYG{p}{[}\PYG{k+kt}{Expr}\PYG{p}{]}
+          \PYG{o}{|} \PYG{k+kt}{App} \PYG{k+kt}{Name} \PYG{p}{[}\PYG{k+kt}{Expr}\PYG{p}{]}
+          \PYG{o}{|} \PYG{k+kt}{Binop} \PYG{k+kt}{Op} \PYG{k+kt}{Expr} \PYG{k+kt}{Expr}
+          \PYG{o}{|} \PYG{k+kt}{Let} \PYG{k+kt}{Name} \PYG{k+kt}{Expr} \PYG{k+kt}{Expr}
+          \PYG{o}{|} \PYG{k+kt}{If} \PYG{k+kt}{Expr} \PYG{k+kt}{Expr} \PYG{k+kt}{Expr}
+          \PYG{o}{|} \PYG{k+kt}{While} \PYG{k+kt}{Expr} \PYG{k+kt}{Expr}
+\end{Verbatim}

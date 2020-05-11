@@ -1,0 +1,27 @@
+-- Lesson 4: We use loops and a built-in board function
+-- This is a game in which a user places "P" pieces on a board until they
+-- get three in a row.
+    
+game InARow 
+
+type Board = Array (5,5) of {P, Empty} 
+type Input = (Int, Int)
+
+type Player = {P}
+
+board : Board 
+board!(x, y) = Empty
+
+-- Loops in this language are strange. 
+-- For now note:
+--    They have to be in the body of a wrapper function with type T -> T
+--    The condition (between while and do) must evaluate to a boolean. 
+--    The body (after do) must have a type T -> T
+--
+-- If these stipulations seem strange, think of them as recursion.
+-- The base case is triggered on a false result in the condition. 
+loop : (Player, Board) -> (Player, Board)
+loop(p, b) = while less(countRow(p, b), 3) do (p, place(p, b, input(b)))
+
+play : Board -> {Finished} 
+play(b) = let pair = loop(P, board) in Finished
