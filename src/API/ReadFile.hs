@@ -8,6 +8,7 @@ module API.ReadFile (handleReadFile) where
 
 import API.JSONData
 import Servant
+import Control.Exception hiding (Handler)
 import Control.Monad.IO.Class
 
 -- | handles reading a file and returning it's
@@ -20,5 +21,7 @@ handleReadFile rf = do
 -- internally attempts to read and return a file
 _handleReadFile :: SpielRead -> IO SpielFile
 _handleReadFile (SpielRead fn) = do
-  contents <- readFile (fn)
-  return (SpielFile fn contents)
+  result <- try $ readFile (fn) :: IO (Either IOException String)
+  case result of
+    Right contents  -> return (SpielFile fn contents)
+    Left _          -> return (SpielFile "0" ("Couldn't find file '" ++ fn ++ "' to read from!"))
