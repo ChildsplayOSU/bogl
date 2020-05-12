@@ -6,12 +6,11 @@ module ParserTests(parserTests, checkParseAllExamples) where
 
 import Test.HUnit
 import Parser.Parser
-import Language.Syntax
 import Language.Types
 import qualified Data.Set as S
 import Text.Parsec.Error
-import System.Directory 
-import System.FilePath  
+import System.Directory
+import System.FilePath
 import Data.Either
 --
 -- exported tests for the Parser
@@ -24,7 +23,9 @@ parserTests = TestList [
   testCheckUpdatedBoard2,
   testRejectBadExprAfterSuccessefulParse,
   testNoRepeatedParamNames,
-  testNoRepeatedMetaVars
+  testNoRepeatedMetaVars,
+  testPreludeStartingWhitespace,
+  testPreludeNoStartingWhitespace
   ]
 
 --
@@ -103,33 +104,59 @@ testParseLongExpr = TestCase (
     (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False))) ())))
 -} -- parsing is a nightmare with annotations...
 
--- relative to top-level spiel directory 
-examplesPath = "examples/" 
-tutorialsPath = examplesPath ++ "tutorials/"  
+-- relative to top-level spiel directory
+examplesPath :: String
+examplesPath = "examples/"
 
--- | Check whether all 
+tutorialsPath :: String
+tutorialsPath = examplesPath ++ "tutorials/"
+
+-- | Check whether all
 checkParseAllExamples :: IO Bool
 checkParseAllExamples = do
     exampleFiles  <- listDirectory examplesPath
-    tutorialFiles <- listDirectory tutorialsPath 
+    tutorialFiles <- listDirectory tutorialsPath
     let fullPaths = (map ((++) examplesPath) exampleFiles) ++ (map ((++) tutorialsPath) tutorialFiles)
-    let bglFiles  = filter (isExtensionOf ".bgl") (fullPaths)   
+    let bglFiles  = filter (isExtensionOf ".bgl") (fullPaths)
     putStrLn $ "\n***Parsing***\n"
     mapM putStrLn bglFiles
-    results <- mapM parseGameFile bglFiles 
-    let failures = lefts results 
+    results <- mapM parseGameFile bglFiles
+    let allfailures = lefts results
     putStrLn $ "\n***Failures:***"
-    mapM (putStrLn . (++) "\n" . show) failures
-    return $ null failures 
-    
-testNoRepeatedParamNames :: Test 
-testNoRepeatedParamNames = TestCase $  
-   assertEqual "Test parse error on repeated params" 
-   True 
+    mapM (putStrLn . (++) "\n" . show) allfailures
+    return $ null allfailures
+
+testNoRepeatedParamNames :: Test
+testNoRepeatedParamNames = TestCase $
+   assertEqual "Test parse error on repeated params"
+   True
    (isLeft $ parseLine' equation ("foo(a,a) = a + a"))
-   
+
 testNoRepeatedMetaVars :: Test
-testNoRepeatedMetaVars = TestCase $  
-   assertEqual "Test fail on repeated metavariables" 
-   True 
-   (isLeft $ parseLine' (boardeqn "myBoard") ("myBoard!(x,x) = Empty"))   
+testNoRepeatedMetaVars = TestCase $
+   assertEqual "Test fail on repeated metavariables"
+   True
+   (isLeft $ parseLine' (boardeqn "myBoard") ("myBoard!(x,x) = Empty"))
+
+
+-- | Prelude w/ a comment
+prelude_with_comment :: String
+prelude_with_comment = "--comment at start\nadecl : Int\nadecl = 10\n--another comment\ndecl2 : Int\ndecl2=0"
+
+-- | Tests parsing a prelude with starting whitespace
+testPreludeStartingWhitespace :: Test
+testPreludeStartingWhitespace = TestCase $
+   assertEqual "Test fail on prelude w/ comment at the start"
+   True
+   (isRight $ parseAll prelude "" prelude_with_comment)
+
+-- | Prelude w/out a comment
+prelude_no_comment :: String
+prelude_no_comment = "ddecl : Int\nddecl = 51\n\n"
+
+-- | Tests parsing a prelude w/out starting whitespace
+testPreludeNoStartingWhitespace :: Test
+testPreludeNoStartingWhitespace = TestCase $
+   assertEqual "Test fail on prelude w/out whitespace"
+   True
+   (isRight $ parseAll prelude "" prelude_no_comment)

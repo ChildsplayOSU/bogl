@@ -1,6 +1,6 @@
 -- | Parser for BOGL
 
-module Parser.Parser (parseLine, parseGameFile, parsePreludeAndGameFiles, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, Parser) where
+module Parser.Parser (parseLine, parseGameFile, parsePreludeAndGameFiles, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, prelude, Parser) where
 
 import Parser.ParseError
 import Language.Syntax hiding (input, board)
@@ -325,6 +325,10 @@ input =
 
 typesyn = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn))
 
+-- | Prelude definition
+prelude :: Parser([(Maybe (ValDef SourcePos))])
+prelude = whiteSpace *> many decl
+
 -- | Game definition
 game :: [ValDef SourcePos] -> Parser (Game SourcePos)
 game vs =
@@ -352,7 +356,7 @@ parsePreludeAndGameFiles :: String -> String -> IO (Either ParseError (Game Sour
 parsePreludeAndGameFiles p f = do
   exists <- doesFileExist p
   prel <- if exists
-            then Parser.Parser.parseFromFile (whiteSpace *> many decl) p
+            then Parser.Parser.parseFromFile prelude p
             else return $ fail (p++" does not exist")
   case prel of
    Right x -> Parser.Parser.parseFromFile (game (catMaybes x)) f
