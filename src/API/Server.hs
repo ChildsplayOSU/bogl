@@ -71,7 +71,7 @@ curl --verbose --request POST --header "Content-Type: application/json" --data '
 curl --verbose --request POST --header "Content-Type: application/json" --data '{"fileName":"TEST_FILE","content":"2 + 3 * 3"}' http://localhost:8080/save
 
 > /runCode
-curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"...LITERAL FILE CONTENTS HERE...","input":2","buffer":[],"prelude":"Prelude.bglp"}' http://localhost:8080/runCmds
+curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"game Test\ntype Board = Array (10,10) of Int\ntype Input = Int\nhello : Int\nhello = 32","prelude":"testVal : Int\ntestVal = 2","input":"hello","buffer":[]}' http://localhost:8080/runCmds
 
 > /read
 curl --verbose --request POST --header "Content-Type: application/json" --data '{"path":"examples/TicTacToe"}' http://localhost:8080/read

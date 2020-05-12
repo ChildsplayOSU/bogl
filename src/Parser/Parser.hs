@@ -353,7 +353,7 @@ parsePreludeAndGameFiles p f = do
   exists <- doesFileExist p
   prel <- if exists
             then Parser.Parser.parseFromFile (many decl) p
-            else return $ fail "Prelude.bglp does not exist"
+            else return $ fail (p++" does not exist")
   case prel of
    Right x -> Parser.Parser.parseFromFile (game (catMaybes x)) f
    Left err -> return $ Left err
