@@ -12,6 +12,7 @@ import Text.Parsec.Error
 import System.Directory
 import System.FilePath
 import Data.Either
+import Text.Parsec
 --
 -- exported tests for the Parser
 --
@@ -22,11 +23,16 @@ parserTests = TestList [
   testCheckUpdatedBoard,
   testCheckUpdatedBoard2,
   testRejectBadExprAfterSuccessefulParse,
+  testParseShortDecl,
+  testParseBoardDecl,
+  testParseTypeSynAndDecl,
   testNoRepeatedParamNames,
   testNoRepeatedMetaVars,
   testPreludeStartingWhitespace,
   testPreludeNoStartingWhitespace,
-  testParseRawPreludeAndGamefile
+  testParseRawPreludeAndGamefile,
+  testDoubleBoardDeclarations,
+  testInvalidBoardDeclaration
   ]
 
 --
@@ -81,29 +87,58 @@ testRejectBadExprAfterSuccessefulParse = TestCase (
   True
   (isLeft $ parseLine' expr "40 + 2life,the universe, and everything"))
 
-{-
--- |
-ex1 :: String
-ex1 = "isValid : (Board, Position) -> Bool\n  isValid(b,p) = if b(p) == Empty then True else False"
-
+{-- (vestige from old tests)
 ex2 = "outcome : (Board,Player) -> Player|Tie \
 \ outcome(b,p) = if inARow(3,A,b) then A else \
                 \ if inARow(3,B,b) then B else \
                 \ if isFull(b)     then Tie"
 --}
 
--- testing long expression
-{-
-testParseLongExpr :: Test
-testParseLongExpr = TestCase (
-  assertEqual "Testing parsing of long expression"
+-- | Hello Int declaration
+ex0 :: String
+ex0 = "hello : Int\nhello = 24"
+
+-- |Tests parsing a simple declaration
+testParseShortDecl :: Test
+testParseShortDecl = TestCase (
+  assertEqual("Testing parsing of a short declaration")
   True
+  (isRight $ parseAll valdef "" ex0)
+  )
+
+-- | Simple board decl
+ex1 :: String
+ex1 = "b : Board\nb!(x,y)=0\nb!(1,1)=1"
+
+-- |Tests parsing a board decl
+testParseBoardDecl :: Test
+testParseBoardDecl = TestCase (
+  assertEqual "Testing parsing of board declaration"
+  True
+  (isRight $ parseAll valdef "" ex1)
+  )
+
+-- | type syn followed by var decl
+ex4 :: String
+ex4 = "type TestType = {AnotherType}\ntestThis : TestType\ntestThis = AnotherType"
+
+-- |Tests parsing a type declaration followed by variable declaration
+testParseTypeSynAndDecl :: Test
+testParseTypeSynAndDecl = TestCase (
+  assertEqual("Testing parsing of a type synononym followed by a declaration")
+  True
+  (isRight $ parseAll (typesyn *> many decl) "" ex4)
+  )
+
+  {-- (vestige from old tests)
   (() <$ parseAll valdef "" ex1 ==
     Right (Val (Sig "isValid" (Function
       (Ft (Tup [X Board S.empty, X Position S.empty]) (X Booltype S.empty))
     )) (Feq "isValid" (Pars ["b", "p"])
     (If (Binop Equiv (App "b" [Ref "p"]) (S "Empty")) (B True) (B False))) ())))
--} -- parsing is a nightmare with annotations...
+    --}
+-- parsing is a nightmare with annotations...
+
 
 -- relative to top-level spiel directory
 examplesPath :: String
@@ -138,7 +173,6 @@ testNoRepeatedMetaVars = TestCase $
    assertEqual "Test fail on repeated metavariables"
    True
    (isLeft $ parseLine' (boardeqn "myBoard") ("myBoard!(x,x) = Empty"))
-
 
 -- | Prelude w/ a comment
 prelude_with_comment :: String
@@ -191,4 +225,28 @@ testParseRawPreludeAndGamefile = TestCase $
   (case parsePreludeFromText rawPrelude of
     Right valdefs -> isRight $ parseGameFromText rawGamecode valdefs
     Left err      -> False
+  )
+
+-- | Double board decl
+ex2 :: String
+ex2 = "b : Board\nb!(x,y)=0\nb!(1,1)=1\nb2 : Board\nb2!(x,y)=0"
+
+-- |Tests one board declaration after another with a similar name
+testDoubleBoardDeclarations :: Test
+testDoubleBoardDeclarations = TestCase (
+  assertEqual "Test valid double board declarations"
+  True
+  (isRight $ parseAll (many decl) "" ex2)
+  )
+
+-- | Single bad board decl
+ex3 :: String
+ex3 = "b : Board\nb!(x,y)=0\nb2!(1,1)=1\nb!(0,0)=1"
+
+-- |Tests a bad board declaration, with an incorrect name in the middle
+testInvalidBoardDeclaration :: Test
+testInvalidBoardDeclaration = TestCase (
+  assertEqual "Test valid double board declarations"
+  False
+  (isRight $ parseAll (many decl) "" ex3)
   )

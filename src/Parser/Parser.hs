@@ -1,6 +1,7 @@
 -- | Parser for BOGL
 
-module Parser.Parser (parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameFiles, parsePreludeAndGameText, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, Parser) where
+module Parser.Parser (parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameFiles, parsePreludeAndGameText, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, decl, typesyn, Parser) where
+
 
 import Parser.ParseError
 import Language.Syntax hiding (input, board)
@@ -202,7 +203,7 @@ position =
 -- | Board equations
 boardeqn :: String -> Parser (BoardEq SourcePos)
 boardeqn n = do
-   name <- string n <* (lexeme ((lexeme (char '!')) *> char '('))
+   name <- try(string n <* (lexeme ((lexeme (char '!')) *> char '(')))
    xpos <- lexeme position <* lexeme comma
    ypos <- lexeme position <* (lexeme (char ')') <* reservedOp "=")
    case (xpos, ypos) of
