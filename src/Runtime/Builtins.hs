@@ -35,8 +35,8 @@ builtinT = \inputT pieceT -> [
   ("less", Function (Ft (Tup [X Itype S.empty, X Itype S.empty]) (X Booltype S.empty)))
            ]
 
--- places a piece on the board and adds this new board to the buffer so it can be sent to the front
--- end for displaying
+-- | places a piece on a board and also adds this new board to the display buffer.
+--   We only want the latest version of each unique board, so filter out its predecessor.
 place :: [Val] -> Eval Val
 place = \[v, Vboard arr, Vt [Vi x, Vi y]] -> do
    let b = Vboard $ arr // [((x,y), v)]

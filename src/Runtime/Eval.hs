@@ -33,13 +33,13 @@ bindings sz vs = e
 bindings_ x y = (fst . runWriter) (bindings x y)
 
 bind :: (ValDef a) -> (Name, Eval Val)
-bind (Val _ (Veq n e) _) = (n, eval' e)
+bind (Val _ (Veq n e) _) = (n, eval e)
 bind  (Val _ (Feq n (Pars ls) e) _) = (n, do
                                         env <- getEnv
                                         return $ Vf ls env (clearAnn e))
 bind (BVal (Sig n _) defs _) = (n, do
       sz <- getBounds
-      values <- mapM (eval' . boardExpr) defs
+      values <- mapM (eval . boardExpr) defs
       maybeBoard <- lookupName n
       case maybeBoard of
          Nothing         -> return $ Vboard (fill (newBoard sz) sz defs values)
@@ -70,8 +70,8 @@ evalBinOp Div l r   = evalNumOp div l r
 evalBinOp Mod l r   = evalNumOp mod l r
 evalBinOp Equiv l r = evalEquiv l r
 evalBinOp Get l r   = do
-                        board <- eval' l
-                        pos   <- eval' r
+                        board <- eval l
+                        pos   <- eval r
                         case (board, pos) of
                            (Vboard arr, Vt [Vi x, Vi y]) -> return $ arr ! (x,y)
                            _ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
@@ -80,36 +80,30 @@ evalBinOp Get l r   = do
 -- | evaluates the == operation
 evalEquiv :: (Expr a) -> (Expr a) -> Eval Val
 evalEquiv l r = do
-                  v1 <- eval' l
-                  v2 <- eval' r
+                  v1 <- eval l
+                  v2 <- eval r
                   return $ Vb (v1 == v2)
 
 -- | evaluates numerical operations
 evalNumOp :: (Int -> Int -> Int) -> (Expr a) -> (Expr a) -> Eval Val
 evalNumOp f l r = do
-                     v1 <- eval' l
-                     v2 <- eval' r
+                     v1 <- eval l
+                     v2 <- eval r
                      case (v1, v2) of
                         (Vi l', Vi r') -> return (Vi (f l' r'))
                         _ -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
 
-eval :: (Expr a) -> Eval ([Val], Val)
-eval expr = do
-   v <- eval' expr
-   (_, boards) <- get
-   return (boards, v)
+eval :: (Expr a) -> Eval Val
+eval (Annotation a e) = eval e
+eval (I i) = return $ Vi i
 
-eval' :: (Expr a) -> Eval Val
-eval' (Annotation a e) = eval' e
-eval' (I i) = return $ Vi i
+eval (B b) = return $ Vb b
 
-eval' (B b) = return $ Vb b
+eval (S s) = return $ Vs s
 
-eval' (S s) = return $ Vs s
+eval (Tuple es) = mapM eval es >>= (return . Vt)
 
-eval' (Tuple es) = mapM eval' es >>= (return . Vt)
-
-eval' (Ref n) = do
+eval (Ref n) = do
   e <- lookupName n
   let b = lookup n builtinRefs
   case (e, b) of
@@ -117,13 +111,13 @@ eval' (Ref n) = do
         (_, Just v) -> v
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 
-eval' (App n es) = do
-  args <- eval' es >>= \x -> case x of
+eval (App n es) = do
+  args <- eval es >>= \x -> case x of
     (Vt [Vt args]) -> return args
     (Vt args) -> return args
   f <- lookupName n
   case f of
-    Just (Vf params env' e) -> extScope (zip params (args) ++ env') (eval' e) -- ++ env?
+    Just (Vf params env' e) -> extScope (zip params (args) ++ env') (eval e) -- ++ env?
     Nothing -> case lookup n builtins of
       Just f -> do
         (f (args))
@@ -133,47 +127,43 @@ eval' (App n es) = do
     vals ((Vt xs):ys) = xs ++ (vals ys)
     vals (x:xs) = x : vals xs
 
-eval' (Let n e1 e2) = do
-  v <- eval' e1
-  extScope (pure (n, v)) (eval' e2)
+eval (Let n e1 e2) = do
+  v <- eval e1
+  extScope (pure (n, v)) (eval e2)
 
-eval' (If p e1 e2) = do
-  b <- unpackBool <$> (eval' p)
-  if b then eval' e1 else eval' e2
+eval (If p e1 e2) = do
+  b <- unpackBool <$> (eval p)
+  if b then eval e1 else eval e2
 
-eval' (Binop op e1 e2) = evalBinOp op e1 e2
+eval (Binop op e1 e2) = evalBinOp op e1 e2
 
-eval' (While c b names exprs) = do
-   c' <- unpackBool <$> eval' c   -- evaluate the condition
+eval (While c b names exprs) = do
+   c' <- unpackBool <$> eval c   -- evaluate the condition
    case c' of
       True  -> do
          env <- getEnv                          -- get the current environment
-         result <- eval' b                                       -- evaluate the body
+         result <- eval b                                       -- evaluate the body
          case result of                                         -- update the variables in the environment w/ new values and recurse:
             (Vt vs) -> extScope ((zip names vs) ++ env) recurse
             r       -> extScope ((head names, r) : env) recurse -- that head should never fail...famous last words
       False -> do
-        e <- eval' exprs
+        e <- eval exprs
         return e
    where
-      recurse = eval' (While c b names exprs)
+      recurse = eval (While c b names exprs)
 
-eval' (HE n) = err ("Type hole: ")
--- | Run an 'Expr' in the given 'Env' and display the result
---
--- >>> run [] (I 2)
--- 2
---
--- >>> run [] (Tuple [I 2, I 3, I 4])
--- 2 3 4
---
--- >>> run [] (Let "x" (I 2) (Ref "x"))
--- 2
+eval (HE n) = err ("Type hole: ")
 
 runWithBuffer :: Env -> Buffer -> (Expr SourcePos) -> Either ([Val], Buffer) ([Val], Val)
 runWithBuffer env buf e = do
-  let v = runEval env buf (eval e) in
+  let v = runEval env buf (eval' e) in
     case v of
       Left (NeedInput bs) -> Left (bs, buf)
       Right (boards, val) -> Right (boards, val)
       Left (Error e) -> Right $ ([], Err e) -- not good
+   where
+      eval' :: (Expr a) -> Eval ([Val], Val)
+      eval' expr = do
+         v <- eval expr
+         (_, boards) <- get
+         return (boards, v)
