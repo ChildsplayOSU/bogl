@@ -34,7 +34,7 @@ data ParState = PS {
   syn :: [(Name, Xtype)]
                    }
 -- | A parse context with builtins
-startState = PS Nothing ("", []) (map fst builtins) []
+startState = PS Nothing ("", []) (map fst builtins ++ map fst builtinRefs) []
 
 type Parser = Parsec String (ParState)
 
@@ -83,16 +83,18 @@ putType t = do
 types = ["Bool", "Int", "AnySymbol", "Input", "Board"]
 
 -- | The lexer, using the reserved keywords and operation names
-lexer = P.makeTokenParser (haskellStyle {P.reservedNames = ["True", "False",
-                                                            "let", "in", "if", "then", "else",
-                                                            "while", "do", "game", "type", "Array", "of", "case", "type"
-                                                            ] ++ types,
-                                        P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "{", "}"]})
+lexer = P.makeTokenParser (haskellStyle {P.reservedNames =
+   ["True", "False",
+    "let", "in", "if", "then", "else",
+    "while", "do", "game", "type", "Array", "of", "case", "type"
+    ] ++ types,
+    P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "{", "}"]})
 
 -- | Operators (might want to fix the order of operations)
 operators = [
              [op "!" (Binop Get) AssocLeft],
-             [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "mod" (Binop Mod) AssocLeft],
+             [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft,
+               op "mod" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
              [op "==" (Binop Equiv) AssocLeft]
             ]

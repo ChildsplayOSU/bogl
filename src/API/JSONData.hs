@@ -49,8 +49,8 @@ instance FromJSON Val where
   parseJSON (Object v) = do
     t <- v .: "input"
     case parseLine t of
-      Right x -> case runWithBuffer (emptyEnv (0,0)) [] x of
-        Right v' -> return v'
+      Right x -> case runWithBuffer (emptyEnv (0,0)) ([], []) x of
+        Right (_, v') -> return v'
         Left err -> fail "failed to parse..." -- FIXME
       Left err -> fail "failed to parse..."
   parseJSON _ = fail "FAILURE?"
@@ -75,12 +75,15 @@ type LineNum = Int
 type ColNum  = Int
 type FileName= String
 
+-- a buffer of boards which should be printed with the value of executing the expression
+type BufferedBoards = [Val]
+type ExecutionValue = Val
 
 -- | Represents possible response categories from the server
 -- These are then parsed accordingly on the front-end
 data SpielResponse =
-  -- represents a prompt for input.
-  SpielPrompt Val |
+  -- represents a prompt for input and buffered boards
+  SpielPrompt [Val] |
   -- represents a win/lose result
   SpielGameResult String |
   -- represents a type error
@@ -88,7 +91,7 @@ data SpielResponse =
   -- represents a parse error
   SpielParseError LineNum ColNum FileName Message |
   -- represents a runtime error in spiel
-  SpielValue Val |
+  SpielValue BufferedBoards ExecutionValue |
   SpielTypeHole LineNum ColNum Xtype | -- ^ represents a typed hole that can be filled
   SpielError String | -- ^ fallback standard error, something went wrong in spiel
   SpielRuntimeError String |
@@ -107,7 +110,7 @@ instance Show SpielResponse where
   show (SpielParseError ln cn fn m)     = "{tag: \"parseError\", lineNum: "++show ln++", colNum: "++ show cn ++", fileName: \""++ fn ++"\", message: \""++ m ++"\"}"
   -- shows a runtime error in spiel
   -- show a spiel value
-  show (SpielValue m)                   = show m
+  show (SpielValue bs v)                = show bs ++ " " ++ show v
   -- show a typed hole
   -- TODO this one needs cleaning up
   show (SpielTypeHole m x y)            = show m
