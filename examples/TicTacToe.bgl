@@ -1,7 +1,7 @@
 game TicTacToe
 
 type Player = {X, O}
-type Position = (Int,Int) 
+type Position = (Int,Int)
 
 -- Board and input type definitions
 --
@@ -34,7 +34,7 @@ isValid(b,p) = if b ! p == Empty then True else False
 -- Game loop
 --
 tryMove : (Player,Board) -> (Player, Board)
-tryMove(p,b) = let pos = input(b) in
+tryMove(p,b) = let pos = input in
                    if isValid(b,pos) then (next(p), place(p,b,pos))
                                      else (p, b)
 

@@ -1,2 +1,0 @@
-helloFromPrelude : Int
-helloFromPrelude = 100

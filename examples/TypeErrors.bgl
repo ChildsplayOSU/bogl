@@ -1,3 +1,4 @@
+-- A game with intentional type errors.
 game TypeErrors
 
 type Board = Array(1,1) of {X, O}

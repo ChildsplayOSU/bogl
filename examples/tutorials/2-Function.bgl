@@ -1,10 +1,10 @@
--- Lesson 2: A slightly more exciting game. We call a function to play the game. 
-   
-game Two 
+-- Lesson 2: A slightly more exciting game. We call a function to play the game.
 
-type Player = {Player1, Player2} 
+game Two
 
--- Arbitrary Board/Input; they do not matter for this game. 
+type Player = {Player1, Player2}
+
+-- Arbitrary Board/Input; they do not matter for this game.
 type Board = Array (1,1) of Bool
 type Input = Bool
 
