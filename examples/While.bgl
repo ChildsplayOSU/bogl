@@ -1,25 +1,25 @@
-game While 
+game While
 
 type Board = Array(3,3) of AnySymbol
-type Input = Int 
+type Input = Int
 
 lessThanTen : Int -> Bool
 lessThanTen(x) = less(x, 10)
 
-weirdAdd : (Int, Int) -> (Int, Int) 
-weirdAdd(x,y) = (x + y, y) 
+weirdAdd : (Int, Int) -> (Int, Int)
+weirdAdd(x,y) = (x + y, y)
 
-namedWhileStep : (Int, Int) -> (Int, Int) 
-namedWhileStep(x, step) = while lessThanTen(x) do weirdAdd(x, step) 
+namedWhileStep : (Int, Int) -> (Int, Int)
+namedWhileStep(x, step) = while lessThanTen(x) do weirdAdd(x, step)
 
-succ : Int -> Int 
-succ(n) = n + 1 
+succ : Int -> Int
+succ(n) = n + 1
 
-inf : Int -> Int 
-inf(n) = while True do succ(n) 
+inf : Int -> Int
+inf(n) = while True do succ(n)
 
-identity : Int -> Int 
-identity(n) = while False do succ(n) 
+identity : Int -> Int
+identity(n) = while False do succ(n)
 
 incr : Int -> Int
 incr(x) = x + 1

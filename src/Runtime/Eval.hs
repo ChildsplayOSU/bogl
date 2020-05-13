@@ -14,6 +14,7 @@ import Data.List
 import Data.Either
 
 import Control.Monad.Writer
+import Control.Monad.State
 
 import Text.Parsec.Pos
 
@@ -23,7 +24,7 @@ import Debug.Trace
 bindings :: (Int, Int) -> [ValDef a] -> Writer [Exception] Env
 bindings sz vs = e
   where
-    e = foldM (\env (n, v) -> case runEval env [] v of
+    e = foldM (\env (n, v) -> case runEval env ([], []) v of
                                 Right v' -> return $ modifyEval ((n, v'):) env
                                 Left err -> (tell [err]) >> return env)
         (emptyEnv sz)
@@ -104,8 +105,10 @@ eval (Tuple es) = mapM eval es >>= (return . Vt)
 
 eval (Ref n) = do
   e <- lookupName n
-  case e of
-        Just v -> return $ v
+  let b = lookup n builtinRefs
+  case (e, b) of
+        (Just v, _) -> return $ v
+        (_, Just v) -> v
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 
 eval (App n es) = do
@@ -150,21 +153,17 @@ eval (While c b names exprs) = do
       recurse = eval (While c b names exprs)
 
 eval (HE n) = err ("Type hole: ")
--- | Run an 'Expr' in the given 'Env' and display the result
---
--- >>> run [] (I 2)
--- 2
---
--- >>> run [] (Tuple [I 2, I 3, I 4])
--- 2 3 4
---
--- >>> run [] (Let "x" (I 2) (Ref "x"))
--- 2
 
-runWithBuffer :: Env -> Buffer -> (Expr SourcePos) -> Either (Val, Buffer) Val
+runWithBuffer :: Env -> Buffer -> (Expr SourcePos) -> Either ([Val], Buffer) ([Val], Val)
 runWithBuffer env buf e = do
-  let v = runEval env buf (eval e) in
+  let v = runEval env buf (eval' e) in
     case v of
-      Left (NeedInput b) -> Left (b, buf)
-      Right val -> Right val
-      Left (Error e) -> Right $ Err e -- not good
+      Left (NeedInput bs) -> Left (bs, buf)
+      Right (boards, val) -> Right (boards, val)
+      Left (Error e) -> Right $ ([], Err e) -- not good
+   where
+      eval' :: (Expr a) -> Eval ([Val], Val)
+      eval' expr = do
+         v <- eval expr
+         (_, boards) <- get
+         return (boards, v)

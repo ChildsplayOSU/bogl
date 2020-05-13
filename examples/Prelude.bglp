@@ -1,7 +1,0 @@
---
--- Prelude.bglp
--- A prelude is automatically loaded in advance of loading a Game file.
--- This file includes definitions that can be used in the Game file.
---
-helloFromPrelude : Int
-helloFromPrelude = 100

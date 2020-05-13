@@ -32,11 +32,14 @@ emptyEnv x = Env [] x
 modifyEval :: (EvalEnv -> EvalEnv) -> Env -> Env
 modifyEval f (Env e b) = Env (f e) b
 
--- | Input buffer
-type Buffer = [Val]
+-- | Input buffer and display buffer.
+--   The display buffer stores all boards which are to be printed on the front end after an
+--   expression is evaluated.
+type Buffer = ([Val], [Val])
+
 -- | Exceptions
 data Exception =
-  NeedInput Val | -- ^ Ran out of input, and here's the current board
+  NeedInput [Val] | -- ^ Ran out of input and here's the buffered display boards
   Error String -- ^ Encountered a runtime error (shouldn't ever happen)
   deriving (Eq, Show)
 
@@ -61,19 +64,19 @@ lookupName n = do
     Nothing -> return Nothing
 
 -- | Ask for input, displaying a value to the user
-waitForInput :: Val -> Eval a
-waitForInput v = throwError (NeedInput v)
+waitForInput :: [Val] -> Eval a
+waitForInput vs = throwError (NeedInput vs)
 
 err :: String -> Eval a
 err n = throwError (Error n)
 
 -- | Read input
-readTape :: Val -> Eval (Val)
-readTape v = do
-  tape <- get
+readTape :: Eval Val
+readTape = do
+  (tape, boards) <- get
   case tape of
-    (x:xs) -> (put xs) >> return x
-    [] -> waitForInput v
+    (x:xs) -> (put (xs, boards)) >> return x
+    [] -> waitForInput boards
 
 -- | Helper function to get the Bool out of a value. This is a partial function.
 unpackBool :: Val -> Bool

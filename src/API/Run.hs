@@ -43,7 +43,7 @@ _handleParsed (SpielCommand _ gameFile inpt buf) parsed = do
     Right game -> do
       let checked = tc game
       if success checked
-        then return $ [SpielTypes (rtypes checked), (serverRepl game gameFile inpt buf)]
+        then return $ [SpielTypes (rtypes checked), (serverRepl game gameFile inpt (buf, []))]
         else return $ SpielTypes (rtypes checked) : map (SpielTypeError . snd) (errors checked)
     Left err -> do
       let position = errorPos err
@@ -54,7 +54,7 @@ _handleParsed (SpielCommand _ gameFile inpt buf) parsed = do
 
 
 -- |Handles running a command in the repl from the server
-serverRepl :: (Game SourcePos) -> String -> String -> [Val] -> SpielResponse
+serverRepl :: (Game SourcePos) -> String -> String -> ([Val], [Val]) -> SpielResponse
 serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
   case parseLine inpt of
     Right x -> do
@@ -63,10 +63,10 @@ serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
           case runWithBuffer (bindings_ (szx, szy) vs) buf x of
 
             -- program terminated normally with a value
-            Right (val) -> SpielValue val
+            Right (bs, val) -> SpielValue bs val
 
-            -- board and tape returned, returns the board for displaying on the frontend
-            Left (v, _) -> SpielPrompt v
+            -- boards and tape returned, returns the boards for displaying on the frontend
+            Left (bs, _) -> SpielPrompt bs
 
             -- runtime error encountered
             Left err -> SpielRuntimeError (show err)
