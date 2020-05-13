@@ -1,6 +1,6 @@
 -- | Parser for BOGL
 
-module Parser.Parser (parseLine, parseGameFile, parsePreludeAndGameFiles, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, prelude, Parser) where
+module Parser.Parser (parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameFiles, parsePreludeAndGameText, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, Parser) where
 
 import Parser.ParseError
 import Language.Syntax hiding (input, board)
@@ -341,9 +341,16 @@ parseAll :: Parser a -> String -> String -> Either ParseError a
 parseAll p s = runParser (p <* eof) startState s
 
 -- | Read from the file, and parse
+parseFromFile :: Parser a -> FilePath -> IO (Either ParseError a)
 parseFromFile p fname = do
   input <- readFile fname
   return (parseAll p fname input)
+
+-- | Parse from text directly w/out a file
+-- Still takes a file name so as to provide a reasonable debug message if parsing fails
+-- This will likely be something general, such as 'Prelude' or 'Gamefile'
+parseFromText :: Parser a -> String -> String -> Either ParseError a
+parseFromText p fn content = parseAll p fn content
 
 parseLine :: String -> Either ParseError (Expr SourcePos)
 parseLine = parseAll expr ""
@@ -351,7 +358,7 @@ parseLine = parseAll expr ""
 parseGameFile :: String -> IO (Either ParseError (Game SourcePos))
 parseGameFile = parseFromFile (game [])
 
--- | Parse a game file, displaying an error if there's a problem (used in repl)
+-- | Parse a prelude and game from file content displaying an error if there's a problem (used in repl)
 parsePreludeAndGameFiles :: String -> String -> IO (Either ParseError (Game SourcePos))
 parsePreludeAndGameFiles p f = do
   exists <- doesFileExist p
@@ -361,3 +368,22 @@ parsePreludeAndGameFiles p f = do
   case prel of
    Right x -> Parser.Parser.parseFromFile (game (catMaybes x)) f
    Left err -> return $ Left err
+
+
+-- | Parse the prelude from text
+parsePreludeFromText :: String -> Either ParseError [Maybe (ValDef SourcePos)]
+parsePreludeFromText content = parseFromText prelude "Prelude" content
+
+-- | Parse a game from text and a list of possible valdefs
+-- This list of possible valdefs can be obtained by parsing a prelude first, and unpacking the maybe result
+-- Such as in the case of the function above 'parsePreludeFromtext'
+parseGameFromText :: String -> [Maybe (ValDef SourcePos)] -> Either ParseError (Game SourcePos)
+parseGameFromText content possibleValdefs = parseFromText (game (catMaybes possibleValdefs)) "Gamefile" content
+
+-- | Parse a prelude and game from text directly, without a file
+parsePreludeAndGameText :: String -> String -> IO (Either ParseError (Game SourcePos))
+parsePreludeAndGameText preludeContent gameFileContent = do
+  prel <- return (parsePreludeFromText preludeContent)
+  case prel of
+    Right possibleValdefs -> return (parseGameFromText gameFileContent possibleValdefs)
+    Left err              -> return $ Left err

@@ -25,7 +25,8 @@ parserTests = TestList [
   testNoRepeatedParamNames,
   testNoRepeatedMetaVars,
   testPreludeStartingWhitespace,
-  testPreludeNoStartingWhitespace
+  testPreludeNoStartingWhitespace,
+  testParseRawPreludeAndGamefile
   ]
 
 --
@@ -148,7 +149,7 @@ testPreludeStartingWhitespace :: Test
 testPreludeStartingWhitespace = TestCase $
    assertEqual "Test fail on prelude w/ comment at the start"
    True
-   (isRight $ parseAll prelude "" prelude_with_comment)
+   (isRight $ parsePreludeFromText prelude_with_comment)
 
 -- | Prelude w/out a comment
 prelude_no_comment :: String
@@ -159,4 +160,35 @@ testPreludeNoStartingWhitespace :: Test
 testPreludeNoStartingWhitespace = TestCase $
    assertEqual "Test fail on prelude w/out whitespace"
    True
-   (isRight $ parseAll prelude "" prelude_no_comment)
+   (isRight $ parsePreludeFromText prelude_no_comment)
+
+
+-- | Raw prelude code for the test below
+rawPrelude :: String
+rawPrelude = "--a prelude\ntestDecl : Int\ntestDecl = 901"
+-- | Raw prelude code for the test below
+rawGamecode :: String
+rawGamecode = "-- a raw gamefile to parse\n\
+\game Gamefile\n\
+\--setting up the type of the board\n\
+\type Board = Array(3,3) of Int\n\
+\--setting up the input type\n\
+\type Input = Int\n\
+\--setting up a type for testing\n\
+\type TestType = {A,B}\n\
+\--setting up a testing function\n\
+\testFunc : TestType -> TestType\n\
+\testFunc(t) = if t == A then B else A\n\
+\"
+
+-- | Tests parsing a raw prelude and game file from text,
+-- without using a file inbetween. This is used for the
+-- /runCode endpoint
+testParseRawPreludeAndGamefile :: Test
+testParseRawPreludeAndGamefile = TestCase $
+  assertEqual "Test unable to parse raw prelude and gamefile text"
+  True
+  (case parsePreludeFromText rawPrelude of
+    Right valdefs -> isRight $ parseGameFromText rawGamecode valdefs
+    Left err      -> False
+  )
