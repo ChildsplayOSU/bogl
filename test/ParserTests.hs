@@ -6,7 +6,6 @@ module ParserTests(parserTests, checkParseAllExamples) where
 
 import Test.HUnit
 import Parser.Parser
-import Language.Syntax
 import Language.Types
 import qualified Data.Set as S
 import Text.Parsec.Error
@@ -29,6 +28,9 @@ parserTests = TestList [
   testParseTypeSynAndDecl,
   testNoRepeatedParamNames,
   testNoRepeatedMetaVars,
+  testPreludeStartingWhitespace,
+  testPreludeNoStartingWhitespace,
+  testParseRawPreludeAndGamefile,
   testDoubleBoardDeclarations,
   testInvalidBoardDeclaration
   ]
@@ -139,7 +141,10 @@ testParseTypeSynAndDecl = TestCase (
 
 
 -- relative to top-level spiel directory
+examplesPath :: String
 examplesPath = "examples/"
+
+tutorialsPath :: String
 tutorialsPath = examplesPath ++ "tutorials/"
 
 -- | Check whether all
@@ -152,10 +157,10 @@ checkParseAllExamples = do
     putStrLn $ "\n***Parsing***\n"
     mapM putStrLn bglFiles
     results <- mapM parseGameFile bglFiles
-    let failures = lefts results
+    let allfailures = lefts results
     putStrLn $ "\n***Failures:***"
-    mapM (putStrLn . (++) "\n" . show) failures
-    return $ null failures
+    mapM (putStrLn . (++) "\n" . show) allfailures
+    return $ null allfailures
 
 testNoRepeatedParamNames :: Test
 testNoRepeatedParamNames = TestCase $
@@ -168,6 +173,59 @@ testNoRepeatedMetaVars = TestCase $
    assertEqual "Test fail on repeated metavariables"
    True
    (isLeft $ parseLine' (boardeqn "myBoard") ("myBoard!(x,x) = Empty"))
+
+-- | Prelude w/ a comment
+prelude_with_comment :: String
+prelude_with_comment = "--comment at start\nadecl : Int\nadecl = 10\n--another comment\ndecl2 : Int\ndecl2=0"
+
+-- | Tests parsing a prelude with starting whitespace
+testPreludeStartingWhitespace :: Test
+testPreludeStartingWhitespace = TestCase $
+   assertEqual "Test fail on prelude w/ comment at the start"
+   True
+   (isRight $ parsePreludeFromText prelude_with_comment)
+
+-- | Prelude w/out a comment
+prelude_no_comment :: String
+prelude_no_comment = "ddecl : Int\nddecl = 51\n\n"
+
+-- | Tests parsing a prelude w/out starting whitespace
+testPreludeNoStartingWhitespace :: Test
+testPreludeNoStartingWhitespace = TestCase $
+   assertEqual "Test fail on prelude w/out whitespace"
+   True
+   (isRight $ parsePreludeFromText prelude_no_comment)
+
+
+-- | Raw prelude code for the test below
+rawPrelude :: String
+rawPrelude = "--a prelude\ntestDecl : Int\ntestDecl = 901"
+-- | Raw prelude code for the test below
+rawGamecode :: String
+rawGamecode = "-- a raw gamefile to parse\n\
+\game Gamefile\n\
+\--setting up the type of the board\n\
+\type Board = Array(3,3) of Int\n\
+\--setting up the input type\n\
+\type Input = Int\n\
+\--setting up a type for testing\n\
+\type TestType = {A,B}\n\
+\--setting up a testing function\n\
+\testFunc : TestType -> TestType\n\
+\testFunc(t) = if t == A then B else A\n\
+\"
+
+-- | Tests parsing a raw prelude and game file from text,
+-- without using a file inbetween. This is used for the
+-- /runCode endpoint
+testParseRawPreludeAndGamefile :: Test
+testParseRawPreludeAndGamefile = TestCase $
+  assertEqual "Test unable to parse raw prelude and gamefile text"
+  True
+  (case parsePreludeFromText rawPrelude of
+    Right valdefs -> isRight $ parseGameFromText rawGamecode valdefs
+    Left err      -> False
+  )
 
 -- | Double board decl
 ex2 :: String
