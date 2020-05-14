@@ -34,8 +34,13 @@ data ParState = PS {
   ids :: [Name],
   syn :: [(Name, Xtype)]
                    }
--- | A parse context with builtins
-startState = PS Nothing ("", []) (map fst builtins ++ map fst builtinRefs) []
+-- | A parse context without builtins (before added (map fst builtins ++ map fst builtinRefs) as 2nd arg)
+-- By not passing in the names of the builtins to the parser state, we allow redefining any of the builtin definitions.
+-- Removing hiding/showing builtin definitions is a bit trickier, as they are tightly coupled in with 'builtinT' in Builtins.hs.
+-- This in turn is accessed throughout the typechecker, loading it into the environment, and using it in the Monad.hs file as well.
+-- A fix for this may take some hard rewiring of the typechecker, or a clever solution, but for now leaving it alone.
+-- @montymxb
+startState = PS Nothing ("", []) [] []
 
 type Parser = Parsec String (ParState)
 
