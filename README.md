@@ -1,5 +1,11 @@
 # Spiel Lang
 
+## What is Spiel Lang?
+
+Spiel Lang is a domain specific teaching language for teaching young students algorithms. It serves as a simple first step language into computer science.
+
+![The Spiel online tool.](../imgs/ex2.png)
+
 ## Using it Now
 
 If you are have access to OSU's network or VPN, [you can check out Spiel Lang for yourself here](access.engr.orst.edu:5168/). Just make sure you have your VPN connected first. We are currently working on making a version available on a small AWS box, that will be added soon.
@@ -7,10 +13,6 @@ If you are have access to OSU's network or VPN, [you can check out Spiel Lang fo
 ## About
 
 Spiel Lang is an Oregon State University capstone project designed and developed from 2019-2020 by Alex Grejuc, Calvin Gagliano, Kai Gay, and Benjamin Friedman, at the behest of Professor Martin Erwig.
-
-### What is Spiel Lang?
-
-Spiel Lang is a domain specific teaching language for teaching young students algorithms. It serves as a simple first step language into computer science.
 
 ### Why Spiel Lang?
 

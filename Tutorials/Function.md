@@ -86,4 +86,4 @@ play(P1)
 ```
 Or we could do `P2` if we wanted. But whichever player we pick, we should see the other one win. If so then you've finished this tutorial! As always take a moment to go back over the concepts and think about what you've picked up so far.
 
-[Next, we'll talk about taking input into our programs](Input)
+[Next, we'll talk about taking input into our programs.](Input)
