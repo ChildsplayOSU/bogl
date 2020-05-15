@@ -1,7 +1,0 @@
-\contentsline {section}{\numberline {1}Project Recap}{2}{section.1}
-\contentsline {section}{\numberline {2}Project Status}{2}{section.2}
-\contentsline {section}{\numberline {3}Outstanding Work}{2}{section.3}
-\contentsline {section}{\numberline {4}Project Impediments}{3}{section.4}
-\contentsline {section}{\numberline {5}Code Selections}{4}{section.5}
-\contentsline {section}{\numberline {6}Research Results}{6}{section.6}
-\contentsline {section}{References}{6}{section*.3}
