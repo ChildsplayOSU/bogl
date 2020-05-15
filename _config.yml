@@ -13,9 +13,9 @@ include:
   - CONTRIBUTING.md
   - README.md
   - LICENSE.md
-  - INSTALLATION.md
-  - ABOUT.md
-  - Tutorials/INDEX.md
+  - Installation.md
+  - About.md
+  - Tutorials/index.md
   - COPYING.md
   - CODE_OF_CONDUCT.md
   - CONTRIBUTING.md
