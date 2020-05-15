@@ -6,4 +6,4 @@ For this tutorial we'll go over how to handle input into a program. If you've be
 
 ....INPUT TODO needs to be finished....
 
-[Next, describing a game for items that are in a row](InARow).
+[Next, describing a game for items that are in a row.](InARow)
