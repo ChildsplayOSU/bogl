@@ -1,4 +1,7 @@
-# Spiel-Lang
+
+# Spiel Lang
+
+If you are have access to OSU's network or VPN, you can check out Spiel Lang for yourself [here](access.engr.orst.edu:5168/).
 
 ## Spiel is an implementation of an interpreter for the BoGL teaching language intended to model the domain of board game specification for use in middle school computer science and software engineering education  
 
