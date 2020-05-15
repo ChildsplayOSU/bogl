@@ -1,6 +1,6 @@
 ## Using it Now
 
-If you are have access to OSU's network or VPN, you can check out Spiel Lang for yourself [here](access.engr.orst.edu:5168/). Just make sure you have your VPN connected first.
+If you are have access to OSU's network or VPN, [you can check out Spiel Lang for yourself here](access.engr.orst.edu:5168/). Just make sure you have your VPN connected first. We are currently working on making a version available on a small AWS box, that will be added soon.
 
 ## About
 
