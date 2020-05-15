@@ -1,6 +1,8 @@
 # Spiel-Lang
 
-## Spiel is an implementation of an interpreter for the BoGL teaching language intended to model the domain of board game specification for use in middle school computer science and software engineering education  
+## Spiel is an implementation of an interpreter for the BoGL teaching language intended to model the domain of board game specification for use in middle school computer science and software engineering education
+
+Please see our website at [https://the-code-in-sheep-s-clothing.github.io/Spiel-Lang/](https://the-code-in-sheep-s-clothing.github.io/Spiel-Lang/) for up to date details on the language, how to get started with it, tutorials, and more.
 
 This is the back end of the implementation which includes the interpreter itself and a server. To actually use the language you need the [front end](https://github.com/The-Code-In-Sheep-s-Clothing/Spiel-Front) which includes an editor and REPL. 
 
@@ -11,5 +13,6 @@ This is the back end of the implementation which includes the interpreter itself
    * These tests can be run with `stack test`
    
    This will put a spielserver executable in your path which the front end can then use. 
+   
 ## Examples 
 To see an example of a program in the language look at the [examples](examples/) directory.
