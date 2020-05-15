@@ -8,7 +8,7 @@ Spiel Lang is a domain specific teaching language for teaching young students al
 
 ## Using it Now
 
-If you have access to OSU's network or VPN, [you can check out Spiel Lang for yourself here](access.engr.orst.edu:5168/). Just make sure you have your VPN connected first. We are currently working on making a version available on a small AWS box, that will be added soon.
+If you have access to OSU's network or VPN, [you can check out Spiel Lang for yourself here](http://access.engr.orst.edu:5168/). Just make sure you have your VPN connected first. We are currently working on making a version available on a small AWS box, that will be added soon.
 
 ## About
 

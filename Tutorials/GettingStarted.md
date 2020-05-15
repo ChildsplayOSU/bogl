@@ -1,6 +1,6 @@
 # 1) Getting Started with Spiel
 
-Getting started with Spiel is straightforward, as you can start coding directly in our [online tool](access.engr.orst.edu:5168/). However this is currently limited to OSU students, staff, and faculty that have access to the OSU network directly or via a VPN.
+Getting started with Spiel is straightforward, as you can start coding directly in our [online tool](http://access.engr.orst.edu:5168/). However this is currently limited to OSU students, staff, and faculty that have access to the OSU network directly or via a VPN.
 
 
 Once you have access to the tool you should see the page as follows:
