@@ -13,9 +13,10 @@ include:
   - CONTRIBUTING.md
   - README.md
   - LICENSE.md
-  - Installation.md
-  - About.md
+  - INSTALLATION.md
+  - ABOUT.md
   - Tutorials/index.md
+  - /Tutorials/GettingStarted.md
   - COPYING.md
   - CODE_OF_CONDUCT.md
   - CONTRIBUTING.md

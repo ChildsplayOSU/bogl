@@ -1,8 +1,30 @@
-# Installation
+# Installing Spiel
 
-1. Install [the haskell tool stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
+Spiel is primarily designed to be used from a web interface, but is also capable of being worked on locally. We would recommend this only for developers who are familiar with the command prompt, a unix shell, and potentially a little bit of Haskell.
 
-   * *optional:* Install [doctest](https://hackage.haskell.org/package/doctest) for haskell to run the test suite
-   * These tests can be run with `stack test`
+## Installation Video
 
-   This will put a spielserver executable in your path which the front end can then use.
+You can watch [this video](https://media.oregonstate.edu/media/0_hxrt5f8y) for a quick tutorial on installing and running Spiel.
+
+## Installation from Existing Package
+
+We have a preconfigured macOS package suitable for testing purposes, you can download [our beta release here](https://github.com/The-Code-In-Sheep-s-Clothing/Spiel-Front/releases/download/beta3/spiel-front-0.1.0.dmg). Note, because it is unsigned you will need to open it via Cmd + Right Click, and select open from the options. If you don't macOS will complain about it not being a legitimate mac app.
+
+A linux package is available, but not yet uploaded.
+
+For Windows you will have to build from source.
+
+## Installation from Source
+1. Install [Stack](https://docs.haskellstack.org/en/stable/README/), which is required for building the language and backend itself.
+2. Install [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) if you don't already have it.
+3. Ensure that you are running a recent version of node by checking `node --version` against the [current node releases](https://nodejs.org/en/).
+3. [Clone the Spiel Front project](https://github.com/The-Code-In-Sheep-s-Clothing/Spiel-Front/). This is the frontend for our language, and will automatically setup the backend (the langauge itself) for you. Without the frontend you will not have an interface by which to interact with the language.
+4. From this project root, run `npm run setup` once. This will clone, build, and install the backend for you.
+5. To start the front-end and back-end servers, you can run `npm run startProduction`. You should have a browser window open up, and you can select the Editor tab to start coding.
+6. From here you can refer back to [our tutorials to get started](/Tutorials/GettingStarted).
+
+## Learn More
+
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+
+To learn React, check out the [React documentation](https://reactjs.org/).
