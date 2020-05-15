@@ -14,6 +14,14 @@ A linux package is available, but not yet uploaded.
 
 For Windows you will have to build from source.
 
+In order to build the backend, please utilize the appropriate release script for the backend. For each platform it is as follows:
+
+- macOS: release_tools/mac/release.sh
+- linux: release_tools/linux/release.sh
+- windows: release_tools/windows/release.sh
+
+Notice that each of these locations contains the last pre-built **spielserver** binary for that platform if you wish to use that instead.
+
 ## Installation from Source
 1. Install [Stack](https://docs.haskellstack.org/en/stable/README/), which is required for building the language and backend itself.
 2. Install [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) if you don't already have it.

@@ -2,10 +2,12 @@
 
 Here is a list of the tutorials in the order that we recommend them.
 
-1. [Getting Started](Tutorials/GettingStarted)
-2. [Intro](Tutorials/Intro)
-3. [The Game](Tutorials/TheGame)
-4. [Your First Function](Tutorials/Function)
-5. [Input](Tutorials/Input)
-6. [In a Row](Tutorials/InARow)
-7. [Board Count](Tutorials/BoardCount)
+1. [Getting Started](GettingStarted)
+2. [Intro](Intro)
+3. [The Game](TheGame)
+4. [Your First Function](Function)
+5. [Input](Input)
+6. [In a Row](InARow)
+7. [Board Count](BoardCount)
+
+You can [learn more about our syntax](../Documentation/Syntax) if you want to look into the structure of the language directly.
