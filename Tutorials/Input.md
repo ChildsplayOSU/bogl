@@ -18,4 +18,11 @@ Now for our input, we're going to clarify that instead of Bool like we wrote for
 type Input = Int
 ```
 
+Also, like before, we're going to declare a type synonym to represent the two players that will be participating in this game
+```
+type Player = {P1,P2}
+```
+
+....TODO....
+
 [Next, describing a game for items that are in a row.](InARow)
