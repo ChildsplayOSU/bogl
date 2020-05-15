@@ -8,10 +8,9 @@ Once you have access to the tool you should see the page as follows:
 
 There are 2 main areas of focus.
 
-The white screen on the left is **Editor**, this is where you can type in your code to run.
+The white screen on the left is **editor**, this is where you can type in your code to run.
 
-The black screen on the right is the **Command Prompt**. This is where you can run your spiel programs, checking the results of your code. You can also get feedback for errors and issues. When you start a game, you will be able to interact with it from this screen as well.
+The black screen on the right is the **REPL** (pronounced reh-pull). REPL stands for read-evaluate-prrint loop. It repeats the process of reading the command you entered (an **expression**), evaluating it, and displaying the result. This is where you can run your spiel programs, and check the results of your code. You can also get feedback for errors and issues. When you start a game, you will be able to interact with it from this screen as well.
 
-In the current iteration there is a Save/Load button at the top with a text field. You will need to first save your program before you can run it in the **Command Prompt**.
-
+You must have a valid program in the editor to be able to enter and run code in the REPL. Any updates you make in the editor on the left will be reflected in the REPL expression you enter afterwards.
 [Next, let's talk about your first Spiel program.](Intro)
