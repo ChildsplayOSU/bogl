@@ -1,6 +1,6 @@
 # 2) Intro
 
-To write your first Spiel Program. We're going to give you a few components to work with, we call this bits **syntax**, or elements of the language. Much like the structure of this sentence that you're reading now, Spiel has a certain way of talking about things (board games that is).
+To write your first Spiel Program. We're going to give you a few components to work with, we call these bits the **syntax**, or elements of the language. Much like the structure of this sentence that you're reading now, Spiel has a certain way of talking about things (board games that is).
 
 For starters, the first thing we want to say is what kind of `Game` we're talking about. In this example we're talking about an Intro, so let's call is a Demo.
 ```
