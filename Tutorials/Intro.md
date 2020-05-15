@@ -41,7 +41,7 @@ type Input = Int
 And all together this looks like:
 ```
 -- our 1st demo program
-game Demo
+game DemoGame
 
 -- declares that our boards for this game
 -- will be 10x10, and will have an Integer

@@ -74,6 +74,6 @@ play : Result
 play = YouWin
 ```
 
-You can type this code into the editor, run it, and you should get the result back of 'YouWin'. If so, congrats, you have completed this tutorial! Take a moment to think about what we've gone over here.
+You can type this code into the editor, run it by typing `play`, and you should get the result back of 'YouWin'. If so, congrats, you have completed this tutorial! Take a moment to think about what we've gone over here.
 
 When you're ready, [our next tutorial is all about writing functions](Function).
