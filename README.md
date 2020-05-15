@@ -1,18 +1,23 @@
+## Using it Now
 
-# Spiel Lang
+If you are have access to OSU's network or VPN, you can check out Spiel Lang for yourself [here](access.engr.orst.edu:5168/). Just make sure you have your VPN connected first.
 
-If you are have access to OSU's network or VPN, you can check out Spiel Lang for yourself [here](access.engr.orst.edu:5168/).
+## About
 
-## Spiel is an implementation of an interpreter for the BoGL teaching language intended to model the domain of board game specification for use in middle school computer science and software engineering education  
+Spiel Lang is an Oregon State University capstone project designed and developed from 2019-2020 by Alex Grejuc, Calvin Gagliano, Kai Gay, and Benjamin Friedman, at the behest of Professor Martin Erwig.
 
-This is the back end of the implementation which includes the interpreter itself and a server. To actually use the language you need the [front end](https://github.com/The-Code-In-Sheep-s-Clothing/Spiel-Front) which includes an editor and REPL.
+### What is Spiel Lang?
 
-## Installation
-1. Install [the haskell tool stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
+Spiel Lang is a domain specific teaching language for teaching young students algorithms. It serves as a simple first step language into computer science.
 
-   * *optional:* Install [doctest](https://hackage.haskell.org/package/doctest) for haskell to run the test suite
-   * These tests can be run with `stack test`
+### Why Spiel Lang?
 
-   This will put a spielserver executable in your path which the front end can then use.
-## Examples
-To see an example of a program in the language look at the [examples](examples/) directory.
+Fully equipped programming languages such as Java, C++, or Python are commonly used as first languages today. For practical application, this makes sense, but it's not always easy to understand the concepts for the algorithms involved until you understand a large portion of the language. Spiel attempts to address this problem by providing an incredibly simple language that is focused on describing only board games. By keeping the language succinct, and choosing a focus which is not unfamiliar to most young students, Spiel can help introduce the underlying algorithms and computer science concepts quickly.
+
+### Getting Started
+
+You can get started with our [tutorials here](Tutorials/). This includes a further breakdown of what Spiel is, and help to get started on your first program.
+
+### Still Curious?
+
+You can visit our [about page](About) to learn more about Spiel Lang, how it works, and some of the insights and design choices we made along the way.
