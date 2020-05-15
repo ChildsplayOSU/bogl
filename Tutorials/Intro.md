@@ -1,11 +1,14 @@
 # 2) Intro
 
+[Previous Tutorial, Getting Started](GettingStarted)
+
 To write your first Spiel Program. We're going to give you a few components to work with, we call these bits the **syntax**, or elements of the language. Much like the structure of this sentence that you're reading now, Spiel has a certain way of talking about things (board games that is).
 
-For starters, the first thing we want to say is what kind of `Game` we're talking about. In this example we're talking about an Intro, so let's call is a Demo.
+For starters, the first thing we want to say is what kind of `Game` we're talking about. In this example we're talking about an Intro, so let's call is a Demo Game.
 ```
-game Demo
+game DemoGame
 ```
+We need to make sure we write the name of our game altogether without spaces, otherwise Spiel will think we're talking about something else.
 
 And now we've declared a basic kind of game. Maybe we want to give more detail, but just so that we can remember what this means when we look back at it later. We can do this via a comment.
 

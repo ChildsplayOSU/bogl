@@ -4,7 +4,7 @@ Getting started with Spiel is straightforward, as you can start coding directly 
 
 
 Once you have access to the tool you should see the page as follows:
-<img width=250 src="../imgs/spielfront1.png" alt="The Spiel online tool.">
+![The Spiel online tool.](/imgs/spielfront1.png)
 
 There are 2 main areas of focus.
 
