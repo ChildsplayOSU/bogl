@@ -4,7 +4,7 @@
 
 Spiel Lang is a domain specific teaching language for teaching young students algorithms. It serves as a simple first step language into computer science.
 
-![The Spiel online tool.](imgs/ex2.png)
+![The Spiel online tool.](imgs/editor-tic-tac-toe.png)
 
 ## Using it Now
 
