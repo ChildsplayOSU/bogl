@@ -1,0 +1,3 @@
+# Summary of Project Requirements
+
+Our client, OSU Professor Martin Erwig, requested that we help design and then implement a domain-specific programming language for descirbing board games that could be used in middle school computer science education. We provided input on the syntax and semantics of the language, but the ultimate choices are decisions made by our client. Thus, our primary requirement was to implement a language faithful to the intended syntax and semantics. We were also asked to implement a type checker for the language as well as provide helpful syntax and type error messages. In addition to the language, we were required to implement a user interface that was initially intended to run on student laptops, although iPads were requested later on.
