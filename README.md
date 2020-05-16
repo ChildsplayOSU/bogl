@@ -4,7 +4,7 @@
 
 Spiel Lang is a domain specific teaching language for teaching young students algorithms. It serves as a simple first step language into computer science.
 
-![The Spiel online tool.](imgs/ex2.png)
+![The Spiel online tool.](imgs/editor-tic-tac-toe.png)
 
 ## Using it Now
 
@@ -12,7 +12,7 @@ If you have access to OSU's network or VPN, [you can check out Spiel Lang for yo
 
 ## About
 
-Spiel Lang is an Oregon State University capstone project designed and developed from 2019-2020 by Alex Grejuc, Calvin Gagliano, Kai Gay, and Benjamin Friedman, at the behest of Professor Martin Erwig.
+Spiel Lang is an Oregon State University capstone project designed and developed from 2019-2020 by Alex Grejuc, Calvin Gagliano, Kai Gay, and Benjamin Friedman, at the behest of Professor Martin Erwig. You can read a [brief description](https://the-code-in-sheep-s-clothing.github.io/Spiel-Lang/requirements) or a [comprehensive description](https://github.com/The-Code-In-Sheep-s-Clothing/Spiel-Lang/blob/master/Project_Requirements/CS_461_Project_Requirements.pdf) of the project requirements for more detail.
 
 ### Why Spiel Lang?
 
