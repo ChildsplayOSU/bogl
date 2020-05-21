@@ -23,6 +23,6 @@ Also, like before, we're going to declare a type synonym to represent the two pl
 type Player = {P1,P2}
 ```
 
-....TODO....
+
 
 [Next, describing a game for items that are in a row.](InARow)
