@@ -78,7 +78,7 @@ But in Spiel to read into a variable we have to use what's called a **let expres
 let X = 5 in X + 5
 ```
 
-Since we're reading in a value from input, we want to use that instead, and that would like like:
+Since we're reading in a value from input, we want to use that instead, and that would be like:
 ```
 let x = input in ...
 ```
