@@ -89,7 +89,7 @@ And that's the first part! But now we're missing the Y, so how do we work that i
 let x = input in
 let y = input in ...
 ```
-You could write this expression on 1 line, but this makes it bit easier to read what's going on.
+You could write this expression on 1 line, but this makes it a bit easier to read what's going on.
 
 So now we have 2 *nested* let expressions. One on the outside that sets up X for an expression, and one on the inside that sets up Y. What we have left is the final expression that Y (and X) will be used in.
 
