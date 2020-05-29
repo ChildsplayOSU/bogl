@@ -1,5 +1,7 @@
 # Spiel-Lang
 
+[![Build Status](https://travis-ci.org/The-Code-In-Sheep-s-Clothing/Spiel-Lang.svg?branch=master)](https://travis-ci.org/The-Code-In-Sheep-s-Clothing/Spiel-Lang)
+
 ## Spiel is an implementation of an interpreter for the BoGL teaching language intended to model the domain of board game specification for use in middle school computer science and software engineering education
 
 This is the back end of the implementation which includes the interpreter itself and a server. To actually use the language you need the [front end](https://github.com/The-Code-In-Sheep-s-Clothing/Spiel-Front) which includes an editor and REPL.
