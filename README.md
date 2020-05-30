@@ -23,7 +23,3 @@ Fully equipped programming languages such as Java, C++, or Python are commonly u
 You can get started with our [tutorials here](Tutorials/All.md). This includes a further breakdown of what Spiel is, and help to get started on your first program.
 
 If you want to develop on Spiel locally, please refer to our [installation page](INSTALLATION) for more details.
-
-### Still Curious?
-
-You can visit our [about page](ABOUT) to learn more about Spiel Lang, how it works, and some of the insights and design choices we made along the way.
