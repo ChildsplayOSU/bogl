@@ -32,7 +32,9 @@ parserTests = TestList [
   testPreludeNoStartingWhitespace,
   testParseRawPreludeAndGamefile,
   testDoubleBoardDeclarations,
-  testInvalidBoardDeclaration
+  testInvalidBoardDeclaration,
+  testLowercaseGameNameBad,
+  testUppercaseGameNameGood
   ]
 
 --
@@ -249,4 +251,27 @@ testInvalidBoardDeclaration = TestCase (
   assertEqual "Test valid double board declarations"
   False
   (isRight $ parseAll (many decl) "" ex3)
+  )
+
+
+-- | Tests that game names starting with a lowercase character are disallowed
+exLGN :: String
+exLGN = "game lowercasename\ntype Board = Array(1,1) of Int\ntype Input = Int"
+
+testLowercaseGameNameBad :: Test
+testLowercaseGameNameBad = TestCase (
+  assertEqual "Test that starting lowercase game names are disallowed"
+  False
+  (isRight $ parseAll (parseGame []) "" exLGN)
+  )
+
+-- | Tests that game names starting with an uppercase character are allowed
+exUGN :: String
+exUGN = "game Uppercasename\ntype Board = Array(1,1) of Int\ntype Input = Int"
+
+testUppercaseGameNameGood :: Test
+testUppercaseGameNameGood = TestCase (
+  assertEqual "Test that starting uppercase game names are allowed"
+  True
+  (isRight $ parseAll (parseGame []) "" exUGN)
   )
