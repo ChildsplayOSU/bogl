@@ -53,6 +53,6 @@ type Board = Array (10,10) of Int
 type Input = Int
 ```
 
-This is a running example, so congrats on writing your first Spiel program! If you haven't already you can try it out in our [online tool](http://ec2-3-16-56-139.us-east-2.compute.amazonaws.com:5168/) to verify everything works as expected. If not take a moment to go back and double check the steps.
+This is a running example, so congrats on writing your first Spiel program! If you haven't already you can try it out in our [online tool](http://bogl.uphouseworks.com:5168/) to verify everything works as expected. If not take a moment to go back and double check the steps.
 
 [Next, we'll show you how to create a simple game](TheGame).
