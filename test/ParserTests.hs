@@ -34,7 +34,8 @@ parserTests = TestList [
   testDoubleBoardDeclarations,
   testInvalidBoardDeclaration,
   testLowercaseGameNameBad,
-  testUppercaseGameNameGood
+  testUppercaseGameNameGood,
+  testAnySymbolDisallowed
   ]
 
 --
@@ -274,4 +275,12 @@ testUppercaseGameNameGood = TestCase (
   assertEqual "Test that starting uppercase game names are allowed"
   True
   (isRight $ parseAll (parseGame []) "" exUGN)
+  )
+
+-- | Tests that 'AnySymbol' cannoet be used as a direct type in a Board
+testAnySymbolDisallowed :: Test
+testAnySymbolDisallowed = TestCase (
+  assertEqual "Tests that declaring a Board of AnySymbol is not allowed"
+  False
+  (isRight $ parseAll (many decl) "" "f:AnySymbol\nf=X")
   )

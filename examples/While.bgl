@@ -1,7 +1,9 @@
 game While
 
-type Board = Array(3,3) of AnySymbol
+type Board = Array(3,3) of Int
 type Input = Int
+
+type Player = {X,Y}
 
 lessThanTen : Int -> Bool
 lessThanTen(x) = less(x, 10)

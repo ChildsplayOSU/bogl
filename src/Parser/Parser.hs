@@ -225,8 +225,10 @@ btype =
   reserved "Input" *> pure Input
   <|>
   reserved "Board" *> pure Board
-  <|>
-  reserved "AnySymbol" *> pure AnySymbol
+  -- removes 'AnySymbol' as a directly usable type
+  -- serves as a parent of all types, but 
+  -- <|>
+  -- reserved "AnySymbol" *> pure AnySymbol
 
 enum :: Parser (S.Set Name)
 enum = reservedOp "{" *> (S.fromList <$> (commaSep1 capIdentifier)) <* reservedOp "}"
