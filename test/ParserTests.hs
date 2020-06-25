@@ -18,24 +18,12 @@ import Text.Parsec
 --
 parserTests :: Test
 parserTests = TestList [
-  testCheckLeft,
-  testCheckLeft2,
-  testCheckUpdatedBoard,
-  testCheckUpdatedBoard2,
-  testRejectBadExprAfterSuccessefulParse,
-  testParseShortDecl,
-  testParseBoardDecl,
-  testParseTypeSynAndDecl,
-  testNoRepeatedParamNames,
-  testNoRepeatedMetaVars,
-  testPreludeStartingWhitespace,
-  testPreludeNoStartingWhitespace,
+  parseXTypeTests,
+  parseDeclTests,
   testParseRawPreludeAndGamefile,
-  testDoubleBoardDeclarations,
-  testInvalidBoardDeclaration,
-  testLowercaseGameNameBad,
-  testUppercaseGameNameGood,
-  testAnySymbolDisallowed
+  parsePreludeTests,
+  parseBoardTests,
+  parseGameNameTests
   ]
 
 --
@@ -48,6 +36,18 @@ parserTests = TestList [
 --  ExpressionToCheck)
 --
 
+--
+--
+-- Parse XType Tests
+--
+--
+parseXTypeTests :: Test
+parseXTypeTests = TestLabel "Parse XType Tests" (TestList [
+  testCheckLeft,
+  testCheckLeft2
+  ])
+
+
 -- check left arg
 testCheckLeft :: Test
 testCheckLeft = TestCase (
@@ -55,34 +55,33 @@ testCheckLeft = TestCase (
   True
   (isLeft $ parseAll xtype "" "(3)"))
 
+
 testCheckLeft2 :: Test
 testCheckLeft2 = TestCase (
   assertEqual "Parser Check Left 2"
   True
   (isLeft $ parseAll xtype "" "(22222)"))
 
--- updating board tests
-testCheckUpdatedBoard :: Test
-testCheckUpdatedBoard = TestCase (
-  assertEqual "Check Updated Board"
-  True
-  (parseAll xtype "" "(Board, (Int, Int))" == Right (Tup [X Board S.empty, Tup [X Itype S.empty, X Itype S.empty]])))
 
-
--- TODO used to be --"Right (Symbol(no extension),Board(no extension))"
--- determine whether a symbol and board can be evaluated
-testCheckUpdatedBoard2 :: Test
-testCheckUpdatedBoard2 = TestCase (
-  assertEqual "Check Updated Board 2"
-  (Right $ Tup [(X Top (S.fromList ["X"])), X Board S.empty])
-  (parseAll xtype "" "({X}, Board)"))
+--
+--
+-- Parse Declaration Tests
+--
+--
+parseDeclTests :: Test
+parseDeclTests = TestLabel "Parse Declaration Tests" (TestList [
+  testRejectBadExprAfterSuccessefulParse,
+  testParseShortDecl,
+  testParseTypeSynAndDecl,
+  testNoRepeatedParamNames,
+  testNoRepeatedMetaVars,
+  testAnySymbolDisallowed
+  ])
 
 
 -- | Read a single line and return the result (intended for brevity in test cases)
 parseLine' :: Parser a -> String -> Either ParseError a
 parseLine' pars = parseAll pars ""
-
-
 
 testRejectBadExprAfterSuccessefulParse :: Test
 testRejectBadExprAfterSuccessefulParse = TestCase (
@@ -97,40 +96,22 @@ ex2 = "outcome : (Board,Player) -> Player|Tie \
                 \ if isFull(b)     then Tie"
 --}
 
--- | Hello Int declaration
-ex0 :: String
-ex0 = "hello : Int\nhello = 24"
 
 -- |Tests parsing a simple declaration
 testParseShortDecl :: Test
 testParseShortDecl = TestCase (
   assertEqual("Testing parsing of a short declaration")
   True
-  (isRight $ parseAll valdef "" ex0)
+  (isRight $ parseAll valdef "" "hello : Int\nhello = 24")
   )
 
--- | Simple board decl
-ex1 :: String
-ex1 = "b : Board\nb!(x,y)=0\nb!(1,1)=1"
-
--- |Tests parsing a board decl
-testParseBoardDecl :: Test
-testParseBoardDecl = TestCase (
-  assertEqual "Testing parsing of board declaration"
-  True
-  (isRight $ parseAll valdef "" ex1)
-  )
-
--- | type syn followed by var decl
-ex4 :: String
-ex4 = "type TestType = {AnotherType}\ntestThis : TestType\ntestThis = AnotherType"
 
 -- |Tests parsing a type declaration followed by variable declaration
 testParseTypeSynAndDecl :: Test
 testParseTypeSynAndDecl = TestCase (
   assertEqual("Testing parsing of a type synononym followed by a declaration")
   True
-  (isRight $ parseAll (typesyn *> many decl) "" ex4)
+  (isRight $ parseAll (typesyn *> many decl) "" "type TestType = {AnotherType}\ntestThis : TestType\ntestThis = AnotherType")
   )
 
   {-- (vestige from old tests)
@@ -142,6 +123,37 @@ testParseTypeSynAndDecl = TestCase (
     --}
 -- parsing is a nightmare with annotations...
 
+
+-- | Tests parsing a decl w/ repeated params
+testNoRepeatedParamNames :: Test
+testNoRepeatedParamNames = TestCase $
+  assertEqual "Test parse error on repeated params"
+  True
+  (isLeft $ parseLine' equation ("foo(a,a) = a + a"))
+
+
+-- | Tests parsing a board decl w/ repeated params
+testNoRepeatedMetaVars :: Test
+testNoRepeatedMetaVars = TestCase $
+  assertEqual "Test fail on repeated metavariables"
+  True
+  (isLeft $ parseLine' (boardeqn "myBoard") ("myBoard!(x,x) = Empty"))
+
+
+-- | Tests that 'AnySymbol' cannoet be used as a direct type in anything
+testAnySymbolDisallowed :: Test
+testAnySymbolDisallowed = TestCase (
+  assertEqual "Tests that declaring anything of AnySymbol is not allowed"
+  False
+  (isRight $ parseAll (many decl) "" "f:AnySymbol\nf=X")
+  )
+
+
+--
+--
+-- Parse all Examples
+--
+--
 
 -- relative to top-level spiel directory
 examplesPath :: String
@@ -164,40 +176,6 @@ checkParseAllExamples = do
     putStrLn $ "\n***Failures:***"
     mapM (putStrLn . (++) "\n" . show) allfailures
     return $ null allfailures
-
-testNoRepeatedParamNames :: Test
-testNoRepeatedParamNames = TestCase $
-   assertEqual "Test parse error on repeated params"
-   True
-   (isLeft $ parseLine' equation ("foo(a,a) = a + a"))
-
-testNoRepeatedMetaVars :: Test
-testNoRepeatedMetaVars = TestCase $
-   assertEqual "Test fail on repeated metavariables"
-   True
-   (isLeft $ parseLine' (boardeqn "myBoard") ("myBoard!(x,x) = Empty"))
-
--- | Prelude w/ a comment
-prelude_with_comment :: String
-prelude_with_comment = "--comment at start\nadecl : Int\nadecl = 10\n--another comment\ndecl2 : Int\ndecl2=0"
-
--- | Tests parsing a prelude with starting whitespace
-testPreludeStartingWhitespace :: Test
-testPreludeStartingWhitespace = TestCase $
-   assertEqual "Test fail on prelude w/ comment at the start"
-   True
-   (isRight $ parsePreludeFromText prelude_with_comment)
-
--- | Prelude w/out a comment
-prelude_no_comment :: String
-prelude_no_comment = "ddecl : Int\nddecl = 51\n\n"
-
--- | Tests parsing a prelude w/out starting whitespace
-testPreludeNoStartingWhitespace :: Test
-testPreludeNoStartingWhitespace = TestCase $
-   assertEqual "Test fail on prelude w/out whitespace"
-   True
-   (isRight $ parsePreludeFromText prelude_no_comment)
 
 
 -- | Raw prelude code for the test below
@@ -230,57 +208,140 @@ testParseRawPreludeAndGamefile = TestCase $
     Left err      -> False
   )
 
--- | Double board decl
-ex2 :: String
-ex2 = "b : Board\nb!(x,y)=0\nb!(1,1)=1\nb2 : Board\nb2!(x,y)=0"
 
--- |Tests one board declaration after another with a similar name
+--
+--
+-- Parse Prelude Tests
+--
+--
+parsePreludeTests :: Test
+parsePreludeTests = TestLabel "Parse Prelude Tests" (TestList [
+  testPreludeStartingWhitespace,
+  testPreludeNoStartingWhitespace
+  ])
+
+
+-- | Tests parsing a prelude with starting whitespace
+testPreludeStartingWhitespace :: Test
+testPreludeStartingWhitespace = TestCase $
+   assertEqual "Test fail on prelude w/ comment at the start"
+   True
+   (isRight $ parsePreludeFromText "--comment at start\nadecl : Int\nadecl = 10\n--another comment\ndecl2 : Int\ndecl2=0")
+
+
+-- | Tests parsing a prelude w/out starting whitespace
+testPreludeNoStartingWhitespace :: Test
+testPreludeNoStartingWhitespace = TestCase $
+   assertEqual "Test fail on prelude w/out whitespace"
+   True
+   (isRight $ parsePreludeFromText "ddecl : Int\nddecl = 51\n\n")
+
+
+--
+--
+-- Parse Board Tests
+--
+--
+parseBoardTests :: Test
+parseBoardTests = TestLabel "Parse Board Tests" (TestList [
+  testCheckUpdatedBoard,
+  testCheckUpdatedBoard2,
+  testParseBoardDecl,
+  testDoubleBoardDeclarations,
+  testInvalidBoardDeclaration,
+  testBoardDimensionsEnforced
+  ])
+
+
+-- | Updating board tests
+testCheckUpdatedBoard :: Test
+testCheckUpdatedBoard = TestCase (
+  assertEqual "Check Updated Board"
+  True
+  (parseAll xtype "" "(Board, (Int, Int))" == Right (Tup [X Board S.empty, Tup [X Itype S.empty, X Itype S.empty]])))
+
+
+-- TODO used to be --"Right (Symbol(no extension),Board(no extension))"
+-- | Determine whether a symbol and board can be evaluated
+testCheckUpdatedBoard2 :: Test
+testCheckUpdatedBoard2 = TestCase (
+  assertEqual "Check Updated Board 2"
+  (Right $ Tup [(X Top (S.fromList ["X"])), X Board S.empty])
+  (parseAll xtype "" "({X}, Board)"))
+
+
+-- | Tests parsing a board decl
+testParseBoardDecl :: Test
+testParseBoardDecl = TestCase (
+  assertEqual "Testing parsing of board declaration"
+  True
+  (isRight $ parseAll valdef "" "b : Board\nb!(x,y)=0\nb!(1,1)=1")
+  )
+
+
+-- | Tests one board declaration after another with a similar name
 testDoubleBoardDeclarations :: Test
 testDoubleBoardDeclarations = TestCase (
   assertEqual "Test valid double board declarations"
   True
-  (isRight $ parseAll (many decl) "" ex2)
+  (isRight $ parseAll (many decl) "" "b : Board\nb!(x,y)=0\nb!(1,1)=1\nb2 : Board\nb2!(x,y)=0")
   )
 
--- | Single bad board decl
-ex3 :: String
-ex3 = "b : Board\nb!(x,y)=0\nb2!(1,1)=1\nb!(0,0)=1"
 
--- |Tests a bad board declaration, with an incorrect name in the middle
+-- | Tests a bad board declaration, with an incorrect name in the middle
 testInvalidBoardDeclaration :: Test
 testInvalidBoardDeclaration = TestCase (
   assertEqual "Test valid double board declarations"
   False
-  (isRight $ parseAll (many decl) "" ex3)
+  (isRight $ parseAll (many decl) "" "b : Board\nb!(x,y)=0\nb2!(1,1)=1\nb!(0,0)=1")
   )
 
 
--- | Tests that game names starting with a lowercase character are disallowed
-exLGN :: String
-exLGN = "game lowercasename\ntype Board = Array(1,1) of Int\ntype Input = Int"
+-- | Tests that non-zero positive integer board dimensions are enforced
+testBoardDimensionsEnforced :: Test
+testBoardDimensionsEnforced = TestCase (
+  assertEqual "Test that board dimensions are enforced as >= 1"
+  False
+  (isRight $ parseAll (parseGame []) "" "game G\ntype Board=Array(0,-1) of Int\ntype Input=Int")
+  )
 
+
+--
+--
+-- Parse Game Name Tests
+--
+--
+
+parseGameNameTests :: Test
+parseGameNameTests = TestLabel "Parse Game Name Tests" (TestList [
+  testLowercaseGameNameBad,
+  testUppercaseGameNameGood,
+  testUnderscoreInGameNameGood
+  ])
+
+
+-- | Tests that game names starting with a lowercase character are disallowed
 testLowercaseGameNameBad :: Test
 testLowercaseGameNameBad = TestCase (
   assertEqual "Test that starting lowercase game names are disallowed"
   False
-  (isRight $ parseAll (parseGame []) "" exLGN)
+  (isRight $ parseAll (parseGame []) "" "game lowercasename\ntype Board = Array(1,1) of Int\ntype Input = Int")
   )
 
--- | Tests that game names starting with an uppercase character are allowed
-exUGN :: String
-exUGN = "game Uppercasename\ntype Board = Array(1,1) of Int\ntype Input = Int"
 
+-- | Tests that game names starting with an uppercase character are allowed
 testUppercaseGameNameGood :: Test
 testUppercaseGameNameGood = TestCase (
   assertEqual "Test that starting uppercase game names are allowed"
   True
-  (isRight $ parseAll (parseGame []) "" exUGN)
+  (isRight $ parseAll (parseGame []) "" "game Uppercasename\ntype Board = Array(1,1) of Int\ntype Input = Int")
   )
 
--- | Tests that 'AnySymbol' cannoet be used as a direct type in a Board
-testAnySymbolDisallowed :: Test
-testAnySymbolDisallowed = TestCase (
-  assertEqual "Tests that declaring a Board of AnySymbol is not allowed"
-  False
-  (isRight $ parseAll (many decl) "" "f:AnySymbol\nf=X")
+
+-- | Tests that board game names with an underscore are allowed
+testUnderscoreInGameNameGood :: Test
+testUnderscoreInGameNameGood = TestCase (
+  assertEqual "Tests that game names with underscores are allowed"
+  True
+  (isRight $ parseAll (parseGame []) "" "game Ex_Ex_Ex_Ex\ntype Board=Array(1,1) of Int\ntype Input=Int")
   )

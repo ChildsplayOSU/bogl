@@ -123,6 +123,10 @@ new x = do
     then unexpected $ "redefinition of " ++ parsed
     else addid parsed >> return parsed
 
+-- | Identifies a valid game name
+gameIdentifierChars = ['a'..'z']++['A'..'Z']++['0'..'9']++"_"
+gameIdentifier = lexeme ((:) <$> upper <*> (many (oneOf gameIdentifierChars)))
+
 capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 commaSep = P.commaSep lexer
@@ -226,7 +230,8 @@ btype =
   <|>
   reserved "Board" *> pure Board
   -- removes 'AnySymbol' as a directly usable type
-  -- serves as a parent of all types, but 
+  -- serves as a parent of all types internally, but this prevents
+  -- it from being referenced externally (as requested by the CSforAll group) (@montymxb)
   -- <|>
   -- reserved "AnySymbol" *> pure AnySymbol
 
@@ -338,7 +343,7 @@ prelude = whiteSpace *> many decl
 parseGame :: [ValDef SourcePos] -> Parser (Game SourcePos)
 parseGame vs =
   -- game name first
-  Game <$> ((whiteSpace *> reserved "game") *> capIdentifier) <*>
+  Game <$> ((whiteSpace *> reserved "game") *> gameIdentifier) <*>
   -- followed by type synonyms for board and input
   (many typesyn *> board) <*> (many typesyn *> input) <*>
   -- followed by the prelude contents, and any other declarations
