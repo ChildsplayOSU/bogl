@@ -7,3 +7,4 @@ Spiel-Lang.cabal
 stack*.yaml.lock
 .stack-work/
 TEMP.bgl
+shared/

@@ -15,7 +15,7 @@ import Control.Monad.IO.Class
 
 
 -- | Runs literal code, lifting it into Handler
--- Creates a temporary tmp_prelude.bgl and tmp_tmp.bgl to write contents into.
+-- Runs the contents of the prelude and gamefile without writing them out into files
 -- Once these both succeed, the new temporary files are parsed
 -- , and the response is returned
 handleRunCode :: SpielCommand -> Handler SpielResponses

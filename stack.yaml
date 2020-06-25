@@ -37,6 +37,7 @@ packages:
 extra-deps:
 - git: https://github.com/lunaticare/codecov-haskell.git
   commit: 435c5ba371f5d85a10d356b7d65f6f33348667fc
+- random-strings-0.1.1.0@sha256:935a7a23dab45411960df77636a29b44ce42b89eeb15f2b1e809d771491fa677,2517
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a

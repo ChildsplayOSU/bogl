@@ -12,9 +12,9 @@
 module API.Server (startServer, serverApp, SpielApi) where
 
 import API.JSONData
-import API.RunFileWithCommands
 import API.Test
-import API.SaveFile
+import API.ShareFile
+import API.Load
 import API.RunCode
 import API.ReadFile
 import API.CORSMiddleware
@@ -27,8 +27,8 @@ import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
 
 -- (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
-type SpielApi = "runCmds" :> ReqBody '[JSON] SpielCommand :> Post '[JSON] SpielResponses  -- /runCmds (SpielCommand -> SpielResponses) runs a file
-    :<|> "save" :> ReqBody '[JSON] SpielFile :> Post '[JSON] SpielResponses               -- /save (SpielFile -> SpielResponses) saves a file
+type SpielApi = "share" :> ReqBody '[JSON] SpielShare :> Post '[JSON] SpielResponses      -- /share (SpielShare -> SpielResponses) shares a url for files
+    :<|> "load" :> ReqBody '[JSON] SpielRead :> Post '[JSON] SpielResponse                -- /load (SpielRead -> SpielShare), loads prelude & gamefile content
     :<|> "runCode"  :> ReqBody '[JSON] SpielCommand :> Post '[JSON] SpielResponses        -- /runCode (SpielCommand -> SpielResponses) runs w/out a file, using Prelude and File code provided in the request
     :<|> "read" :> ReqBody '[JSON] SpielRead :> Post '[JSON] SpielFile                    -- /read (SpielRead -> SpielFile) reads from a file
     :<|> "test" :> Get '[JSON] SpielResponses                                             -- /test () nothing, just indicates it's running, good uptime-checker
@@ -43,8 +43,8 @@ api = Proxy
 -- performs mapping from endpoints to functions and responses
 -- in order by which they are defined for the API above ^^^
 handler :: Server SpielApi
-handler = handleRunFileWithCommands -- /runCmds handler
-  :<|> handleSaveFile               -- /save handler
+handler = handleShareFile           -- /share handler
+  :<|> handleLoad                   -- /load handler
   :<|> handleRunCode                -- /runCode handler
   :<|> handleReadFile               -- /read handler
   :<|> return (handleTest)          -- /test handler
@@ -61,14 +61,9 @@ serverApp = logStdoutDev . allowCsrf . corsified $ serve api handler
 -- describes a Command in the request body
 -- and returns an encoded response
 -- can test with the following CURL examples:
-> /runCmds
-curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"examples/example1","input":"succ(1)","buffer":[],"prelude":"Prelude.bglp"}' http://localhost:8080/runCmds
 
-> /runCmds
-curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"examples/TicTacToe","input":"1","buffer":[],"prelude":"Prelude.bglp"}' http://localhost:8080/runCmds
-
-> /save
-curl --verbose --request POST --header "Content-Type: application/json" --data '{"fileName":"TEST_FILE","content":"2 + 3 * 3"}' http://localhost:8080/save
+> /share
+curl --verbose --request POST --header "Content-Type: application/json" --data '{"prelude":"prelude content","gamefile":"game file content"}' http://localhost:8080/share
 
 > /runCode
 curl --verbose --request POST --header "Content-Type: application/json" --data '{"file":"game Test\ntype Board = Array (10,10) of Int\ntype Input = Int\nhello : Int\nhello = 32","prelude":"testVal : Int\ntestVal = 2","input":"hello","buffer":[]}' http://localhost:8080/runCmds
@@ -83,8 +78,8 @@ curl --verbose http://localhost:8080/test
 startServer :: Int -> IO ()
 startServer port = do
   putStrLn "Spiel Backend listening for POST/GET with endpoints:"
-  putStrLn ("http://localhost:" ++ show port ++ "/runCmds (POST)")
-  putStrLn ("http://localhost:" ++ show port ++ "/save (POST)")
+  putStrLn ("http://localhost:" ++ show port ++ "/share (POST)")
+  putStrLn ("http://localhost:" ++ show port ++ "/load (POST)")
   putStrLn ("http://localhost:" ++ show port ++ "/runCode (POST)")
   putStrLn ("http://localhost:" ++ show port ++ "/read (POST)")
   putStrLn ("http://localhost:" ++ show port ++ "/test (GET)")
