@@ -19,7 +19,7 @@ import qualified Data.Set as S
 import Language.Syntax hiding (piece, input, size)
 import Runtime.Builtins
 
-import Parser.ParseError 
+import Parser.ParseError
 
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]
@@ -49,7 +49,7 @@ type Typechecked a = (StateT Stat (ReaderT Env (ExceptT TypeError Identity))) a
 typecheck :: Env -> Typechecked a -> Either TypeError (a, Stat)
 typecheck e a = runIdentity . runExceptT . (flip runReaderT e) $
                 (runStateT a (Stat [] Nothing (newPos "" 0 0)))
-               
+
 typeHoles e a = case typecheck e a of
   Left err -> Left err
   Right (x, stat) -> Right (x, holes stat)
@@ -140,14 +140,14 @@ data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos),
                | SigMismatch {name :: Name, sigType :: Type, actualType :: Type, srcPos :: SourcePos}      -- ^ couldn't match the type of an equation with its signature
                | Unknown {msg :: String, srcPos :: SourcePos}                                              -- ^ Errors that "shouldn't happen"
                | BadOp {op :: Op, t1 ::Type, t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos} -- ^ Can't perform a primitive operation
-               | OutOfBounds {xpos :: Pos, ypos :: Pos, srcPos :: SourcePos} 
+               | OutOfBounds {xpos :: Pos, ypos :: Pos, srcPos :: SourcePos}
                deriving (Eq)
 
 instance ToJSON TypeError where
   {-toJSON (Mismatch t1 t2 _ src) = object ["errtype" .= String "mismatch", "left" .= t1, "right" .= t2, "line" .= sourceLine src, "col" .= sourceColumn src]
   toJSON (NotBound n src) = object ["errtype" .= String "notBound", "name" .= n, "line" .= sourceLine src, "col" .= sourceColumn src]
   toJSON _ = object ["errtype" .= String "ERROR TODO"]
-  -} 
+  -}
   --toJSON te = object ["message" .= (show te)]
   toJSON te = let src = srcPos te in object ["message" .= (show te), "line" .= sourceLine src, "col" .= sourceColumn src]
 
@@ -169,15 +169,15 @@ outofbounds p sz = getPos >>= \x -> throwError $ OutOfBounds p sz x
 extensions :: Xtype -> Typechecked (S.Set Name)
 extensions (X _ xs) = return xs
 
-errString :: SourcePos -> String 
-errString p = case sourceName p of 
-               "" -> str ++ " in the REPL expression" ++ "\n" 
-               _  -> str ++ "\n"  
+errString :: SourcePos -> String
+errString p = case sourceName p of
+               "" -> str ++ " in the REPL expression" ++ "\n"
+               _  -> str ++ "\n"
             where str = "Type error at: " ++ show p
- 
+
 instance Show TypeError where
   show (Mismatch t1 t2 e p)    = errString p ++ "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
-  show (NotBound n p)          = errString p ++ "You did not define " ++ n 
+  show (NotBound n p)          = errString p ++ "You did not define " ++ n
   show (SigMismatch n sig t p) = errString p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show t
   show (Unknown s p)           = errString p ++ s
   show (BadOp o t1 t2 e p)     = errString p ++ "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ "in expression:\n\t" ++ show e

@@ -38,7 +38,6 @@ type SpielApi = "share" :> ReqBody '[JSON] SpielShare :> Post '[JSON] SpielRespo
 api :: Proxy SpielApi
 api = Proxy
 
-
 -- |handler for actual requests
 -- performs mapping from endpoints to functions and responses
 -- in order by which they are defined for the API above ^^^

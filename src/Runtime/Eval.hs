@@ -15,6 +15,7 @@ import Data.Either
 
 import Control.Monad.Writer
 import Control.Monad.State
+import Control.Exception.Base (catch,SomeException,try)
 
 import Text.Parsec.Pos
 
@@ -46,8 +47,8 @@ bind (BVal (Sig n _) defs _) = (n, do
          Just (Vboard b) -> return $ Vboard (fill b sz defs values)
          _ -> error "TODO")
    where
-      newBoard sz = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) -- TODO: replace ? 
-      fill board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) board (zip ds vs)   
+      newBoard sz = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) -- TODO: replace ?
+      fill board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) board (zip ds vs)
 
 updateBoard :: Board -> (Int, Int) -> (BoardEq a) -> Val -> Board
 updateBoard b sz d v = let indices = range ((1,1), sz) in
@@ -59,7 +60,6 @@ posMatches xp yp (x, y) = match xp x && match yp y
    where
       match (ForAll _) _        = True
       match (Index ix) i = ix == i
-
 
 -- | Binary operation evaluation
 evalBinOp :: Op -> (Expr a) -> (Expr a) -> Eval Val
@@ -92,6 +92,11 @@ evalNumOp f l r = do
                      case (v1, v2) of
                         (Vi l', Vi r') -> return (Vi (f l' r'))
                         _ -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
+
+
+handleEvalException :: SomeException -> Val
+handleEvalException se = (Err ("Exception on numerical operation: "))
+
 
 eval :: (Expr a) -> Eval Val
 eval (Annotation a e) = eval e
@@ -135,7 +140,11 @@ eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   if b then eval e1 else eval e2
 
-eval (Binop op e1 e2) = evalBinOp op e1 e2
+eval (Binop op e1 e2) = do
+  rez <- try (evalBinOp op e1 e2) :: IO (Either SomeException Val)
+  case rez of
+    Right r -> r
+    Left e  -> handleEvalException e
 
 eval (While c b names exprs) = do
    c' <- unpackBool <$> eval c   -- evaluate the condition

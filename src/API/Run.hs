@@ -14,10 +14,13 @@ import Language.Types
 import Text.Parsec.Pos
 import Text.Parsec (errorPos)
 import Text.Parsec.Error
+import Control.Exception
 
 import Typechecker.Typechecker
 import Runtime.Eval
 import Runtime.Values
+
+import Debug.Trace(traceM, traceStack)
 
 
 -- | Runs BoGL code from raw text with the given commands
@@ -26,7 +29,12 @@ import Runtime.Values
 -- without reading it from a file first
 _runCodeWithCommands :: SpielCommand -> IO SpielResponses
 _runCodeWithCommands sc@(SpielCommand _prelude gameFile _ _) =
-  _handleParsed sc $ parsePreludeAndGameText _prelude gameFile
+  (_handleParsed sc $ parsePreludeAndGameText _prelude gameFile) `catch` runtimeErrorHandler
+
+
+-- | Handles a runtime error
+runtimeErrorHandler :: SomeException -> IO SpielResponses
+runtimeErrorHandler ex = (traceM "RuntimeError Encountered") >> return [SpielRuntimeError (show ex)]
 
 
 -- | Handles result of parsing a prelude and game
@@ -50,20 +58,20 @@ _handleParsed (SpielCommand _ gameFile inpt buf) parsed = do
 -- |Handles running a command in the repl from the server
 serverRepl :: (Game SourcePos) -> String -> String -> ([Val], [Val]) -> SpielResponse
 serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
-  case parseLine inpt of
+  case traceStack "Parsing a line" (parseLine inpt) of
     Right x -> do
-      case tcexpr (environment i b vs) x of
+      case (traceM "TypeChecking...") >> tcexpr (environment i b vs) x of
         Right _ -> do -- Right t
-          case runWithBuffer (bindings_ (szx, szy) vs) buf x of
+          case (traceM "Running with Buffer...") >> runWithBuffer (bindings_ (szx, szy) vs) buf x of
 
             -- program terminated normally with a value
-            Right (bs, val) -> SpielValue bs val
+            Right (bs, val) -> (SpielValue bs val)
 
             -- boards and tape returned, returns the boards for displaying on the frontend
-            Left (bs, _) -> SpielPrompt bs
+            Left (bs, _) -> (SpielPrompt bs)
 
             -- runtime error encountered
-            Left err -> SpielRuntimeError (show err)
+            Left err -> (SpielRuntimeError (show err))
 
         -- typechecker encountered an error in the expression
         Left err -> (SpielTypeError err)
