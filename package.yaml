@@ -40,6 +40,7 @@ dependencies:
 - attoparsec
 - directory
 - filepath
+- random-strings
 library:
   source-dirs: src
 

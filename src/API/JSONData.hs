@@ -33,6 +33,17 @@ instance FromJSON SpielRead where
   parseJSON (Object v) = SpielRead <$> v .: "fileName"
 
 
+-- | representation of a request to share a prelude & gamefile
+data SpielShare = SpielShare {
+  preludeContent :: String,
+  gameContent :: String
+} deriving (Eq, Show, Generic)
+
+instance ToJSON SpielShare where
+
+instance FromJSON SpielShare where
+  parseJSON (Object v) = SpielShare <$> v .: "preludeContent" <*> v.: "gameContent"
+
 -- | representation of a file that will be saved by the user
 -- TODO Probably want to use a lock or something
 data SpielFile = SpielFile {
@@ -84,6 +95,11 @@ type ExecutionValue = Val
 data SpielResponse =
   -- represents a prompt for input and buffered boards
   SpielPrompt [Val] |
+  -- represents a successful operation
+  SpielSuccess String |
+  -- represents a successful load
+  -- 1st prelude, 2nd gamefile
+  SpielLoadResult String String |
   -- represents a win/lose result
   SpielGameResult String |
   -- represents a type error
@@ -104,6 +120,8 @@ instance ToJSON SpielResponse where
 instance Show SpielResponse where
   -- shows a board in JSON
   show (SpielPrompt s)                  = show s
+  -- shows a success response
+  show (SpielSuccess result)            = "{success: 1, result: \""++result++"\"}"
   -- indicates that the game is over and a player has won
   show (SpielGameResult gr)             = show gr
   -- shows a parse error to the user

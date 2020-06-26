@@ -5,7 +5,7 @@
 -- Holds the routines for parsing and interpreting a BoGL Prelude and Game file
 --
 
-module API.Run (_runFileWithCommands,_runCodeWithCommands) where
+module API.Run (_runCodeWithCommands) where
 
 import API.JSONData
 import Parser.Parser
@@ -18,12 +18,6 @@ import Text.Parsec.Error
 import Typechecker.Typechecker
 import Runtime.Eval
 import Runtime.Values
-
-
--- | Runs BoGL code from a file with the given commands
-_runFileWithCommands :: SpielCommand -> IO SpielResponses
-_runFileWithCommands sc@(SpielCommand _prelude gameFile _ _) =
-  _handleParsed sc $ parsePreludeAndGameFiles _prelude gameFile
 
 
 -- | Runs BoGL code from raw text with the given commands
