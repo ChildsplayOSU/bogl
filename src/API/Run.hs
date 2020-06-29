@@ -29,12 +29,14 @@ import Debug.Trace(traceM, traceStack)
 -- without reading it from a file first
 _runCodeWithCommands :: SpielCommand -> IO SpielResponses
 _runCodeWithCommands sc@(SpielCommand _prelude gameFile _ _) =
-  (_handleParsed sc $ parsePreludeAndGameText _prelude gameFile) `catch` runtimeErrorHandler
+  (_handleParsed sc $ parsePreludeAndGameText _prelude gameFile) -- `catch` runtimeErrorHandler
 
 
+-- TODO this doesn't work, and should be removed
 -- | Handles a runtime error
-runtimeErrorHandler :: SomeException -> IO SpielResponses
-runtimeErrorHandler ex = (traceM "RuntimeError Encountered") >> return [SpielRuntimeError (show ex)]
+--runtimeErrorHandler :: SomeException -> IO SpielResponses
+--runtimeErrorHandler ex = return [SpielRuntimeError ("RUNTIME ERROR ENCOUNTERED: " ++ show ex)]
+--runtimeErrorHandler _ = return [SpielRuntimeError ("Some runtime thing went wrong")]
 
 
 -- | Handles result of parsing a prelude and game
@@ -58,11 +60,14 @@ _handleParsed (SpielCommand _ gameFile inpt buf) parsed = do
 -- |Handles running a command in the repl from the server
 serverRepl :: (Game SourcePos) -> String -> String -> ([Val], [Val]) -> SpielResponse
 serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
-  case traceStack "Parsing a line" (parseLine inpt) of
+  case parseLine inpt of
     Right x -> do
-      case (traceM "TypeChecking...") >> tcexpr (environment i b vs) x of
+      case tcexpr (environment i b vs) x of
         Right _ -> do -- Right t
-          case (traceM "Running with Buffer...") >> runWithBuffer (bindings_ (szx, szy) vs) buf x of
+          case runWithBuffer (bindings_ (szx, szy) vs) buf x of
+
+            -- with error?
+            Right (bs, (Err s)) -> (SpielRuntimeError (show s))
 
             -- program terminated normally with a value
             Right (bs, val) -> (SpielValue bs val)

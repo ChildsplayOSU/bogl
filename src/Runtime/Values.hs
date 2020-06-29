@@ -20,7 +20,7 @@ data Val = Vi Int                      -- ^ Integer value
          | Vt [Val]                    -- ^ Tuple value
          | Vs Name                     -- ^ Symbol value
          | Vf [Name] EvalEnv (Expr ()) -- ^ Function value (annotations discarded)
-         | Err String                  -- ^ Runtime error (caught by typechecker) 
+         | Err String                  -- ^ Runtime error (caught by typechecker)
          | Deferred                    -- ^ This needs an input.
          deriving Generic
 
@@ -48,7 +48,7 @@ instance ToJSON Val where
   toJSON (Vt vs) = object ["type" .= String "Tuple", "value" .= map toJSON vs]
   toJSON (Vs n) = object ["type" .= String "Symbol", "value" .= n]
   toJSON (Vf args _ e) = object ["type" .= String "Function", "value" .= Null]
-  toJSON (Err s) = object ["type" .= String "ERROR", "value" .= Null] -- null or something
+  toJSON (Err s) = object ["type" .= String "Error", "value" .= s] -- null or something
 
 
 

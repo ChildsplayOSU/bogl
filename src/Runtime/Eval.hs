@@ -15,7 +15,7 @@ import Data.Either
 
 import Control.Monad.Writer
 import Control.Monad.State
-import Control.Exception.Base (catch,SomeException,try)
+import Control.Exception.Base (catch,SomeException,try,throw,ArithException)
 
 import Text.Parsec.Pos
 
@@ -77,6 +77,7 @@ evalBinOp Get l r   = do
                            _ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
                            -- not a great error message, but this should be caught in the typechecker anyways
 
+
 -- | evaluates the == operation
 evalEquiv :: (Expr a) -> (Expr a) -> Eval Val
 evalEquiv l r = do
@@ -90,12 +91,9 @@ evalNumOp f l r = do
                      v1 <- eval l
                      v2 <- eval r
                      case (v1, v2) of
-                        (Vi l', Vi r') -> return (Vi (f l' r'))
-                        _ -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
-
-
-handleEvalException :: SomeException -> Val
-handleEvalException se = (Err ("Exception on numerical operation: "))
+                       -- TODO improving this so we detect divide by 0 ONLY, and not accidental other shit, like + 0
+                       (Vi l', Vi r') -> if (show f) == "div" && r' == 0 then return $ Err $ "Cannot divide by zero!" else return (Vi (f l' r'))
+                       _              -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
 
 
 eval :: (Expr a) -> Eval Val
@@ -140,11 +138,7 @@ eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   if b then eval e1 else eval e2
 
-eval (Binop op e1 e2) = do
-  rez <- try (evalBinOp op e1 e2) :: IO (Either SomeException Val)
-  case rez of
-    Right r -> r
-    Left e  -> handleEvalException e
+eval (Binop op e1 e2) = evalBinOp op e1 e2
 
 eval (While c b names exprs) = do
    c' <- unpackBool <$> eval c   -- evaluate the condition
@@ -163,16 +157,19 @@ eval (While c b names exprs) = do
 
 eval (HE n) = err ("Type hole: ")
 
+
 runWithBuffer :: Env -> Buffer -> (Expr SourcePos) -> Either ([Val], Buffer) ([Val], Val)
 runWithBuffer env buf e = do
   let v = runEval env buf (eval' e) in
     case v of
       Left (NeedInput bs) -> Left (bs, buf)
       Right (boards, val) -> Right (boards, val)
-      Left (Error e) -> Right $ ([], Err e) -- not good
+      Left (Error e)      -> Right $ ([], Err e) -- not good
+      Left e              -> Right $ ([], Err ("Bad Error (Not Good): " ++ (show e))) -- not good
    where
       eval' :: (Expr a) -> Eval ([Val], Val)
       eval' expr = do
-         v <- eval expr
+          -- TODO this is the spot where hte exception starts bubbling up!
+         v <- (eval expr)-- `catch` \e -> (eval (HE "cool type hole dude"))
          (_, boards) <- get
          return (boards, v)
