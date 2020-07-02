@@ -78,7 +78,7 @@ play : Player -> Result
 play(p) = if p == P1 then P2Wins else P1Wins
 ```
 
-And that's it! If you haven't run this already be sure to try this on the [online tool](http://bogl.uphouseworks.com:5168/) to verify everything is okay so far.
+And that's it! If you haven't run this already be sure to try this on the [online tool](http://bogl.engr.oregonstate.edu:5168/) to verify everything is okay so far.
 
 The last step is running our function, which like before is just a matter of typing out the name of the function, but now we need to add which player will go into our parameter as well. When we're calling (another way of saying to do what the function does) functions we need to use `()`, and we need to pass our parameter inside the parentheses. Calling play in our code will take one of the player symbols, so we can do:
 ```
