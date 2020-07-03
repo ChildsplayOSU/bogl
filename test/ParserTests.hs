@@ -23,7 +23,8 @@ parserTests = TestList [
   testParseRawPreludeAndGamefile,
   parsePreludeTests,
   parseBoardTests,
-  parseGameNameTests
+  parseGameNameTests,
+  testDivByZeroBad
   ]
 
 --
@@ -345,3 +346,11 @@ testUnderscoreInGameNameGood = TestCase (
   True
   (isRight $ parseAll (parseGame []) "" "game Ex_Ex_Ex_Ex\ntype Board=Array(1,1) of Int\ntype Input=Int")
   )
+
+
+-- | Dividing by zero turns up a Right Err, as long as this doesn't crash due to an exception it is likely that it worked
+testDivByZeroBad :: Test
+testDivByZeroBad = TestCase (
+  assertEqual "Test that div by zero is not allowed"
+  True
+  (isRight $ parseAll (many decl) "" "f : Int\nf = 1/0"))

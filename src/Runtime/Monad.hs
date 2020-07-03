@@ -12,6 +12,7 @@ import Control.Monad.State
 import Control.Monad.Identity
 
 
+
 type Eval a = StateT Buffer (ExceptT Exception (ReaderT Env (Identity))) a
 
 -- | Call-by-value semantics
@@ -40,7 +41,7 @@ type Buffer = ([Val], [Val])
 -- | Exceptions
 data Exception =
   NeedInput [Val] | -- ^ Ran out of input and here's the buffered display boards
-  Error String -- ^ Encountered a runtime error (shouldn't ever happen)
+  Error String -- ^ Encountered a runtime error
   deriving (Eq, Show)
 
 -- | Evaluation occurs in the Identity monad with these side effects:

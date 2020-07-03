@@ -19,8 +19,9 @@ import Control.Exception
 import Typechecker.Typechecker
 import Runtime.Eval
 import Runtime.Values
+import Runtime.Monad
 
-import Debug.Trace(traceM, traceStack)
+import Debug.Trace(trace, traceStack)
 
 
 -- | Runs BoGL code from raw text with the given commands
@@ -29,14 +30,7 @@ import Debug.Trace(traceM, traceStack)
 -- without reading it from a file first
 _runCodeWithCommands :: SpielCommand -> IO SpielResponses
 _runCodeWithCommands sc@(SpielCommand _prelude gameFile _ _) =
-  (_handleParsed sc $ parsePreludeAndGameText _prelude gameFile) -- `catch` runtimeErrorHandler
-
-
--- TODO this doesn't work, and should be removed
--- | Handles a runtime error
---runtimeErrorHandler :: SomeException -> IO SpielResponses
---runtimeErrorHandler ex = return [SpielRuntimeError ("RUNTIME ERROR ENCOUNTERED: " ++ show ex)]
---runtimeErrorHandler _ = return [SpielRuntimeError ("Some runtime thing went wrong")]
+  (_handleParsed sc $ parsePreludeAndGameText _prelude gameFile)
 
 
 -- | Handles result of parsing a prelude and game
@@ -65,8 +59,7 @@ serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
       case tcexpr (environment i b vs) x of
         Right _ -> do -- Right t
           case runWithBuffer (bindings_ (szx, szy) vs) buf x of
-
-            -- with error?
+            -- with a runtime error
             Right (bs, (Err s)) -> (SpielRuntimeError (show s))
 
             -- program terminated normally with a value
