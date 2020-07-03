@@ -21,8 +21,11 @@ import Runtime.Eval
 import Runtime.Values
 import Runtime.Monad
 
+<<<<<<< HEAD
 import Debug.Trace(trace, traceStack)
 
+=======
+>>>>>>> master
 
 -- | Runs BoGL code from raw text with the given commands
 -- Similar to the above '_runFileWithCommands', but instead
