@@ -14,11 +14,18 @@ import Language.Types
 import Text.Parsec.Pos
 import Text.Parsec (errorPos)
 import Text.Parsec.Error
+import Control.Exception
 
 import Typechecker.Typechecker
 import Runtime.Eval
 import Runtime.Values
+import Runtime.Monad
 
+<<<<<<< HEAD
+import Debug.Trace(trace, traceStack)
+
+=======
+>>>>>>> master
 
 -- | Runs BoGL code from raw text with the given commands
 -- Similar to the above '_runFileWithCommands', but instead
@@ -26,7 +33,7 @@ import Runtime.Values
 -- without reading it from a file first
 _runCodeWithCommands :: SpielCommand -> IO SpielResponses
 _runCodeWithCommands sc@(SpielCommand _prelude gameFile _ _) =
-  _handleParsed sc $ parsePreludeAndGameText _prelude gameFile
+  (_handleParsed sc $ parsePreludeAndGameText _prelude gameFile)
 
 
 -- | Handles result of parsing a prelude and game
@@ -55,15 +62,17 @@ serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
       case tcexpr (environment i b vs) x of
         Right _ -> do -- Right t
           case runWithBuffer (bindings_ (szx, szy) vs) buf x of
+            -- with a runtime error
+            Right (bs, (Err s)) -> (SpielRuntimeError (show s))
 
             -- program terminated normally with a value
-            Right (bs, val) -> SpielValue bs val
+            Right (bs, val) -> (SpielValue bs val)
 
             -- boards and tape returned, returns the boards for displaying on the frontend
-            Left (bs, _) -> SpielPrompt bs
+            Left (bs, _) -> (SpielPrompt bs)
 
             -- runtime error encountered
-            Left err -> SpielRuntimeError (show err)
+            Left err -> (SpielRuntimeError (show err))
 
         -- typechecker encountered an error in the expression
         Left err -> (SpielTypeError err)
