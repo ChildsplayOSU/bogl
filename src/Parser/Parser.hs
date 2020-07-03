@@ -391,7 +391,7 @@ parsePreludeFromText content = parseFromText prelude "Prelude" content
 -- This list of possible valdefs can be obtained by parsing a prelude first, and unpacking the maybe result
 -- Such as in the case of the function above 'parsePreludeFromtext'
 parseGameFromText :: String -> [Maybe (ValDef SourcePos)] -> Either ParseError (Game SourcePos)
-parseGameFromText content possibleValdefs = parseFromText (parseGame (catMaybes possibleValdefs)) "Gamefile" content
+parseGameFromText content possibleValdefs = parseFromText (parseGame (catMaybes possibleValdefs)) "Code" content
 
 -- | Parse a prelude and game from text directly, without a file
 parsePreludeAndGameText :: String -> String -> IO (Either ParseError (Game SourcePos))
