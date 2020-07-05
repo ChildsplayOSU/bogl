@@ -27,7 +27,7 @@ counter : Board
 counter!(x,y) = 8
 
 placeAndCount : (Board, Board) -> (Board, Board)
-placeAndCount(board, counter) = while less(countBoard(P,board),6) do
+placeAndCount(board, counter) = while (countBoard(P,board) < 6) do
 
    -- place a P at user-specified location
    let pos = input                      in

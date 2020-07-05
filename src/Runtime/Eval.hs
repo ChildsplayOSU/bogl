@@ -64,19 +64,23 @@ posMatches xp yp (x, y) = match xp x && match yp y
 
 -- | Binary operation evaluation
 evalBinOp :: Op -> (Expr a) -> (Expr a) -> Eval Val
-evalBinOp Plus l r  = evalNumOp "+" (+) l r
-evalBinOp Minus l r = evalNumOp "-" (-) l r
-evalBinOp Times l r = evalNumOp "*" (*) l r
-evalBinOp Div l r   = evalNumOp "/" div l r
-evalBinOp Mod l r   = evalNumOp "%" mod l r
-evalBinOp Equiv l r = evalEquiv l r
-evalBinOp Get l r   = do
-                        board <- eval l
-                        pos   <- eval r
-                        case (board, pos) of
-                           (Vboard arr, Vt [Vi x, Vi y]) -> return $ arr ! (x,y)
-                           _ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
-                           -- not a great error message, but this should be caught in the typechecker anyways
+evalBinOp Plus l r      = evalNumOp "+" (+) l r
+evalBinOp Minus l r     = evalNumOp "-" (-) l r
+evalBinOp Times l r     = evalNumOp "*" (*) l r
+evalBinOp Div l r       = evalNumOp "/" div l r
+evalBinOp Mod l r       = evalNumOp "%" mod l r
+evalBinOp Less l r      = evalCompareOp (<) l r
+evalBinOp Leq l r       = evalCompareOp (<=) l r
+evalBinOp Equiv l r     = evalEquiv l r
+evalBinOp Geq l r       = evalCompareOp (>=) l r
+evalBinOp Greater l r   = evalCompareOp (>) l r
+evalBinOp Get l r       = do
+									board <- eval l
+									pos   <- eval r
+									case (board, pos) of
+										(Vboard arr, Vt [Vi x, Vi y]) -> return $ arr ! (x,y)
+										_ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
+                 -- not a great error message, but this should be caught in the typechecker anyways
 
 
 -- | evaluates the == operation
@@ -85,6 +89,15 @@ evalEquiv l r = do
                   v1 <- eval l
                   v2 <- eval r
                   return $ Vb (v1 == v2)
+
+-- | evaluates comparison operations (except for ==)
+evalCompareOp :: (Int -> Int -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
+evalCompareOp f l r = do
+                     v1 <- eval l
+                     v2 <- eval r
+                     case (v1, v2) of
+                        (Vi l', Vi r') -> return (Vb (f l' r'))
+                        _ -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
 
 -- | evaluates numerical operations
 evalNumOp :: String -> (Int -> Int -> Int) -> (Expr a) -> (Expr a) -> Eval Val

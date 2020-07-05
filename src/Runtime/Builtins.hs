@@ -31,8 +31,7 @@ builtinT = \inputT pieceT -> [
   ("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
   ("not", Function (Ft (single (X Booltype S.empty)) (X Booltype S.empty))),
   ("or", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))),
-  ("and", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))),
-  ("less", Function (Ft (Tup [X Itype S.empty, X Itype S.empty]) (X Booltype S.empty)))
+  ("and", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty)))
            ]
 
 -- | places a piece on a board and also adds this new board to the display buffer.
@@ -57,8 +56,7 @@ builtins = [
   ("next", \[Vs s] -> return $ if s == "X" then Vs "O" else Vs "X"),
   ("not", \[Vb b] -> return $ Vb (not b)),
   ("or", \[Vb a, Vb b] -> return $ Vb (a || b)),
-  ("and", \[Vb a, Vb b] -> return $ Vb (a && b)),
-  ("less", \[Vi n, Vi m] -> return $ Vb (n < m))
+  ("and", \[Vb a, Vb b] -> return $ Vb (a && b))
   ]
 
 builtinRefs :: [(Name, Eval Val)]

@@ -89,7 +89,8 @@ lexer = P.makeTokenParser (haskellStyle {P.reservedNames =
     "let", "in", "if", "then", "else",
     "while", "do", "game", "type", "Array", "of", "case", "type"
     ] ++ types,
-    P.reservedOpNames = ["=", "*", "==", "-", "/=", "/", "+", ":", "->", "{", "}"]})
+    P.reservedOpNames = ["=", "*", "<", "<=", "==", ">", ">=", "-", "/=",
+                         "/", "+", ":", "->", "{", "}"]})
 
 -- | Operators (might want to fix the order of operations)
 operators = [
@@ -97,7 +98,11 @@ operators = [
              [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft,
                op "mod" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
-             [op "==" (Binop Equiv) AssocLeft]
+             [op "<" (Binop Less) AssocLeft],
+             [op "<=" (Binop Leq) AssocLeft],
+             [op "==" (Binop Equiv) AssocLeft],
+             [op ">=" (Binop Geq) AssocLeft],
+             [op ">" (Binop Greater) AssocLeft]
             ]
 
 -- | Parser for the 'Expr' datatype
