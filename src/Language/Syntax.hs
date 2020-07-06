@@ -176,6 +176,6 @@ instance Show Op where
   show Less     = " < "
   show Leq      = " <= "
   show Equiv    = " == "
-  show Geq      = " <= "
-  show Greater  = " < "
+  show Geq      = " >= "
+  show Greater  = " > "
   show Get      = " ! "
