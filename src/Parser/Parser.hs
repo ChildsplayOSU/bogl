@@ -25,8 +25,6 @@ import qualified Data.Set as S
 import Data.Either
 import Data.List
 
-type SrcExpr = Expr Pos
-
 -- | State for the parser
 data ParState = PS {
   ctype :: Maybe Type,

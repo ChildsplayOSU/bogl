@@ -33,7 +33,13 @@ data Env = Env {
                }
 
 -- | Initial empty environment
+initEnv :: Xtype -> Xtype -> (Int, Int) -> Env
 initEnv i p s = Env [] i p s
+
+-- | An example environment for interal use (e.g. testing, ghci)
+exampleEnv :: Env
+exampleEnv = let intT = (X Itype S.empty) in Env (builtinT intT intT) intT intT (5, 5)
+
 -- | Typechecker state
 data Stat = Stat {
   holes :: TypeEnv,
@@ -144,11 +150,6 @@ data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos),
                deriving (Eq)
 
 instance ToJSON TypeError where
-  {-toJSON (Mismatch t1 t2 _ src) = object ["errtype" .= String "mismatch", "left" .= t1, "right" .= t2, "line" .= sourceLine src, "col" .= sourceColumn src]
-  toJSON (NotBound n src) = object ["errtype" .= String "notBound", "name" .= n, "line" .= sourceLine src, "col" .= sourceColumn src]
-  toJSON _ = object ["errtype" .= String "ERROR TODO"]
-  -}
-  --toJSON te = object ["message" .= (show te)]
   toJSON te = let src = srcPos te in object ["message" .= (show te), "line" .= sourceLine src, "col" .= sourceColumn src]
 
 -- | smart constructors for type errors
