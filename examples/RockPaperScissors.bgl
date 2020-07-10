@@ -1,0 +1,35 @@
+-- classic game of rock, paper, scissors
+game RockPaperScissors
+
+-- Represents one of the 3 hands you can have
+type RPS = {Rock,Paper,Scissors}
+
+-- Represents all possible outcomes in a game
+type Outcome = {Win,Lose,Tie}
+
+type Board = Array(1,1) of Int
+type Input = RPS
+
+-- the computer's hand
+-- can go in the prelude if you want
+compHand : RPS
+compHand = Rock
+
+-- generate an outcome from one hand against another
+-- outcome is with respect to the first hand
+compare : (RPS,RPS) -> Outcome
+compare(x,y) = if x == y then
+						Tie
+					else
+						if and(x == Rock,y == Scissors) then
+							Win
+						else if and(x == Paper,y == Rock) then
+							Win
+						else if and(x == Scissors,y == Paper) then
+							Win
+						else
+							Lose
+
+-- play the game against the computer's hand, one round
+play : RPS -> Outcome
+play(x) = compare(x,compHand)

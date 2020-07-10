@@ -1,0 +1,26 @@
+-- Game of 'hot and cold' around a target number
+game GuessMyNumber
+
+-- possible outcomes for a guess
+type Outcome = {Lower,Higher,Correct}
+
+type Board = Array(1,1) of Int
+type Input = Int
+
+-- number you will try to guess
+-- can go in the prelude if you don't want to see it here
+getNumber : Int
+getNumber = 10
+
+-- Play by giving a guess, and the outcome
+-- indicates whether you are correct, or if the number
+-- you are trying to guess is Higher or Lower than the guess
+play : Int -> Outcome
+play(guess) = let num = getNumber in
+						if guess < num then
+							Higher
+						else
+							if guess > num then
+								Lower
+							else
+								Correct
