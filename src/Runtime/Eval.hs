@@ -28,7 +28,7 @@ bindings sz vs = e
                                 Right v' -> return $ modifyEval ((n, v'):) env
                                 Left err -> (tell [err]) >> return env)
         (emptyEnv sz)
-        (reverse $ map bind vs)
+        (map bind vs)
 
 
 bindings_ :: (Int, Int) -> [ValDef a] -> Env
