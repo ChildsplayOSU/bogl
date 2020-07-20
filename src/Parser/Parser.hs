@@ -126,11 +126,12 @@ new x = do
     then unexpected $ "redefinition of " ++ parsed
     else addid parsed >> return parsed
 
--- | Identifies a valid game name
+-- | Identifies a valid game name, also used for types
+-- nearly identical to 'capIdentifier', just includes underscores
 gameIdentifierChars = ['a'..'z']++['A'..'Z']++['0'..'9']++"_"
 gameIdentifier = lexeme ((:) <$> upper <*> (many (oneOf gameIdentifierChars)))
 
-capIdentifier = lexeme ((:) <$> upper <*> (many alphaNum))
+capIdentifier = gameIdentifier--lexeme ((:) <$> upper <*> (many alphaNum))
 commaSep1 = P.commaSep1 lexer
 commaSep = P.commaSep lexer
 reservedOp = P.reservedOp lexer

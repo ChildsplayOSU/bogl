@@ -24,7 +24,8 @@ parserTests = TestList [
   parsePreludeTests,
   parseBoardTests,
   parseGameNameTests,
-  testDivByZeroBad
+  testDivByZeroBad,
+  testUnderscoresInTypes
   ]
 
 --
@@ -354,3 +355,11 @@ testDivByZeroBad = TestCase (
   assertEqual "Test that div by zero is not allowed"
   True
   (isRight $ parseAll (many decl) "" "f : Int\nf = 1/0"))
+
+
+-- | Test parsing types with underscores
+testUnderscoresInTypes :: Test
+testUnderscoresInTypes = TestCase (
+  assertEqual "Tests that types allow underscores in them"
+  True
+  (isRight $ parseAll (parseGame []) "" "game E\ntype Board=Array(1,1) of Int\ntype Input=Int\ntype Under_Type={U_1,U_2,U3_24A}"))
