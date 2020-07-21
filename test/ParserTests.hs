@@ -25,7 +25,8 @@ parserTests = TestList [
   parseBoardTests,
   parseGameNameTests,
   testDivByZeroBad,
-  testUnderscoresInTypes
+  testUnderscoresInTypes,
+  testProperTypeSharing
   ]
 
 --
@@ -164,7 +165,7 @@ examplesPath = "examples/"
 tutorialsPath :: String
 tutorialsPath = examplesPath ++ "tutorials/"
 
--- | Check whether all
+-- | Check whether all examples are capable of being parsed
 checkParseAllExamples :: IO Bool
 checkParseAllExamples = do
     exampleFiles  <- listDirectory examplesPath
@@ -363,3 +364,30 @@ testUnderscoresInTypes = TestCase (
   assertEqual "Tests that types allow underscores in them"
   True
   (isRight $ parseAll (parseGame []) "" "game E\ntype Board=Array(1,1) of Int\ntype Input=Int\ntype Under_Type={U_1,U_2,U3_24A}"))
+
+
+-- | Simple game header to use in tests
+sg :: String
+sg = "game G\ntype Board=Array(1,1) of Int\ntype Input=Int\n"
+
+
+-- | Tests that types declared in the code are available in the prelude, and vice versa
+-- at the appropriate points
+testProperTypeSharing :: Test
+testProperTypeSharing = TestCase (
+  assertEqual "Tests that types are properly shared amongst a prelude & gamefile"
+  True
+  (case parsePreludeFromText "type Prelude_Type={A,B}" of
+    Right valdefs -> isRight $ parseGameFromText (sg ++ "f:Prelude_Type\nf=A") valdefs
+    Left err      -> False))
+
+{--
+testParseRawPreludeAndGamefile :: Test
+testParseRawPreludeAndGamefile = TestCase $
+  assertEqual "Test unable to parse raw prelude and gamefile text"
+  True
+  (case parsePreludeFromText rawPrelude of
+    Right valdefs -> isRight $ parseGameFromText rawGamecode valdefs
+    Left err      -> False
+  )
+--}
