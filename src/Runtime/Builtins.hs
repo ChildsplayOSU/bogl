@@ -43,20 +43,40 @@ place = \[v, Vboard arr, Vt [Vi x, Vi y]] -> do
    put (tape, filter (/= Vboard arr) boards ++ [b])
    return b
 
+-- | Verifies the parameters are of the expected number & type from their respective lambdas
+-- A final case reports a Runtime error in case anything slips by,
+-- which indicates that the number and/or type of parameters didn't match what was expected for that builtin
+-- Note: This prevents a crash and gives 'somewhat' better feedback to users, but this should not normally be reachable
+-- if the typechecker verifies the expressions correctly in advance
+builtinsChecker "place" [v, Vboard arr, Vt [Vi x, Vi y]] = place [v, Vboard arr, Vt [Vi x, Vi y]]
+builtinsChecker "remove" [Vboard arr, Vt [Vi x, Vi y]] = return $ Vboard $ arr // pure ((x,y), Vs "Empty")
+builtinsChecker "countBoard" [v, Vboard arr] = return $ Vi $ length $ filter (== v) (elems arr)
+builtinsChecker "countCol" [v, Vboard arr] = return $ Vi $ countCol arr v
+builtinsChecker "countRow" [v, Vboard arr] = return $ Vi $ countRow arr v
+builtinsChecker "countDiag" [v, Vboard arr] = return $ Vi $ countDiag arr v
+builtinsChecker "isFull" [Vboard arr] = return $ Vb $ all (/= Vs "Empty") $ elems arr
+builtinsChecker "inARow" [Vi i, v, Vboard arr] = return $ Vb $ inARow arr v i
+builtinsChecker "next" [Vs s] = return $ if s == "X" then Vs "O" else Vs "X"
+builtinsChecker "not" [Vb b] = return $ Vb (not b)
+builtinsChecker "or" [Vb a, Vb b] = return $ Vb (a || b)
+builtinsChecker "and" [Vb a, Vb b] = return $ Vb (a && b)
+-- mismatch case for any builtin
+builtinsChecker n _ = return $ Err ("Unexpected parameter(s) to '" ++ n ++ "', one or more may have an incorrect Type.")
+
 builtins :: [(Name, [Val] -> Eval Val)]
 builtins = [
-  ("place", place),
-  ("remove", \[Vboard arr, Vt [Vi x, Vi y]] -> return $ Vboard $ arr // pure ((x,y), Vs "Empty")),
-  ("countBoard", \[v, Vboard arr] -> return $ Vi $ length $ filter (== v) (elems arr)),
-  ("countCol", \[v, Vboard arr] -> return $ Vi $ countCol arr v),
-  ("countRow", \[v, Vboard arr] -> return $ Vi $ countRow arr v),
-  ("countDiag", \[v, Vboard arr] -> return $ Vi $ countDiag arr v),
-  ("isFull", \[Vboard arr] -> return $ Vb $ all (/= Vs "Empty") $ elems arr),
-  ("inARow", \[Vi i, v, Vboard arr] -> return $ Vb $ inARow arr v i),
-  ("next", \[Vs s] -> return $ if s == "X" then Vs "O" else Vs "X"),
-  ("not", \[Vb b] -> return $ Vb (not b)),
-  ("or", \[Vb a, Vb b] -> return $ Vb (a || b)),
-  ("and", \[Vb a, Vb b] -> return $ Vb (a && b))
+  ("place", \x -> builtinsChecker "place" x),
+  ("remove", \x -> builtinsChecker "remove" x),
+  ("countBoard", \x -> builtinsChecker "countBoard" x),
+  ("countCol", \x -> builtinsChecker "countCol" x),
+  ("countRow", \x -> builtinsChecker "countRow" x),
+  ("countDiag", \x -> builtinsChecker "countDiag" x),
+  ("isFull", \x -> builtinsChecker "isFull" x),
+  ("inARow", \x -> builtinsChecker "inARow" x),
+  ("next", \x -> builtinsChecker "next" x),
+  ("not", \x -> builtinsChecker "not" x),
+  ("or", \x -> builtinsChecker "or" x),
+  ("and", \x -> builtinsChecker "and" x)
   ]
 
 builtinRefs :: [(Name, Eval Val)]

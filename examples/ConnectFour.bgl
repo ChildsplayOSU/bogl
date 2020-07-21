@@ -63,6 +63,3 @@ loop(p,b) = while not(gameOver(b)) do tryMove(p,b)
 
 play : (Player, Board) -> Player & {Tie}
 play(a,b) = outcome(loop(a,b))
-
-result : Player & {Tie}
-result = play(initialBoard,goFirst)
