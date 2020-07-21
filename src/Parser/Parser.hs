@@ -45,6 +45,7 @@ getids = ids <$> getState
 addSyn :: (Name, Xtype) -> Parser ()
 addSyn x = modifyState (\env -> env{syn = x:syn env})
 
+
 -- | Lookup a type synonym
 lookupSyn :: Name -> Parser Xtype
 lookupSyn n = do
@@ -316,9 +317,17 @@ valdef = do
     Just (Plain (X Board set)) | S.null set  -> (BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition
     _ -> (Val (Sig n t)) <$> (equation) <*> getPosition
 
+-- | Declaration of Type Synonym or Value Definition
 decl :: Parser (Maybe (ValDef SourcePos))
-decl = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn) >> return Nothing)
-       <|> Just <$> valdef
+decl = do
+    reserved "type"
+    n <- new identifier
+    reservedOp "="
+    x <- xtype
+    addSyn(n,x)
+    return (Just (TSynVal (Sig n (Plain x))))
+  <|> Just <$> valdef
+
 
 -- | Board definition
 board :: Parser BoardDef
@@ -343,11 +352,37 @@ typesyn = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "
 prelude :: Parser([(Maybe (ValDef SourcePos))])
 prelude = whiteSpace *> many decl
 
+
+-- | Reconstructs type synonyms from extracted ValDefs
+-- This is used to help carry over Type Synonyms from the Prelude into
+-- the Gamefile
+reconstructTypeSyns :: (ValDef SourcePos) -> Maybe (Name,Xtype)
+reconstructTypeSyns (TSynVal (Sig n (Plain x))) = Just (n,x)
+reconstructTypeSyns _ = Nothing
+
+
+-- | Extracts legitimate type synonyms from the Maybe type
+extractTypeSyns :: [Maybe (Name,Xtype)] -> [(Name,Xtype)]
+extractTypeSyns [] = []
+extractTypeSyns ((Just x):ls) = x : (extractTypeSyns ls)
+extractTypeSyns (Nothing:ls) = extractTypeSyns ls
+
+-- | Applies each Name/Xtype pair into the Parser state
+-- as a recognized type synonym and a parsed ID,
+-- to prevent duplication across the Prelude & Gamefile
+addSynsAndIDs :: [(Name,Xtype)] -> Parser ()
+addSynsAndIDs [] = return ()
+addSynsAndIDs (i@(n,_):ls) = addSyn i >> addid n >> addSynsAndIDs ls
+
 -- | Game definition
 parseGame :: [ValDef SourcePos] -> Parser (Game SourcePos)
 parseGame vs =
   -- game name first
-  Game <$> ((whiteSpace *> reserved "game") *> gameIdentifier) <*>
+  Game <$> ((whiteSpace *> reserved "game") *> gameIdentifier) <*
+  -- Add in type synonyms from the Prelude before doing anything else
+  -- Although the rest of the environment isn't added until a few more lines,
+  -- this allows us to catch premature issues regarding using undefined types
+  addSynsAndIDs (extractTypeSyns (map reconstructTypeSyns vs)) <*>
   -- followed by type synonyms for board and input
   (many typesyn *> board) <*> (many typesyn *> input) <*>
   -- followed by the prelude contents, and any other declarations

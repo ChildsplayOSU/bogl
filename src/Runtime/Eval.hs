@@ -51,6 +51,14 @@ bind (BVal (Sig n _) defs _) = (n, do
       newBoard sz = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) -- TODO: replace ?
       fill board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) board (zip ds vs)
 
+-- Type Syn val hack, allows types to propagate from
+-- prelude to gamefile w/out being seriously considered
+-- TODO This might be an ideal location to type check the Values this type synonym references?
+bind (TSynVal (Sig n _)) = (n, do
+  env <- getEnv
+  eval (I 1))
+
+
 updateBoard :: Board -> (Int, Int) -> (BoardEq a) -> Val -> Board
 updateBoard b sz d v = let indices = range ((1,1), sz) in
                               b // zip (filter (posMatches (xpos d) (ypos d)) indices) (repeat v)

@@ -43,21 +43,26 @@ instance Show Parlist where
   show (Pars xs) = "(" ++ intercalate (" , ") (xs) ++ ")"
 
 -- | Top level values are signatures paired with either an ordinary 'Equation'
-data ValDef a = Val Signature (Equation a) a
+data ValDef a =
+    Val Signature (Equation a) a
   | BVal Signature [BoardEq a] a
+  | TSynVal Signature -- TypeSynonymValue, used for collecting type synonyms in the parser, no equation
    deriving (Eq, Generic)
 
 instance Functor ValDef where
   fmap f (Val s e a) = Val s (fmap f e) (f a)
   fmap f (BVal s e a) = BVal s ((fmap . fmap) f e) (f a)
+  fmap f (TSynVal s) = TSynVal s
 
 instance Show (ValDef a) where
   show (Val s e _) = show s ++ "\n" ++ show e
   show (BVal s e _) = show s ++ "\n" ++ show e
+  show (TSynVal s) = show s
 
 ident :: (ValDef a) -> Name
 ident (Val (Sig n _) _ _) = n
 ident (BVal (Sig n _) _ _) = n
+ident (TSynVal (Sig n _)) = n
 
 -- | Equations:
 data Equation a = Veq Name (Expr a)        -- ^ Value equations (a mapping from 'Name' to 'Expr')
