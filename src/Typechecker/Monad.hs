@@ -172,7 +172,7 @@ extensions (X _ xs) = return xs
 
 errString :: SourcePos -> String
 errString p = case sourceName p of
-               "" -> str ++ " in the REPL expression" ++ "\n"
+               "" -> str ++ " in the Interpreter expression" ++ "\n"
                _  -> str ++ "\n"
             where str = "Type error at: " ++ show p
 
@@ -181,4 +181,4 @@ instance Show TypeError where
   show (NotBound n p)          = errString p ++ "You did not define " ++ n
   show (SigMismatch n sig t p) = errString p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show t
   show (Unknown s p)           = errString p ++ s
-  show (BadOp o t1 t2 e p)     = errString p ++ "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ "in expression:\n\t" ++ show e
+  show (BadOp o t1 t2 e p)     = errString p ++ "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
