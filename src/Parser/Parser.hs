@@ -230,8 +230,10 @@ btype =
   reserved "Bool" *> pure Booltype
   <|>
   reserved "Int" *> pure Itype
-  <|>
-  reserved "Input" *> pure Input
+  -- removes 'Input' as a directly usable type
+  -- But can still be properly set via 'type Input = ...'
+  -- <|>
+  --reserved "Input" *> pure Input
   <|>
   reserved "Board" *> pure Board
   -- removes 'AnySymbol' as a directly usable type
@@ -332,7 +334,10 @@ decl = do
 -- | Board definition
 board :: Parser BoardDef
 board = do
-  (reserved "type" *> reserved "Board" *> reservedOp "=") *> (reserved "Array" *> (lexeme . char) '(')
+  -- attempt to parse a regular board def
+  -- if the words 'type Board' are seen, assume we are parsing a board
+  -- otherwise fall to the alternative below with a default board instead
+  (try(reserved "type" *> reserved "Board") *> reservedOp "=") *> (reserved "Array" *> (lexeme . char) '(')
   x <- int
   (lexeme . char) ','
   y <- int
@@ -340,11 +345,17 @@ board = do
   boardType <- reserved "of" *> xtype
   guard (x > 0 && y > 0) <?> "board dimensions to be >= 1"
   return $ BoardDef (x,y) boardType
+  -- fallback to a default 1,1 board of Int
+  -- only comes up when 'type Board' is not seen
+ <|> return (BoardDef (1,1) (X Itype (S.fromList [])))
 
 -- | Input definition
 input :: Parser InputDef
 input =
-  reserved "type" *> reserved "Input" *> reservedOp "=" *> (InputDef <$> xtype)
+  -- attempt to parse 'type Input', to verify we are looking for input
+  try(reserved "type" *> reserved "Input") *> reservedOp "=" *> (InputDef <$> xtype)
+  -- fall back to a default Input type of Int
+  <|> return (InputDef (X Itype (S.fromList [])))
 
 typesyn = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn))
 
@@ -383,8 +394,10 @@ parseGame vs =
   -- Although the rest of the environment isn't added until a few more lines,
   -- this allows us to catch premature issues regarding using undefined types
   addSynsAndIDs (extractTypeSyns (map reconstructTypeSyns vs)) <*>
-  -- followed by type synonyms for board and input
-  (many typesyn *> board) <*> (many typesyn *> input) <*>
+  -- optional board type preceeded by type syns
+  (many typesyn *> board) <*>
+  -- optional input type preceeded by type syns
+  (many typesyn *> input) <*>
   -- followed by the prelude contents, and any other declarations
   ((\p -> vs ++ catMaybes p) <$> (many decl))
 
