@@ -42,9 +42,6 @@ deftype (BVal (Sig n t) eqs x) = do
     Nothing -> return t
     (Just badEqn) -> sigmismatch n t badEqn
 
-deftype (TSynVal (Sig n t)) = do
-  return t -- just return the type synonym as it is
-
 -- | Get the type of a board equation.
 beqntype :: Type -> (BoardEq SourcePos) -> Typechecked Type
 beqntype t (PosDef _ xp yp e) = do
@@ -150,7 +147,6 @@ environment :: BoardDef -> InputDef -> [ValDef SourcePos] -> Env
 environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ (builtinT i t)) i t sz
   where f (Val (Sig n t1) eq x) = (n, t1)
         f (BVal (Sig n t1) eq x) = (n, t1)
-        f (TSynVal (Sig n t1)) = (n, t1)
 
 -- recursion is not allowed by this.
 runTypeCheck :: BoardDef -> InputDef -> [ValDef SourcePos] -> Writer [Either (ValDef SourcePos, TypeError) (Name, Type)] Env
