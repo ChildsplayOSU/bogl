@@ -26,7 +26,8 @@ parserTests = TestList [
   parseGameNameTests,
   testDivByZeroBad,
   testUnderscoresInTypes,
-  testProperTypeSharing
+  testProperTypeSharing,
+  testOptionalBoardInputTests
   ]
 
 --
@@ -380,6 +381,94 @@ testProperTypeSharing = TestCase (
   (case parsePreludeFromText "type Prelude_Type={A,B}" of
     Right valdefs -> isRight $ parseGameFromText (sg ++ "f:Prelude_Type\nf=A") valdefs
     Left err      -> False))
+
+
+--
+-- Optional Board/Input Tests
+--
+
+testOptionalBoardInputTests :: Test
+testOptionalBoardInputTests = TestLabel "Optional Board/Input Tests" (TestList [
+  testNoExplicitBoard,
+  testNoExplicitInput,
+  testNoExplicitBoardOrInput,
+  testBadBoardType,
+  testBadInputType,
+  testNoExplicitBoardIsOfInt,
+  testNoExplicitInputIsInt,
+  testSimilarTypeToBoardOkay,
+  testSimilarTypeToInputOkay
+  ])
+
+-- | No explicit Board type should work
+testNoExplicitBoard :: Test
+testNoExplicitBoard = TestCase (
+  assertEqual "Test that no explicit Board type should work"
+  True
+  (isRight $ parseAll (parseGame []) "" "game E\ntype Input=Int"))
+
+
+-- | No explicit Input type should work
+testNoExplicitInput :: Test
+testNoExplicitInput = TestCase (
+  assertEqual "Test that no explicit Input type should work"
+  True
+  (isRight $ parseAll (parseGame []) "" "game E\ntype Board=Array(1,1) of Int"))
+
+
+-- | No explicit Input or Board type should work
+testNoExplicitBoardOrInput :: Test
+testNoExplicitBoardOrInput = TestCase (
+  assertEqual "Test that no explicit Board or Input type should work"
+  True
+  (isRight $ parseAll (parseGame []) "" "game E"))
+
+
+-- | Should still recognize a bad Board type
+testBadBoardType :: Test
+testBadBoardType = TestCase (
+  assertEqual "Test that a bad Board type is caught"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype Board = Int"))
+
+
+-- | Should still recognize a bad Input type
+testBadInputType :: Test
+testBadInputType = TestCase (
+  assertEqual "Test that a bad Input type is caught"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype Input = Input"))
+
+
+-- | No explicit board should work
+testNoExplicitBoardIsOfInt :: Test
+testNoExplicitBoardIsOfInt = TestCase (
+  assertEqual "Test that no explicit Board is of type Int"
+  True
+  (isRight $ parseAll (parseGame []) "" "game E\ntype Input=Int\nb:Board\nb!(x,y)=1"))
+
+
+-- | No explicit input should work
+testNoExplicitInputIsInt :: Test
+testNoExplicitInputIsInt = TestCase (
+  assertEqual "Test that no explicit Input is of type Int"
+  True
+  (isRight $ parseAll (parseGame []) "" "game E\nf:Int->Int\nf(q)=let x = input in x"))
+
+-- | Boards should be okay where a normal Board would be
+testSimilarTypeToBoardOkay :: Test
+testSimilarTypeToBoardOkay = TestCase (
+  assertEqual "Test that type synonym 'Boards' isn't mixed up with 'Board'"
+  True
+  (isRight $ parseAll (parseGame []) "" "game E\ntype Boards=Int"))
+
+-- | Inputs should be okay where a normal Input would be
+testSimilarTypeToInputOkay :: Test
+testSimilarTypeToInputOkay = TestCase (
+  assertEqual "Test that type synonym 'Inputs' isn't mixed up with 'Input'"
+  True
+  (isRight $ parseAll (parseGame []) "" "game E\ntype Inputs=Int"))
+
 
 {--
 testParseRawPreludeAndGamefile :: Test
