@@ -166,7 +166,7 @@ examplesPath = "examples/"
 tutorialsPath :: String
 tutorialsPath = examplesPath ++ "tutorials/"
 
--- | Check whether all examples are capable of being parsed
+-- | Check whether all
 checkParseAllExamples :: IO Bool
 checkParseAllExamples = do
     exampleFiles  <- listDirectory examplesPath
@@ -366,7 +366,6 @@ testUnderscoresInTypes = TestCase (
   True
   (isRight $ parseAll (parseGame []) "" "game E\ntype Board=Array(1,1) of Int\ntype Input=Int\ntype Under_Type={U_1,U_2,U3_24A}"))
 
-
 -- | Simple game header to use in tests
 sg :: String
 sg = "game G\ntype Board=Array(1,1) of Int\ntype Input=Int\n"
@@ -468,15 +467,3 @@ testSimilarTypeToInputOkay = TestCase (
   assertEqual "Test that type synonym 'Inputs' isn't mixed up with 'Input'"
   True
   (isRight $ parseAll (parseGame []) "" "game E\ntype Inputs=Int"))
-
-
-{--
-testParseRawPreludeAndGamefile :: Test
-testParseRawPreludeAndGamefile = TestCase $
-  assertEqual "Test unable to parse raw prelude and gamefile text"
-  True
-  (case parsePreludeFromText rawPrelude of
-    Right valdefs -> isRight $ parseGameFromText rawGamecode valdefs
-    Left err      -> False
-  )
---}

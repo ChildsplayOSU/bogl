@@ -1,6 +1,6 @@
 -- | Parser for BOGL
 
-module Parser.Parser (parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameFiles, parsePreludeAndGameText, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser) where
+module Parser.Parser (parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameText, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser) where
 
 
 import Parser.ParseError
@@ -44,7 +44,6 @@ getids = ids <$> getState
 -- | Add a type synonym
 addSyn :: (Name, Xtype) -> Parser ()
 addSyn x = modifyState (\env -> env{syn = x:syn env})
-
 
 -- | Lookup a type synonym
 lookupSyn :: Name -> Parser Xtype
@@ -319,17 +318,9 @@ valdef = do
     Just (Plain (X Board set)) | S.null set  -> (BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition
     _ -> (Val (Sig n t)) <$> (equation) <*> getPosition
 
--- | Declaration of Type Synonym or Value Definition
 decl :: Parser (Maybe (ValDef SourcePos))
-decl = do
-    reserved "type"
-    n <- new identifier
-    reservedOp "="
-    x <- xtype
-    addSyn(n,x)
-    return (Just (TSynVal (Sig n (Plain x))))
-  <|> Just <$> valdef
-
+decl = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn) >> return Nothing)
+       <|> Just <$> valdef
 
 -- | Board definition
 board :: Parser BoardDef
@@ -360,50 +351,31 @@ input =
 typesyn = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn))
 
 -- | Prelude definition
-prelude :: Parser([(Maybe (ValDef SourcePos))])
-prelude = whiteSpace *> many decl
+prelude :: Parser([(Maybe (ValDef SourcePos))], ParState)
+prelude = do
+             defs <- whiteSpace *> many decl
+             s    <- getState
+             return (defs, s)
 
-
--- | Reconstructs type synonyms from extracted ValDefs
--- This is used to help carry over Type Synonyms from the Prelude into
--- the Gamefile
-reconstructTypeSyns :: (ValDef SourcePos) -> Maybe (Name,Xtype)
-reconstructTypeSyns (TSynVal (Sig n (Plain x))) = Just (n,x)
-reconstructTypeSyns _ = Nothing
-
-
--- | Extracts legitimate type synonyms from the Maybe type
-extractTypeSyns :: [Maybe (Name,Xtype)] -> [(Name,Xtype)]
-extractTypeSyns [] = []
-extractTypeSyns ((Just x):ls) = x : (extractTypeSyns ls)
-extractTypeSyns (Nothing:ls) = extractTypeSyns ls
-
--- | Applies each Name/Xtype pair into the Parser state
--- as a recognized type synonym and a parsed ID,
--- to prevent duplication across the Prelude & Gamefile
-addSynsAndIDs :: [(Name,Xtype)] -> Parser ()
-addSynsAndIDs [] = return ()
-addSynsAndIDs (i@(n,_):ls) = addSyn i >> addid n >> addSynsAndIDs ls
 
 -- | Game definition
 parseGame :: [ValDef SourcePos] -> Parser (Game SourcePos)
 parseGame vs =
   -- game name first
-  Game <$> ((whiteSpace *> reserved "game") *> gameIdentifier) <*
-  -- Add in type synonyms from the Prelude before doing anything else
-  -- Although the rest of the environment isn't added until a few more lines,
-  -- this allows us to catch premature issues regarding using undefined types
-  addSynsAndIDs (extractTypeSyns (map reconstructTypeSyns vs)) <*>
-  -- optional board type preceeded by type syns
-  (many typesyn *> board) <*>
-  -- optional input type preceeded by type syns
-  (many typesyn *> input) <*>
+  Game <$> ((whiteSpace *> reserved "game") *> gameIdentifier) <*>
+  -- followed by type synonyms for board and input
+  (many typesyn *> board) <*> (many typesyn *> input) <*>
   -- followed by the prelude contents, and any other declarations
   ((\p -> vs ++ catMaybes p) <$> (many decl))
 
+
+-- | Uses the parser p to parse all input with state ps, throws an error if anything is left over
+parseWithState :: ParState -> Parser a -> String -> String -> Either ParseError a
+parseWithState ps p s = runParser (p <* eof) ps s
+
 -- | Uses the parser p to parse all input, throws an error if anything is left over
 parseAll :: Parser a -> String -> String -> Either ParseError a
-parseAll p s = runParser (p <* eof) startState s
+parseAll = parseWithState startState
 
 -- | Read from the file, and parse
 parseFromFile :: Parser a -> FilePath -> IO (Either ParseError a)
@@ -423,32 +395,20 @@ parseLine = parseAll expr ""
 parseGameFile :: String -> IO (Either ParseError (Game SourcePos))
 parseGameFile = parseFromFile (parseGame [])
 
--- | Parse a prelude and game from file content displaying an error if there's a problem (used in repl)
-parsePreludeAndGameFiles :: String -> String -> IO (Either ParseError (Game SourcePos))
-parsePreludeAndGameFiles p f = do
-  exists <- doesFileExist p
-  prel <- if exists
-            then Parser.Parser.parseFromFile prelude p
-            else return $ fail (p++" does not exist")
-  case prel of
-   Right x -> Parser.Parser.parseFromFile (parseGame (catMaybes x)) f
-   Left err -> return $ Left err
-
-
 -- | Parse the prelude from text
-parsePreludeFromText :: String -> Either ParseError [Maybe (ValDef SourcePos)]
+parsePreludeFromText :: String -> Either ParseError ([Maybe (ValDef SourcePos)], ParState)
 parsePreludeFromText content = parseFromText prelude "Prelude" content
 
 -- | Parse a game from text and a list of possible valdefs
 -- This list of possible valdefs can be obtained by parsing a prelude first, and unpacking the maybe result
 -- Such as in the case of the function above 'parsePreludeFromtext'
-parseGameFromText :: String -> [Maybe (ValDef SourcePos)] -> Either ParseError (Game SourcePos)
-parseGameFromText content possibleValdefs = parseFromText (parseGame (catMaybes possibleValdefs)) "Code" content
+parseGameFromText :: String -> ([Maybe (ValDef SourcePos)], ParState) -> Either ParseError (Game SourcePos)
+parseGameFromText content pr = parseWithState (snd pr) (parseGame (catMaybes (fst pr))) "Code" content
 
 -- | Parse a prelude and game from text directly, without a file
 parsePreludeAndGameText :: String -> String -> IO (Either ParseError (Game SourcePos))
 parsePreludeAndGameText preludeContent gameFileContent = do
   prel <- return (parsePreludeFromText preludeContent)
   case prel of
-    Right possibleValdefs -> return (parseGameFromText gameFileContent possibleValdefs)
+    Right r -> return (parseGameFromText gameFileContent r)
     Left err              -> return $ Left err
