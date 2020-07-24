@@ -27,7 +27,8 @@ parserTests = TestList [
   testDivByZeroBad,
   testUnderscoresInTypes,
   testProperTypeSharing,
-  testOptionalBoardInputTests
+  testOptionalBoardInputTests,
+  testTypeSynCannotBeItsOwnValue
   ]
 
 --
@@ -79,7 +80,9 @@ parseDeclTests = TestLabel "Parse Declaration Tests" (TestList [
   testParseTypeSynAndDecl,
   testNoRepeatedParamNames,
   testNoRepeatedMetaVars,
-  testAnySymbolDisallowed
+  testAnySymbolDisallowed,
+  testLowerCaseTypeNamesDisallowed_inDecl,
+  testLowerCaseTypeNamesDisallowed_inGame
   ])
 
 
@@ -151,6 +154,22 @@ testAnySymbolDisallowed = TestCase (
   False
   (isRight $ parseAll (many decl) "" "f:AnySymbol\nf=X")
   )
+
+
+-- | Tests that lowercase letters cannot start a type syn name (in decl)
+testLowerCaseTypeNamesDisallowed_inDecl :: Test
+testLowerCaseTypeNamesDisallowed_inDecl = TestCase (
+  assertEqual "Tests that type syns can't begin with a lowercase character"
+  False
+  (isRight $ parseAll (many decl) "" "type oops={A,B}"))
+
+
+-- | Tests that lowercase letters cannot start a type syn name (in typesyn)
+testLowerCaseTypeNamesDisallowed_inGame :: Test
+testLowerCaseTypeNamesDisallowed_inGame = TestCase (
+  assertEqual "Tests that type syns can't begin with a lowercase character"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype oops={A,B}"))
 
 
 --
@@ -467,3 +486,11 @@ testSimilarTypeToInputOkay = TestCase (
   assertEqual "Test that type synonym 'Inputs' isn't mixed up with 'Input'"
   True
   (isRight $ parseAll (parseGame []) "" "game E\ntype Inputs=Int"))
+
+-- | Tests that 'type AB = {AB}' is not a valid type syn
+-- A type syn cannot be a value of itself
+testTypeSynCannotBeItsOwnValue :: Test
+testTypeSynCannotBeItsOwnValue = TestCase (
+  assertEqual "Test that a type syn cannot be listed as one of it's own symbols"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype AB={AB}"))

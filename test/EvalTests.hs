@@ -15,17 +15,54 @@ import Runtime.Values
 evalTests :: Test
 evalTests = TestList [
   testEvalEquiv,
+  testEvalNotEquiv,
+  testWrongArgsInNotEquiv,
+  testEvalNotEquivSymbols,
+  testEvalEquivSymbols,
+  testEvalLeqNotForSymbols,
   testEvalPlusMinusTimes,
   testBadTypesPlus,
   testEval2,
   testEvalTuple,
-  testEvalLetRef]
+  testEvalLetRef,
+  testEvalNextNotPresent]
 
 testEvalEquiv :: Test
 testEvalEquiv = TestCase (
   assertEqual "Test equiv in eval"
   (Right (Vb False))
   (evalTest (eval (Binop Equiv (I 3) (I 4)))))
+
+-- | Verifies that /= works for operands that are not equivalent
+testEvalNotEquiv :: Test
+testEvalNotEquiv = TestCase (
+  assertEqual "Test not equiv in eval"
+  (Right (Vb True))
+  (evalTest (eval (Binop NotEquiv (I 92) (I 64)))))
+
+testWrongArgsInNotEquiv :: Test
+testWrongArgsInNotEquiv = TestCase (
+  assertEqual "Test bad args in not equiv via eval"
+  True
+  (isRightErr (evalTest (eval (Binop NotEquiv (I 92) (S "Oops"))))))
+
+testEvalNotEquivSymbols :: Test
+testEvalNotEquivSymbols = TestCase (
+  assertEqual "Tests that /= works for symbols"
+  (Right (Vb True))
+  (evalTest (eval (Binop NotEquiv (S "A") (S "B")))))
+
+testEvalEquivSymbols :: Test
+testEvalEquivSymbols = TestCase (
+  assertEqual "Tests that == works for symbols"
+  (Right (Vb False))
+  (evalTest (eval (Binop Equiv (S "A") (S "B")))))
+
+testEvalLeqNotForSymbols :: Test
+testEvalLeqNotForSymbols = TestCase (
+  assertEqual "Tests that <= does not work for symbols"
+  True
+  (isRightErr (evalTest (eval (Binop Leq (S "A") (S "B"))))))
 
 testEvalPlusMinusTimes :: Test
 testEvalPlusMinusTimes = TestCase (
@@ -65,3 +102,9 @@ testEvalLetRef = TestCase (
   assertEqual "Test eval let and ref"
   (Right (Vi 2))
   (evalTest (eval (Let "x" (I 2) (Ref "x")))))
+
+testEvalNextNotPresent :: Test
+testEvalNextNotPresent = TestCase (
+  assertEqual "Test 'next' not builtin anymore"
+  True
+  (isRightErr (evalTest (eval (App "next" (Tuple [(S "X")]))))))

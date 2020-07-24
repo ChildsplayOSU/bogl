@@ -75,11 +75,12 @@ evalBinOp Minus l r     = evalNumOp "-" (-) l r
 evalBinOp Times l r     = evalNumOp "*" (*) l r
 evalBinOp Div l r       = evalNumOp "/" div l r
 evalBinOp Mod l r       = evalNumOp "%" mod l r
-evalBinOp Less l r      = evalCompareOp (<) l r
-evalBinOp Leq l r       = evalCompareOp (<=) l r
+evalBinOp Less l r      = evalCompareOpInt (<) l r
+evalBinOp Leq l r       = evalCompareOpInt (<=) l r
+evalBinOp NotEquiv l r  = evalNotEquiv l r
 evalBinOp Equiv l r     = evalEquiv l r
-evalBinOp Geq l r       = evalCompareOp (>=) l r
-evalBinOp Greater l r   = evalCompareOp (>) l r
+evalBinOp Geq l r       = evalCompareOpInt (>=) l r
+evalBinOp Greater l r   = evalCompareOpInt (>) l r
 evalBinOp Get l r       = do
 									board <- eval l
 									pos   <- eval r
@@ -88,17 +89,38 @@ evalBinOp Get l r       = do
 										_ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
                  -- not a great error message, but this should be caught in the typechecker anyways
 
+-- | evaluates the /= operation
+-- TODO redundant, but tests are in place for both this and 'evalEquiv' below.
+-- For == and /= these should be merged together into a more general form,
+-- and then modified with a simple 'not' to avoid this duplication of logic
+evalNotEquiv :: (Expr a) -> (Expr a) -> Eval Val
+evalNotEquiv l r = do
+                 v1 <- eval l
+                 v2 <- eval r
+                 case (v1,v2) of
+                   (Vi l', Vi r') -> return $ Vb (l' /= r')
+                   (Vs l', Vs r') -> return $ Vb (l' /= r')
+                   (Vb l', Vb r')   -> return $ Vb (l' /= r')
+                   (Vt l', Vt r')   -> return $ Vb (l' /= r')
+                   (Vboard l', Vboard r') -> return $ Vb (l' /= r')
+                   _              -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
 
 -- | evaluates the == operation
 evalEquiv :: (Expr a) -> (Expr a) -> Eval Val
 evalEquiv l r = do
                   v1 <- eval l
                   v2 <- eval r
-                  return $ Vb (v1 == v2)
+                  case (v1,v2) of
+                    (Vi l', Vi r') -> return $ Vb (l' == r')
+                    (Vs l', Vs r') -> return $ Vb (l' == r')
+                    (Vb l', Vb r')   -> return $ Vb (l' == r')
+                    (Vt l', Vt r')   -> return $ Vb (l' == r')
+                    (Vboard l', Vboard r') -> return $ Vb (l' == r')
+                    _              -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
 
--- | evaluates comparison operations (except for ==)
-evalCompareOp :: (Int -> Int -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
-evalCompareOp f l r = do
+-- | evaluates comparison operations for only Ints (except for == & /=)
+evalCompareOpInt :: (Int -> Int -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
+evalCompareOpInt f l r = do
                      v1 <- eval l
                      v2 <- eval r
                      case (v1, v2) of

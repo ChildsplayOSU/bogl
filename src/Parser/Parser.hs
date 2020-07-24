@@ -87,7 +87,7 @@ lexer = P.makeTokenParser (haskellStyle {P.reservedNames =
     "let", "in", "if", "then", "else",
     "while", "do", "game", "type", "Array", "of", "case", "type"
     ] ++ types,
-    P.reservedOpNames = ["=", "*", "<", "<=", "==", ">", ">=", "-", "/=",
+    P.reservedOpNames = ["=", "*", "<", "<=", "==", "/=", ">", ">=", "-", "/=",
                          "/", "+", ":", "->", "{", "}"]})
 
 -- | Operators (might want to fix the order of operations)
@@ -99,6 +99,7 @@ operators = [
              [op "<" (Binop Less) AssocLeft],
              [op "<=" (Binop Leq) AssocLeft],
              [op "==" (Binop Equiv) AssocLeft],
+             [op "/=" (Binop NotEquiv) AssocLeft],
              [op ">=" (Binop Geq) AssocLeft],
              [op ">" (Binop Greater) AssocLeft]
             ]
@@ -125,6 +126,14 @@ new x = do
   if parsed `elem` ids'
     then unexpected $ "redefinition of " ++ parsed
     else addid parsed >> return parsed
+
+-- | Ensure the object doesn't exist, but don't add it in the process
+notAlreadyInUse x = do
+  ids' <- getids
+  parsed <- x
+  if parsed `elem` ids'
+    then unexpected $ "redefinition of " ++ parsed
+    else return parsed
 
 -- | Identifies a valid game name, also used for types
 -- nearly identical to 'capIdentifier', just includes underscores
@@ -242,7 +251,7 @@ btype =
   -- reserved "AnySymbol" *> pure AnySymbol
 
 enum :: Parser (S.Set Name)
-enum = reservedOp "{" *> (S.fromList <$> (commaSep1 capIdentifier)) <* reservedOp "}"
+enum = reservedOp "{" *> (S.fromList <$> (commaSep1 (notAlreadyInUse capIdentifier))) <* reservedOp "}"
 
 -- | Extended types: types after the first are restricted to symbols
 xtype :: Parser Xtype
@@ -319,7 +328,7 @@ valdef = do
     _ -> (Val (Sig n t)) <$> (equation) <*> getPosition
 
 decl :: Parser (Maybe (ValDef SourcePos))
-decl = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn) >> return Nothing)
+decl = typesyn *> return Nothing
        <|> Just <$> valdef
 
 -- | Board definition
@@ -348,7 +357,11 @@ input =
   -- fall back to a default Input type of Int
   <|> return (InputDef (X Itype (S.fromList [])))
 
-typesyn = (try $ (((,) <$> (reserved "type" *> new identifier) <*> (reservedOp "=" *> xtype)) >>= addSyn))
+-- | Type Synonym Definition, but returns nothing
+typesyn :: Parser ()
+typesyn = (try $ (((,) <$>
+  (reserved "type" *> lookAhead upper *> new identifier) <*>
+  (reservedOp "=" *> xtype)) >>= addSyn))
 
 -- | Prelude definition
 prelude :: Parser([(Maybe (ValDef SourcePos))], ParState)
