@@ -35,7 +35,13 @@ bindings_ :: (Int, Int) -> [ValDef a] -> Env
 bindings_ x y = (fst . runWriter) (bindings x y)
 
 bind :: (ValDef a) -> (Name, Eval Val)
-bind (Val _ (Veq n e) _) = (n, eval e)
+bind (Val _ (Veq n e) _) = do
+  (n, do
+    env <- getEnv
+    -- bind as a Pending Value
+    -- this allows lazy evaluation of vals that use input at runtime
+    return $ Pv env (clearAnn e))
+
 bind  (Val _ (Feq n (Pars ls) e) _) = (n, do
                                         env <- getEnv
                                         return $ Vf ls env (clearAnn e))
@@ -124,7 +130,11 @@ eval (Ref n) = do
   e <- lookupName n
   let b = lookup n builtinRefs
   case (e, b) of
-        (Just v, _) -> return $ v
+        (Just v, _) -> case v of
+          -- Pending Value, need to eval this to get the actual value
+          (Pv evalenv e') -> eval e'
+          -- normal value, return as is
+          v'              -> return $ v
         (_, Just v) -> v
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 
@@ -135,6 +145,7 @@ eval (App n es) = do
   f <- lookupName n
   case f of
     Just (Vf params env' e) -> extScope (zip params (args) ++ env') (eval e) -- ++ env?
+    Just (Pv env' e) -> extScope (zip [] (args) ++ env') (eval e) -- ++ env?
     Nothing -> case lookup n builtins of
       Just f -> do
         (f (args))
