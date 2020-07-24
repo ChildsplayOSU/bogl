@@ -162,6 +162,7 @@ data Op = Plus
         | Less
         | Leq
         | Equiv
+        | NotEquiv
         | Geq
         | Greater
         | Get           -- Gets contents from a position on a board
@@ -176,6 +177,7 @@ instance Show Op where
   show Less     = " < "
   show Leq      = " <= "
   show Equiv    = " == "
+  show NotEquiv = " /= "
   show Geq      = " >= "
   show Greater  = " > "
   show Get      = " ! "

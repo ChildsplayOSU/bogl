@@ -106,6 +106,11 @@ exprtype e@(Binop Equiv e1 e2) = do
   t2 <- exprtype e2
   unify t1 t2
   t Booltype
+exprtype e@(Binop NotEquiv e1 e2) = do
+  t1 <- exprtype e1
+  t2 <- exprtype e2
+  unify t1 t2
+  t Booltype
 exprtype (Binop Get e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2

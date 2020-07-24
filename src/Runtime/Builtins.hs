@@ -28,7 +28,7 @@ builtinT = \inputT pieceT -> [
   ("countDiag", Function (Ft (Tup [pieceT, (X Board S.empty)]) (X Itype S.empty))),
   ("isFull", Function (Ft (single (X Board S.empty)) (X Booltype S.empty))),
   ("inARow", Function (Ft (Tup [X Itype S.empty, pieceT, X Board S.empty]) (X Booltype S.empty))),
-  ("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
+  --("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
   ("not", Function (Ft (single (X Booltype S.empty)) (X Booltype S.empty))),
   ("or", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))),
   ("and", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty)))
@@ -56,7 +56,7 @@ builtinsChecker "countRow" [v, Vboard arr] = return $ Vi $ countRow arr v
 builtinsChecker "countDiag" [v, Vboard arr] = return $ Vi $ countDiag arr v
 builtinsChecker "isFull" [Vboard arr] = return $ Vb $ all (/= Vs "Empty") $ elems arr
 builtinsChecker "inARow" [Vi i, v, Vboard arr] = return $ Vb $ inARow arr v i
-builtinsChecker "next" [Vs s] = return $ if s == "X" then Vs "O" else Vs "X"
+--builtinsChecker "next" [Vs s] = return $ if s == "X" then Vs "O" else Vs "X"
 builtinsChecker "not" [Vb b] = return $ Vb (not b)
 builtinsChecker "or" [Vb a, Vb b] = return $ Vb (a || b)
 builtinsChecker "and" [Vb a, Vb b] = return $ Vb (a && b)
@@ -73,7 +73,7 @@ builtins = [
   ("countDiag", \x -> builtinsChecker "countDiag" x),
   ("isFull", \x -> builtinsChecker "isFull" x),
   ("inARow", \x -> builtinsChecker "inARow" x),
-  ("next", \x -> builtinsChecker "next" x),
+  --("next", \x -> builtinsChecker "next" x),
   ("not", \x -> builtinsChecker "not" x),
   ("or", \x -> builtinsChecker "or" x),
   ("and", \x -> builtinsChecker "and" x)
