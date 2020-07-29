@@ -496,7 +496,7 @@ testTypeSynCannotBeItsOwnValue = TestCase (
   False
   (isRight $ parseAll (parseGame []) "" "game E\ntype AB={AB}"))
 
--- | Tests taht identifiers must starst with a lowercase alpha char
+-- | Tests that identifiers must starst with a lowercase alpha char
 testIdentifiersMustBeLower :: Test
 testIdentifiersMustBeLower = TestCase (
   assertEqual "Tests that identifiers must begin with a lowercase character"
