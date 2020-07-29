@@ -13,6 +13,10 @@ type Input = Position
 initialBoard : Board
 initialBoard!(x,y) = Empty
 
+-- allows alternation of turns
+next : Player -> Player
+next(p) = if p == X then O else X
+
 goFirst : Player
 goFirst = X
 

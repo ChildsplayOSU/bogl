@@ -1,6 +1,6 @@
 -- | Typechecker.
 -- todo emit types of expressions
-module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), errors, rtypes, e, success) where
+module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), errors, rtypes, e, success, showTCError) where
 
 import Runtime.Builtins
 import Language.Syntax hiding (input, piece, size)
@@ -168,6 +168,9 @@ data TcResult =
   errors :: [(ValDef SourcePos, TypeError)],
   rtypes :: [(Name, Type)]
      }
+
+showTCError :: (ValDef SourcePos, TypeError) -> String
+showTCError (p, e) = (show e) ++ "\n" ++ show p
 
 tc :: (Game SourcePos) -> TcResult
 tc g = case tc' g of
