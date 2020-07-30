@@ -80,9 +80,9 @@ readTape = do
     [] -> waitForInput boards
 
 -- | Helper function to get the Bool out of a value. This is a partial function.
-unpackBool :: Val -> Bool
-unpackBool (Vb b) = b
-unpackBool _ = undefined
+unpackBool :: Val -> Maybe Bool
+unpackBool (Vb b) = Just b
+unpackBool v = Nothing      -- not a valid boolean, should trip a runtime error
 
 
 -- | Bind the value of a definition to its name in the current Environment
