@@ -96,9 +96,16 @@ exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
         x -> x
   t <- getType n
   case t of
-    (Function (Ft (i) o)) -> do
-      unify (es'') i -- oof
-      return o
+    (Function (Ft i o)) -> do
+      if es'' == i then
+        return o -- supplied param matches expected input type
+      else
+        do
+          -- otherwise, unify the supplied param w/ the input type
+          u <- unify (es'') i -- oof
+          case u of
+            -- verify the unified result is ultimately the same as the input type
+            x1 -> if x1 == i then return o else mismatch (Plain es'') (Function (Ft i o))
     _ -> do
       (traceM "???") >> mismatch (Function $ (Ft es' (X Undef S.empty))) t -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
 exprtype e@(Binop Equiv e1 e2) = do
