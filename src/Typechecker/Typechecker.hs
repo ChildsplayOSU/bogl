@@ -105,7 +105,7 @@ exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
           u <- unify (es'') i -- oof
           case u of
             -- verify the unified result is ultimately the same as the input type
-            x1 -> if x1 == i then return o else mismatch (Plain es'') (Function (Ft i o))
+            x1 -> if x1 == i then return o else mismatch (Plain es'') (Plain i)
     _ -> do
       (traceM "???") >> mismatch (Function $ (Ft es' (X Undef S.empty))) t -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
 exprtype e@(Binop Equiv e1 e2) = do
