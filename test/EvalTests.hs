@@ -11,6 +11,7 @@ import Runtime.Eval
 import Language.Syntax
 import Runtime.Monad
 import Runtime.Values
+import Data.Array
 
 evalTests :: Test
 evalTests = TestList [
@@ -26,7 +27,8 @@ evalTests = TestList [
   testEvalTuple,
   testEvalLetRef,
   testEvalNextNotPresent,
-  testEvalLimit]
+  testEvalLimit,
+  testNegativeBoardAccess]
 
 testEvalEquiv :: Test
 testEvalEquiv = TestCase (
@@ -121,3 +123,15 @@ testEvalLimit = TestCase (
      let buffer = ([],[],1) in
      let evalVal= eval (App "iloop" (Tuple [(I 0)])) in
      runEval env buffer evalVal)))
+
+-- | Tests that negative board access doesn't crash out things
+testNegativeBoardAccess :: Test
+testNegativeBoardAccess = TestCase (
+  assertEqual "Test that evaluating a negative board position gives an appropriate error"
+  True
+  (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
+   let board  = Vboard barray in
+   let env    = Env [("b", board)] (1,1) in
+   let buffer = ([],[],1) in
+   let evalVal= eval (Ref "b!(1,-1)") in
+   runEval env buffer evalVal)))

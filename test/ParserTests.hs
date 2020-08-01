@@ -9,10 +9,10 @@ import Parser.Parser
 import Language.Types
 import qualified Data.Set as S
 import Text.Parsec.Error
-import System.Directory
-import System.FilePath
 import Data.Either
 import Text.Parsec
+import Utils
+
 --
 -- exported tests for the Parser
 --
@@ -28,7 +28,8 @@ parserTests = TestList [
   testUnderscoresInTypes,
   testProperTypeSharing,
   testOptionalBoardInputTests,
-  testTypeSynCannotBeItsOwnValue
+  testTypeSynCannotBeItsOwnValue,
+  testIdentifiersMustBeLower
   ]
 
 --
@@ -85,10 +86,6 @@ parseDeclTests = TestLabel "Parse Declaration Tests" (TestList [
   testLowerCaseTypeNamesDisallowed_inGame
   ])
 
-
--- | Read a single line and return the result (intended for brevity in test cases)
-parseLine' :: Parser a -> String -> Either ParseError a
-parseLine' pars = parseAll pars ""
 
 testRejectBadExprAfterSuccessefulParse :: Test
 testRejectBadExprAfterSuccessefulParse = TestCase (
@@ -178,26 +175,17 @@ testLowerCaseTypeNamesDisallowed_inGame = TestCase (
 --
 --
 
--- relative to top-level spiel directory
-examplesPath :: String
-examplesPath = "examples/"
-
-tutorialsPath :: String
-tutorialsPath = examplesPath ++ "tutorials/"
 
 -- | Check whether all
 checkParseAllExamples :: IO Bool
 checkParseAllExamples = do
-    exampleFiles  <- listDirectory examplesPath
-    tutorialFiles <- listDirectory tutorialsPath
-    let fullPaths = (map ((++) examplesPath) exampleFiles) ++ (map ((++) tutorialsPath) tutorialFiles)
-    let bglFiles  = filter (isExtensionOf ".bgl") (fullPaths)
-    putStrLn $ "\n***Parsing***\n"
-    mapM putStrLn bglFiles
+    bglFiles <- getExampleFiles
+    logTestStmt "Parsing:"
+    mapM_ (putStrLn . ("\t" ++)) bglFiles
     results <- mapM parseGameFile bglFiles
     let allfailures = lefts results
-    putStrLn $ "\n***Failures:***"
-    mapM (putStrLn . (++) "\n" . show) allfailures
+    logTestStmt "Failures:"
+    mapM_ (putStrLn . (++) "\n" . show) allfailures
     return $ null allfailures
 
 
@@ -494,3 +482,10 @@ testTypeSynCannotBeItsOwnValue = TestCase (
   assertEqual "Test that a type syn cannot be listed as one of it's own symbols"
   False
   (isRight $ parseAll (parseGame []) "" "game E\ntype AB={AB}"))
+
+-- | Tests that identifiers must starst with a lowercase alpha char
+testIdentifiersMustBeLower :: Test
+testIdentifiersMustBeLower = TestCase (
+  assertEqual "Tests that identifiers must begin with a lowercase character"
+  False
+  (isRight $ parseAll (many decl) "" "F:Int\nF=5\nF2:Int->Int\nF2(x)=x"))
