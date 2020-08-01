@@ -11,12 +11,15 @@ import Runtime.Values
 import qualified Data.Set as S
 import Data.Array
 
-import Data.Map (Map)
+import Data.Map ()
 import qualified Data.Map as M
 
 import Control.Monad.State
 
+-- | Produces a Tuple type wrapping a single Xtype
+single :: Xtype -> Xtype
 single x = Tup [x]
+
 builtinT :: Xtype -> Xtype -> [(String, Type)]
 builtinT = \inputT pieceT -> [
   ("input", Plain $ inputT),
@@ -39,8 +42,8 @@ builtinT = \inputT pieceT -> [
 place :: [Val] -> Eval Val
 place = \[v, Vboard arr, Vt [Vi x, Vi y]] -> do
    let b = Vboard $ arr // [((x,y), v)]
-   (tape, boards) <- get
-   put (tape, filter (/= Vboard arr) boards ++ [b])
+   (tape, boards, iters) <- get
+   put (tape, filter (/= Vboard arr) boards ++ [b], iters)
    return b
 
 -- | Verifies the parameters are of the expected number & type from their respective lambdas
@@ -48,6 +51,7 @@ place = \[v, Vboard arr, Vt [Vi x, Vi y]] -> do
 -- which indicates that the number and/or type of parameters didn't match what was expected for that builtin
 -- Note: This prevents a crash and gives 'somewhat' better feedback to users, but this should not normally be reachable
 -- if the typechecker verifies the expressions correctly in advance
+builtinsChecker :: [Char] -> [Val] -> Eval Val
 builtinsChecker "place" [v, Vboard arr, Vt [Vi x, Vi y]] = place [v, Vboard arr, Vt [Vi x, Vi y]]
 builtinsChecker "remove" [Vboard arr, Vt [Vi x, Vi y]] = return $ Vboard $ arr // pure ((x,y), Vs "Empty")
 builtinsChecker "countBoard" [v, Vboard arr] = return $ Vi $ length $ filter (== v) (elems arr)

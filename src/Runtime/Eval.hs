@@ -24,7 +24,7 @@ import Debug.Trace
 bindings :: (Int, Int) -> [ValDef a] -> Writer [Exception] Env
 bindings sz vs = e
   where
-    e = foldM (\env (n, v) -> case runEval env ([], []) v of
+    e = foldM (\env (n, v) -> case runEval env ([], [], 1) v of
                                 Right v' -> return $ modifyEval ((n, v'):) env
                                 Left err -> (tell [err]) >> return env)
         (emptyEnv sz)
@@ -168,7 +168,7 @@ eval (Ref n) = do
   case (e, b) of
         (Just v, _) -> case v of
           -- Pending Value, need to eval this to get the actual value
-          (Pv evalenv e') -> eval e'
+          (Pv evalenv e') -> evalWithLimit $ eval e'
           -- normal value, return as is
           v'              -> return $ v
         (_, Just v) -> v
@@ -180,8 +180,8 @@ eval (App n es) = do
     (Vt args) -> return args
   f <- lookupName n
   case f of
-    Just (Vf params env' e) -> extScope (zip params (args) ++ env') (eval e) -- ++ env?
-    Just (Pv env' e) -> extScope (zip [] (args) ++ env') (eval e) -- ++ env?
+    Just (Vf params env' e) -> extScope (zip params (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
+    Just (Pv env' e) -> extScope (zip [] (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
     Nothing -> case lookup n builtins of
       Just f -> do
         (f (args))
@@ -197,7 +197,7 @@ eval (Let n e1 e2) = do
 
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
-  if b then eval e1 else eval e2
+  if b then evalWithLimit $ eval e1 else evalWithLimit $ eval e2
 
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
@@ -214,7 +214,7 @@ eval (While c b names exprs) = do
         e <- eval exprs
         return e
    where
-      recurse = eval (While c b names exprs)
+      recurse = evalWithLimit $ eval (While c b names exprs)
 
 eval (HE n) = err ("Type hole: ")
 
@@ -231,5 +231,5 @@ runWithBuffer env buf e = do
       eval' :: (Expr a) -> Eval ([Val], Val)
       eval' expr = do
          v <- (eval expr)
-         (_, boards) <- get
+         (_, boards,iters) <- get
          return (boards, v)

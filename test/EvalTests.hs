@@ -27,6 +27,7 @@ evalTests = TestList [
   testEvalTuple,
   testEvalLetRef,
   testEvalNextNotPresent,
+  testEvalLimit,
   testNegativeBoardAccess]
 
 testEvalEquiv :: Test
@@ -111,6 +112,18 @@ testEvalNextNotPresent = TestCase (
   True
   (isRightErr (evalTest (eval (App "next" (Tuple [(S "X")]))))))
 
+-- | Tests that the evaluation limit is enforced after 5k iterations
+-- This will naturally stop at 6k iterations, in case the loop is not terminated forcibly
+testEvalLimit :: Test
+testEvalLimit = TestCase (
+  assertEqual "Test that the evaluation limit works"
+  True
+  (isRightErr (let valdef = (Vf ["x"] [] (If (Binop Less (Ref "x") (I 6000)) (App "iloop" (Tuple [(Binop Plus (Ref "x") (I 1))])) (Ref "x"))) in
+     let env    = Env [("iloop", valdef)] (1,1) in
+     let buffer = ([],[],1) in
+     let evalVal= eval (App "iloop" (Tuple [(I 0)])) in
+     runEval env buffer evalVal)))
+
 -- | Tests that negative board access doesn't crash out things
 testNegativeBoardAccess :: Test
 testNegativeBoardAccess = TestCase (
@@ -119,6 +132,6 @@ testNegativeBoardAccess = TestCase (
   (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
    let board  = Vboard barray in
    let env    = Env [("b", board)] (1,1) in
-   let buffer = ([],[]) in
+   let buffer = ([],[],1) in
    let evalVal= eval (Ref "b!(1,-1)") in
    runEval env buffer evalVal)))
