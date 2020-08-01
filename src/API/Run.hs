@@ -38,7 +38,7 @@ _handleParsed (SpielCommand _ gameFile inpt buf) parsed = do
     Right game -> do
       let checked = tc game
       if success checked
-        then return $ [SpielTypes (rtypes checked), (serverRepl game gameFile inpt (buf, []))]
+        then return $ [SpielTypes (rtypes checked), (serverRepl game gameFile inpt (buf, [], 1))]
         else return $ SpielTypes (rtypes checked) : map (SpielTypeError . snd) (errors checked)
     Left err -> do
       let position = errorPos err
@@ -49,7 +49,7 @@ _handleParsed (SpielCommand _ gameFile inpt buf) parsed = do
 
 
 -- |Handles running a command in the repl from the server
-serverRepl :: (Game SourcePos) -> String -> String -> ([Val], [Val]) -> SpielResponse
+serverRepl :: (Game SourcePos) -> String -> String -> Buffer -> SpielResponse
 serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
   case parseLine inpt of
     Right x -> do

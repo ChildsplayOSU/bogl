@@ -60,7 +60,7 @@ instance FromJSON Val where
   parseJSON (Object v) = do
     t <- v .: "input"
     case parseLine t of
-      Right x -> case runWithBuffer (emptyEnv (0,0)) ([], []) x of
+      Right x -> case runWithBuffer (emptyEnv (0,0)) ([], [], 1) x of
         Right (_, v') -> return v'
         Left err -> fail "failed to parse..." -- FIXME
       Left err -> fail "failed to parse..."

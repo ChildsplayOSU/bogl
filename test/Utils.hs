@@ -30,7 +30,7 @@ getExampleFiles = do
 
 -- used to extract value from expression
 evalTest :: Eval Val -> Either Exception Val
-evalTest ev = runEval (emptyEnv (0,0)) ([], []) ev
+evalTest ev = runEval (emptyEnv (0,0)) ([], [], 1) ev
 
 isRightErr :: Either Exception Val -> Bool
 isRightErr m = case m of

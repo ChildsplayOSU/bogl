@@ -316,7 +316,7 @@ typ =
 -- | Value signatures
 sig :: Parser Signature
 sig =
-  Sig <$> new identifier <*> (reservedOp ":" *> typ)
+  lookAhead lower *> (Sig <$> new identifier <*> (reservedOp ":" *> typ))
 
 -- | Value definitions
 valdef :: Parser (ValDef SourcePos)

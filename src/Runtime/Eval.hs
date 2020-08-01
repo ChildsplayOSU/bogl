@@ -24,7 +24,7 @@ import Debug.Trace
 bindings :: (Int, Int) -> [ValDef a] -> Writer [Exception] Env
 bindings sz vs = e
   where
-    e = foldM (\env (n, v) -> case runEval env ([], []) v of
+    e = foldM (\env (n, v) -> case runEval env ([], [], 1) v of
                                 Right v' -> return $ modifyEval ((n, v'):) env
                                 Left err -> (tell [err]) >> return env)
         (emptyEnv sz)
@@ -68,6 +68,20 @@ posMatches xp yp (x, y) = match xp x && match yp y
       match (ForAll _) _        = True
       match (Index ix) i = ix == i
 
+
+-- | Attempt to access a position on the board that may be invalid
+-- If the position is invalid, return an Err value instead of causing an actual array access error
+tryUnsafeBoardAccess :: (Int,Int) -> Board -> Val
+tryUnsafeBoardAccess (x,y) arr = let (_,(bx,by)) = bounds arr in
+                           case (x < 1 || x > bx || y < 1 || y > by) of
+                                      -- indicate this is not a valid space
+                             True  -> let p1   = "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. " in
+                                      -- give additional information, about whether there is one or many spaces on this board
+                                      let p2  = if bx == by && bx == 1 then "The board only has one space at (1,1)." else "The board size is ("++ show bx ++ "," ++ show by ++")." in
+                                      Err $ p1 ++ p2
+                             False -> arr ! (x,y)-- good index
+
+
 -- | Binary operation evaluation
 evalBinOp :: Op -> (Expr a) -> (Expr a) -> Eval Val
 evalBinOp Plus l r      = evalNumOp "+" (+) l r
@@ -85,7 +99,7 @@ evalBinOp Get l r       = do
 									board <- eval l
 									pos   <- eval r
 									case (board, pos) of
-										(Vboard arr, Vt [Vi x, Vi y]) -> return $ arr ! (x,y)
+										(Vboard arr, Vt [Vi x, Vi y]) -> return $ tryUnsafeBoardAccess (x,y) arr
 										_ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
                  -- not a great error message, but this should be caught in the typechecker anyways
 
@@ -154,7 +168,7 @@ eval (Ref n) = do
   case (e, b) of
         (Just v, _) -> case v of
           -- Pending Value, need to eval this to get the actual value
-          (Pv evalenv e') -> eval e'
+          (Pv evalenv e') -> evalWithLimit $ eval e'
           -- normal value, return as is
           v'              -> return $ v
         (_, Just v) -> v
@@ -166,8 +180,8 @@ eval (App n es) = do
     (Vt args) -> return args
   f <- lookupName n
   case f of
-    Just (Vf params env' e) -> extScope (zip params (args) ++ env') (eval e) -- ++ env?
-    Just (Pv env' e) -> extScope (zip [] (args) ++ env') (eval e) -- ++ env?
+    Just (Vf params env' e) -> extScope (zip params (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
+    Just (Pv env' e) -> extScope (zip [] (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
     Nothing -> case lookup n builtins of
       Just f -> do
         (f (args))
@@ -184,7 +198,7 @@ eval (Let n e1 e2) = do
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   case b of
-    (Just bb) -> if bb then eval e1 else eval e2
+    (Just bb) -> if bb then evalWithLimit $ eval e1 else evalWithLimit $ eval e2
     Nothing   -> return $ Err $ "The expression " ++ show p ++ " did not evaluate to a Bool as expected!"
 
 eval (Binop op e1 e2) = evalBinOp op e1 e2
@@ -203,7 +217,7 @@ eval (While c b names exprs) = do
         return e
       Nothing      -> return $ Err $ "The expression " ++ show c ++ " did not evaluate to a Bool as expected!"
    where
-      recurse = eval (While c b names exprs)
+      recurse = evalWithLimit $ eval (While c b names exprs)
 
 eval (HE n) = err ("Type hole: ")
 
@@ -220,5 +234,5 @@ runWithBuffer env buf e = do
       eval' :: (Expr a) -> Eval ([Val], Val)
       eval' expr = do
          v <- (eval expr)
-         (_, boards) <- get
+         (_, boards,iters) <- get
          return (boards, v)
