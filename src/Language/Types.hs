@@ -33,7 +33,7 @@ instance Show BoardDef where
     = "Board : Grid(" ++ show i1 ++ "," ++ show i2 ++ ") of " ++ show t
 
 -- | Input definition: Player inputs must be an accepted type
-data InputDef = InputDef {inputType :: Xtype} 
+data InputDef = InputDef {inputType :: Xtype}
   deriving (Generic)
 
 instance Show InputDef where
@@ -74,7 +74,7 @@ instance ToJSON Btype where
 
 
 -- | Xtypes are sum types (or tuples of sum types), but restricted by the semantics to only contain Symbols after the atomic type.
---   Note: ttypes are subsumed by xtypes in our implementation 
+--   Note: ttypes are subsumed by xtypes in our implementation
 data Xtype = X Btype (S.Set Name)
            | Tup [Xtype]
            | Hole Name
@@ -89,9 +89,9 @@ instance Ord Xtype where
 
 instance Show Xtype where
   show (X b xs) | S.null xs = show b
-                | otherwise = 
-                  case b of 
-                     Top -> showTypes                     
+                | otherwise =
+                  case b of
+                     Top -> showTypes
                      _   -> show b ++ " & " ++ showTypes
                      where
                         showTypes = "{" ++ intercalate (", ") (S.toList xs) ++ "}"
@@ -100,7 +100,7 @@ instance Show Xtype where
   show _ = undefined
 
 instance ToJSON Xtype where
- 
+
 -- | A function type can be from a plain type to a plain type (no curried functions)
 data Ftype = Ft Xtype Xtype
    deriving (Eq, Generic)

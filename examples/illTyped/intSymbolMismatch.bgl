@@ -1,0 +1,6 @@
+game G
+
+type TA = {A}
+
+err : Bool
+err = 1 == A

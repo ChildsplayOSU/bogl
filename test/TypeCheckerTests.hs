@@ -15,6 +15,8 @@ import Utils
 import Typechecker.Typechecker
 import Language.Syntax
 import Typechecker.Monad
+import System.Directory
+import System.FilePath
 
 --
 -- exported tests for the TypeChecker
@@ -63,3 +65,25 @@ typeCheckAllExamples = do
    let errCount = length errs
    let failCount= length failures
    return $ if errCount > 0 || failCount > 0 then (Fail failCount errCount) else Pass
+
+illTypedPath :: String
+illTypedPath = examplesPath ++ "illTyped/"
+
+illTypedFiles :: IO [String]
+illTypedFiles = do
+   files  <- listDirectory illTypedPath
+   let fullPaths = (map ((++) illTypedPath) files)
+       bglFiles  = filter (isExtensionOf ".bgl") (fullPaths)
+   return bglFiles
+
+typeCheckIll :: IO Int
+typeCheckIll = do
+   bglFiles <- illTypedFiles
+   logTestStmt "Type checking (ill typed):"
+   mapM_ (putStrLn . ("\t" ++)) bglFiles
+   results <- mapM parseGameFile bglFiles
+   let parsed = zip bglFiles $ rights results -- assume they all parsed correctly
+       succs  = filter (success . snd) $ map (\p -> (fst p, (tc . snd) p)) parsed
+   logTestStmt "Incorrect successes:"
+   mapM_ (putStrLn . ("\t" ++)) $ map (\p -> fst p ++ "\n\t\t" ++ (show (((rtypes . snd) p)))) succs
+   return $ length succs
