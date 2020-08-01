@@ -28,7 +28,8 @@ parserTests = TestList [
   testUnderscoresInTypes,
   testProperTypeSharing,
   testOptionalBoardInputTests,
-  testTypeSynCannotBeItsOwnValue
+  testTypeSynCannotBeItsOwnValue,
+  testIdentifiersMustBeLower
   ]
 
 --
@@ -481,3 +482,10 @@ testTypeSynCannotBeItsOwnValue = TestCase (
   assertEqual "Test that a type syn cannot be listed as one of it's own symbols"
   False
   (isRight $ parseAll (parseGame []) "" "game E\ntype AB={AB}"))
+
+-- | Tests that identifiers must starst with a lowercase alpha char
+testIdentifiersMustBeLower :: Test
+testIdentifiersMustBeLower = TestCase (
+  assertEqual "Tests that identifiers must begin with a lowercase character"
+  False
+  (isRight $ parseAll (many decl) "" "F:Int\nF=5\nF2:Int->Int\nF2(x)=x"))
