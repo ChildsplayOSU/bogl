@@ -1,4 +1,4 @@
-module ParserTests(parserTests, checkParseAllExamples) where
+module ParserTests(parserTests, checkParseAllExamples, ParserTestResult(), parsePassed) where
 
 --
 -- Parser Tests
@@ -175,9 +175,26 @@ testLowerCaseTypeNamesDisallowed_inGame = TestCase (
 --
 --
 
+-- | Represents the rest result for typchecking examples
+-- On Fail, return # failures for easier analysis in the cmd line
+data ParserTestResult =
+  Fail Int |
+  Pass
 
--- | Check whether all
-checkParseAllExamples :: IO Bool
+-- | Allows displaying of a parser example checking result
+instance Show ParserTestResult where
+  show (Fail fails) = "Parsing all Examples\n Failures: " ++ show fails
+  show Pass         = "Parsing all Examples\n Failures: 0\n (Passed)"
+
+
+-- | Determines whether a type checker result is passing or not
+parsePassed :: ParserTestResult -> Bool
+parsePassed (Fail _ ) = False
+parsePassed Pass      = True
+
+
+-- | Check whether all examples pass parsing
+checkParseAllExamples :: IO ParserTestResult
 checkParseAllExamples = do
     bglFiles <- getExampleFiles
     logTestStmt "Parsing:"
@@ -186,7 +203,8 @@ checkParseAllExamples = do
     let allfailures = lefts results
     logTestStmt "Failures:"
     mapM_ (putStrLn . (++) "\n" . show) allfailures
-    return $ null allfailures
+    let failCount = length allfailures
+    return $ if failCount < 1 then Pass else (Fail failCount)
 
 
 -- | Raw prelude code for the test below

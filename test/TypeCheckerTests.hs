@@ -22,6 +22,23 @@ import Typechecker.Monad
 typeCheckerTests :: Test
 typeCheckerTests = TestList []
 
+-- | Represents the rest result for typchecking examples
+-- On Fail, return # failures & # errors for easier analysis in the cmd line
+data TypeCheckerTestResult =
+  Fail Int Int |
+  Pass
+
+-- | Allows displaying of a typechecker example checking result
+instance Show TypeCheckerTestResult where
+  show (Fail fails errs) = "Typechecking all Examples\n Failures: " ++ show fails ++ " Errors: " ++ show errs
+  show Pass              = "TypeChecking all Examples\n Failures: 0 Errors: 0\n (Passed)"
+
+
+-- | Determines whether a type checker result is passing or not
+tcPassed :: TypeCheckerTestResult -> Bool
+tcPassed (Fail _ _) = False
+tcPassed Pass       = True
+
 --
 -- TEST STRUCTURE
 --
@@ -32,7 +49,7 @@ typeCheckerTests = TestList []
 --  ExpressionToCheck)
 --
 
-typeCheckAllExamples :: IO Bool
+typeCheckAllExamples :: IO TypeCheckerTestResult
 typeCheckAllExamples = do
    bglFiles <- getExampleFiles
    logTestStmt "Type checking:"
@@ -43,4 +60,6 @@ typeCheckAllExamples = do
        errs = map Typechecker.Typechecker.errors failures
    logTestStmt "Failures:"
    mapM_ (putStrLn . ("\n" ++)) (map showTCError (concat errs))
-   return $ null failures
+   let errCount = length errs
+   let failCount= length failures
+   return $ if errCount > 0 || failCount > 0 then (Fail failCount errCount) else Pass

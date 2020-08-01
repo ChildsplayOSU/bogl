@@ -197,22 +197,25 @@ eval (Let n e1 e2) = do
 
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
-  if b then evalWithLimit $ eval e1 else evalWithLimit $ eval e2
+  case b of
+    (Just bb) -> if bb then evalWithLimit $ eval e1 else evalWithLimit $ eval e2
+    Nothing   -> return $ Err $ "The expression " ++ show p ++ " did not evaluate to a Bool as expected!"
 
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
 eval (While c b names exprs) = do
    c' <- unpackBool <$> eval c   -- evaluate the condition
    case c' of
-      True  -> do
+      (Just True)  -> do
          env <- getEnv                          -- get the current environment
          result <- eval b                                       -- evaluate the body
          case result of                                         -- update the variables in the environment w/ new values and recurse:
             (Vt vs) -> extScope ((zip names vs) ++ env) recurse
             r       -> extScope ((head names, r) : env) recurse -- that head should never fail...famous last words
-      False -> do
+      (Just False) -> do
         e <- eval exprs
         return e
+      Nothing      -> return $ Err $ "The expression " ++ show c ++ " did not evaluate to a Bool as expected!"
    where
       recurse = evalWithLimit $ eval (While c b names exprs)
 
