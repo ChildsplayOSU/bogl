@@ -8,9 +8,7 @@ import Test.HUnit
 import Parser.Parser
 import Language.Types
 import qualified Data.Set as S
-import Text.Parsec.Error
 import Data.Either
-import Text.Parsec
 import Utils
 import Typechecker.Typechecker
 import Language.Syntax
@@ -18,11 +16,19 @@ import Typechecker.Monad
 import System.Directory
 import System.FilePath
 
+import Text.Parsec
+import Text.Parsec.Error
+import Text.Parsec.Pos
+
 --
 -- exported tests for the TypeChecker
 --
 typeCheckerTests :: Test
-typeCheckerTests = TestList []
+typeCheckerTests = TestList
+   [
+    testSmallLiteralBoardEq
+   ,testLargeLiteralBoardEq
+   ]
 
 -- | Represents the rest result for typchecking examples
 -- On Fail, return # failures & # errors for easier analysis in the cmd line
@@ -50,6 +56,37 @@ tcPassed Pass       = True
 --  ExpectedValue
 --  ExpressionToCheck)
 --
+
+-- | A dummy position with which to annotate test cases
+dummyPos :: SourcePos
+dummyPos = initialPos ""
+
+-- | Check that every Game in a list type checks
+allPassTC :: [Game SourcePos] -> Bool
+allPassTC = and . map success . map tc
+
+-- | Check that every Game in a list fails to type check
+allFailTC :: [Game SourcePos] -> Bool
+allFailTC = and . map (not . success) . map tc
+
+testSmallLiteralBoardEq :: Test
+testSmallLiteralBoardEq = TestCase (
+   assertBool "board access with integer literal that is <= 0 type checks" $
+   allFailTC (map (testGame . \x -> [x]) [z, n, n2])
+   )
+   where
+     z = BVal (Sig "b1" (Plain boardxt)) [PosDef "b1" (Index 0) (Index 0) (I 1)] dummyPos
+     n  = BVal (Sig "b1" (Plain boardxt)) [PosDef "bn" (Index (-1)) (ForAll "y") (I 1)] dummyPos
+     n2 = BVal (Sig "b1" (Plain boardxt)) [PosDef "bn" (ForAll ("x")) (Index (-10)) (I 1)] dummyPos
+
+testLargeLiteralBoardEq :: Test
+testLargeLiteralBoardEq = TestCase (
+   assertBool "board access with integer literal that is greater than board size type checks" $
+   allFailTC (map (testGame . \x -> [x]) [a, b])
+   )
+   where
+     a = BVal (Sig "b1" (Plain boardxt)) [PosDef "b1" (Index 10) (Index 1) (I 1)] dummyPos
+     b = BVal (Sig "b1" (Plain boardxt)) [PosDef "b1" (Index 1) (Index 10) (I 1)] dummyPos
 
 typeCheckAllExamples :: IO TypeCheckerTestResult
 typeCheckAllExamples = do

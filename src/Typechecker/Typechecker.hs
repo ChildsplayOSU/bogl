@@ -37,24 +37,21 @@ deftype (Val (Sig n t) eqn x) = do
 
 deftype (BVal (Sig n t) eqs x) = do
   setPos x
-  eqTypes <- mapM (beqntype t) eqs
+  eqTypes <- mapM beqntype eqs
   case all' (<= t) eqTypes of
     Nothing -> return t
     (Just badEqn) -> sigmismatch n t badEqn
 
--- | Get the type of a board equation.
-beqntype :: Type -> (BoardEq SourcePos) -> Typechecked Type
-beqntype t (PosDef _ xp yp e) = do
-   t1 <- exprtype e
-   b <- getPiece
-   sz <- getSize
-   unify t1 b
-   case (t1 <= b, toPos sz >= (xp,yp)) of
-     (True, True) -> return $ Plain (X Board S.empty)
-     (False, _) -> mismatch (Plain b) (Plain t1)
-     (_, False) -> outofbounds xp yp
-   where
-     toPos (x,y) = (Index x, Index y) -- fixme
+beqntype :: BoardEq SourcePos -> Typechecked Type
+beqntype (PosDef n xp yp e) = do
+   et <- exprtype e
+   pt <- getPiece
+   (mx, my) <- getSize
+   case (et <= pt, xp <= Index mx && xp > Index 0, yp <= Index my && yp > Index 0) of
+      (True, True, True) -> return $ Plain boardxt
+      (False, _, _)      -> mismatch (Plain pt) (Plain et)
+      _                  -> outofbounds xp yp
+
 -- | Get the type of an equation
 eqntype :: Type -> (Equation SourcePos) -> Typechecked Type
 eqntype _ (Veq _ e) = exprtypeE e >>= (return . Plain)
@@ -114,6 +111,13 @@ exprtype e@(Binop Equiv e1 e2) = do
   unify t1 t2
   t Booltype
 exprtype (Binop NotEquiv e1 e2) = exprtype $ Binop Equiv e1 e2
+exprtype (Binop Get e1 (Annotation _ (Tuple [Annotation _ (I x), Annotation _ (I y)]))) = do
+  t1 <- exprtype e1
+  unify t1 (X Board S.empty)
+  inB <- inBounds (x, y)
+  if inB
+   then getPiece
+   else outofbounds (Index x) (Index y)
 exprtype (Binop Get e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2

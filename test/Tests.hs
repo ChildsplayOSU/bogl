@@ -7,7 +7,7 @@ import TypeCheckerTests
 
 -- collects all tests together
 spielTests :: Test
-spielTests = TestList [parserTests,evalTests]
+spielTests = TestList [parserTests,evalTests,typeCheckerTests]
 
 -- run all tests in the suite
 main :: IO ()

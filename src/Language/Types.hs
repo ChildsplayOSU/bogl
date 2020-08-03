@@ -8,7 +8,10 @@ module Language.Types
    Btype(..),
    Xtype(..),
    Type(..),
-   Ftype(..))
+   Ftype(..),
+   boolxt,
+   intxt,
+   boardxt)
 where
 
 import Data.List
@@ -39,7 +42,21 @@ data InputDef = InputDef {inputType :: Xtype}
 instance Show InputDef where
   show (InputDef t) = "Input : " ++ show t
 
+-- | Nest a Btype as an Xtype
+bnestx :: Btype -> Xtype
+bnestx b = X b S.empty
 
+-- | Xtype smart constructor for Booltype
+boolxt :: Xtype
+boolxt = bnestx Booltype
+
+-- | Xtype smart constructor for Itype
+intxt :: Xtype
+intxt = bnestx Itype
+
+-- | Xtype smart constructor for Board
+boardxt :: Xtype
+boardxt = bnestx Board
 
 -- Types
 -- | Atomic types
@@ -52,7 +69,6 @@ data Btype = Booltype      -- ^ Boolean
            | Top           -- ^ Really this is bottom FIXME
            | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type.
    deriving (Generic, Eq)
-
 
 instance Ord Btype where
   Top <= _ = True
