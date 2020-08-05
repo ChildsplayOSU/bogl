@@ -28,6 +28,7 @@ typeCheckerTests = TestList
    [
     testSmallLiteralBoardEq
    ,testLargeLiteralBoardEq
+   ,testOutOfBoundsLiteralGet
    ]
 
 -- | Represents the rest result for typchecking examples
@@ -69,9 +70,29 @@ allPassTC = and . map success . map tc
 allFailTC :: [Game SourcePos] -> Bool
 allFailTC = and . map (not . success) . map tc
 
+-- | Check that every Expr in a list fails to type check
+allFailTCexpr :: Env -> [Expr SourcePos] -> Bool
+allFailTCexpr = \e -> and . map isLeft . map (tcexpr e)
+
+testOutOfBoundsLiteralGet :: Test
+testOutOfBoundsLiteralGet = TestCase (
+   assertBool "board access with integer literal that is out of bounds type checks" $
+   allFailTCexpr env [nx, ny, zx, zy, gx, gy]
+   )
+   where
+      env = exampleEnv { types = ("b", boardt) : types exampleEnv }
+      get = \(x, y) -> Binop Get (Ref "b") (Tuple [I x, I y])
+      nx = get (-1, 1)
+      ny = get (1, -1)
+      zx = get (0, 1)
+      zy = get (1, 0)
+      (mx, my) = Typechecker.Monad.size exampleEnv
+      gx = get (mx + 1, 1)
+      gy = get (mx, my + 1)
+
 testSmallLiteralBoardEq :: Test
 testSmallLiteralBoardEq = TestCase (
-   assertBool "board access with integer literal that is <= 0 type checks" $
+   assertBool "BoardEq with integer literal that is <= 0 type checks" $
    allFailTC (map (testGame . \x -> [x]) [z, n, n2])
    )
    where
@@ -81,7 +102,7 @@ testSmallLiteralBoardEq = TestCase (
 
 testLargeLiteralBoardEq :: Test
 testLargeLiteralBoardEq = TestCase (
-   assertBool "board access with integer literal that is greater than board size type checks" $
+   assertBool "BoardEq with integer literal that is greater than board size type checks" $
    allFailTC (map (testGame . \x -> [x]) [a, b])
    )
    where

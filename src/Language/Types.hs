@@ -11,7 +11,8 @@ module Language.Types
    Ftype(..),
    boolxt,
    intxt,
-   boardxt)
+   boardxt,
+   boardt)
 where
 
 import Data.List
@@ -53,6 +54,9 @@ boolxt = bnestx Booltype
 -- | Xtype smart constructor for Itype
 intxt :: Xtype
 intxt = bnestx Itype
+
+-- | Type smart constructor for Board
+boardt = Plain boardxt
 
 -- | Xtype smart constructor for Board
 boardxt :: Xtype

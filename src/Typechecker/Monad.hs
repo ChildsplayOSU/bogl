@@ -38,7 +38,7 @@ initEnv i p s = Env [] i p s
 
 -- | An example environment for interal use (e.g. testing, ghci)
 exampleEnv :: Env
-exampleEnv = let intT = (X Itype S.empty) in Env (builtinT intT intT) intT intT (5, 5)
+exampleEnv = Env (builtinT intxt intxt) intxt intxt (5, 5)
 
 -- | Typechecker state
 data Stat = Stat {
@@ -83,7 +83,7 @@ getSize = size <$> ask
 inBounds :: (Int, Int) -> Typechecked Bool
 inBounds (x, y) = do
                     (x', y') <- getSize
-                    return $ x <= x' && y <= y'
+                    return $ x <= x' && y <= y' && x > 0 && y > 0
 
 -- | Extend the environment
 localEnv :: ([(Name, Type)] -> [(Name, Type)]) -> Typechecked a -> Typechecked a

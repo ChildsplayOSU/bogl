@@ -48,7 +48,7 @@ beqntype (PosDef n xp yp e) = do
    pt <- getPiece
    (mx, my) <- getSize
    case (et <= pt, xp <= Index mx && xp > Index 0, yp <= Index my && yp > Index 0) of
-      (True, True, True) -> return $ Plain boardxt
+      (True, True, True) -> return boardt
       (False, _, _)      -> mismatch (Plain pt) (Plain et)
       _                  -> outofbounds xp yp
 
@@ -111,7 +111,9 @@ exprtype e@(Binop Equiv e1 e2) = do
   unify t1 t2
   t Booltype
 exprtype (Binop NotEquiv e1 e2) = exprtype $ Binop Equiv e1 e2
-exprtype (Binop Get e1 (Annotation _ (Tuple [Annotation _ (I x), Annotation _ (I y)]))) = do
+exprtype (Binop Get e1 (Annotation _ (Tuple [Annotation _ (I x), Annotation _ (I y)]))) =
+   exprtype (Binop Get e1 (Tuple [I x, I y]))
+exprtype (Binop Get e1 (Tuple [(I x), (I y)])) = do
   t1 <- exprtype e1
   unify t1 (X Board S.empty)
   inB <- inBounds (x, y)
