@@ -16,6 +16,7 @@ import Data.Array
 evalTests :: Test
 evalTests = TestList [
   testEvalEquiv,
+  testEvalMod,
   testEvalNotEquiv,
   testWrongArgsInNotEquiv,
   testEvalNotEquivSymbols,
@@ -35,6 +36,13 @@ testEvalEquiv = TestCase (
   assertEqual "Test equiv in eval"
   (Right (Vb False))
   (evalTest (eval (Binop Equiv (I 3) (I 4)))))
+
+-- | Tests the mod can be correctly evaluated
+testEvalMod :: Test
+testEvalMod = TestCase (
+  assertEqual "Test mod in eval"
+  (Right (Vi 0))
+  (evalTest (eval (Binop Mod (I 8) (I 2)))))
 
 -- | Verifies that /= works for operands that are not equivalent
 testEvalNotEquiv :: Test

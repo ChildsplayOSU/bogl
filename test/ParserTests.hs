@@ -8,7 +8,6 @@ import Test.HUnit
 import Parser.Parser
 import Language.Types
 import qualified Data.Set as S
-import Text.Parsec.Error
 import Data.Either
 import Text.Parsec
 import Utils
@@ -78,6 +77,7 @@ parseDeclTests :: Test
 parseDeclTests = TestLabel "Parse Declaration Tests" (TestList [
   testRejectBadExprAfterSuccessefulParse,
   testParseShortDecl,
+  testParseMod,
   testParseTypeSynAndDecl,
   testNoRepeatedParamNames,
   testNoRepeatedMetaVars,
@@ -108,6 +108,13 @@ testParseShortDecl = TestCase (
   True
   (isRight $ parseAll valdef "" "hello : Int\nhello = 24")
   )
+
+-- | Tests that infix mod '%' can be parsed correctly
+testParseMod :: Test
+testParseMod = TestCase (
+  assertEqual "Test that the parser recognizes '%' as infix mod"
+  True
+  (isRight $ (parseAll valdef "" "test:Int\ntest = 5 % 2")))
 
 
 -- |Tests parsing a type declaration followed by variable declaration
