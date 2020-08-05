@@ -93,8 +93,7 @@ lexer = P.makeTokenParser (haskellStyle {P.reservedNames =
 -- | Operators (might want to fix the order of operations)
 operators = [
              [op "!" (Binop Get) AssocLeft],
-             [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft,
-               op "mod" (Binop Mod) AssocLeft],
+             [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "%" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
              [op "<" (Binop Less) AssocLeft],
              [op "<=" (Binop Leq) AssocLeft],
