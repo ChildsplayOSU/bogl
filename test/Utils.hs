@@ -13,6 +13,15 @@ import Text.Parsec.Error
 import System.Directory
 import System.FilePath
 
+import Language.Types
+import Language.Syntax
+import Text.Parsec.Pos
+import Typechecker.Monad
+
+-- | The boilerplate for a Game which is to be filled in with ValDefs
+testGame :: [ValDef SourcePos] -> Game SourcePos
+testGame = Game "Test" (BoardDef (5,5) intxt) (InputDef intxt)
+
 -- relative to top-level spiel directory
 examplesPath :: String
 examplesPath = "examples/"

@@ -38,7 +38,7 @@ initEnv i p s = Env [] i p s
 
 -- | An example environment for interal use (e.g. testing, ghci)
 exampleEnv :: Env
-exampleEnv = let intT = (X Itype S.empty) in Env (builtinT intT intT) intT intT (5, 5)
+exampleEnv = Env (builtinT intxt intxt) intxt intxt (5, 5)
 
 -- | Typechecker state
 data Stat = Stat {
@@ -79,6 +79,11 @@ getPiece = piece <$> ask
 getSize :: Typechecked (Int, Int)
 getSize = size <$> ask
 
+-- | Check whether (x,y) is in the bounds of the board
+inBounds :: (Int, Int) -> Typechecked Bool
+inBounds (x, y) = do
+                    (x', y') <- getSize
+                    return $ x <= x' && y <= y' && x > 0 && y > 0
 
 -- | Extend the environment
 localEnv :: ([(Name, Type)] -> [(Name, Type)]) -> Typechecked a -> Typechecked a
@@ -182,3 +187,4 @@ instance Show TypeError where
   show (SigMismatch n sig t p) = errString p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show t
   show (Unknown s p)           = errString p ++ s
   show (BadOp o t1 t2 e p)     = errString p ++ "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
+  show (OutOfBounds x y p)       = errString p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "

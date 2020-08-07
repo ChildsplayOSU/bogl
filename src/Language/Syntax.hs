@@ -97,9 +97,10 @@ instance Show Pos where
    show (ForAll n) = n
 
 instance Ord Pos where
-  compare (Index i) (Index j) = compare i j
-  compare (ForAll _) (_) = LT
-  compare (_) (ForAll _) = GT
+  compare (Index i) (Index j)      = compare i j
+  compare (ForAll _) (Index i)     = if i <= 0 then GT else LT
+  compare ix@(Index i) f@(ForAll _) = compare f ix
+  compare (ForAll _) (ForAll _)    = EQ
 
  -- | Expressions
 data Expr a = I Int                     -- ^ Integer expression

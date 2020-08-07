@@ -8,7 +8,11 @@ module Language.Types
    Btype(..),
    Xtype(..),
    Type(..),
-   Ftype(..))
+   Ftype(..),
+   boolxt,
+   intxt,
+   boardxt,
+   boardt)
 where
 
 import Data.List
@@ -33,13 +37,30 @@ instance Show BoardDef where
     = "Board : Grid(" ++ show i1 ++ "," ++ show i2 ++ ") of " ++ show t
 
 -- | Input definition: Player inputs must be an accepted type
-data InputDef = InputDef {inputType :: Xtype} 
+data InputDef = InputDef {inputType :: Xtype}
   deriving (Generic)
 
 instance Show InputDef where
   show (InputDef t) = "Input : " ++ show t
 
+-- | Nest a Btype as an Xtype
+bnestx :: Btype -> Xtype
+bnestx b = X b S.empty
 
+-- | Xtype smart constructor for Booltype
+boolxt :: Xtype
+boolxt = bnestx Booltype
+
+-- | Xtype smart constructor for Itype
+intxt :: Xtype
+intxt = bnestx Itype
+
+-- | Type smart constructor for Board
+boardt = Plain boardxt
+
+-- | Xtype smart constructor for Board
+boardxt :: Xtype
+boardxt = bnestx Board
 
 -- Types
 -- | Atomic types
@@ -52,7 +73,6 @@ data Btype = Booltype      -- ^ Boolean
            | Top           -- ^ Really this is bottom FIXME
            | Undef         -- ^ Only occurs when typechecking. The user cannot define anything of this type.
    deriving (Generic, Eq)
-
 
 instance Ord Btype where
   Top <= _ = True
@@ -74,7 +94,7 @@ instance ToJSON Btype where
 
 
 -- | Xtypes are sum types (or tuples of sum types), but restricted by the semantics to only contain Symbols after the atomic type.
---   Note: ttypes are subsumed by xtypes in our implementation 
+--   Note: ttypes are subsumed by xtypes in our implementation
 data Xtype = X Btype (S.Set Name)
            | Tup [Xtype]
            | Hole Name
@@ -89,9 +109,9 @@ instance Ord Xtype where
 
 instance Show Xtype where
   show (X b xs) | S.null xs = show b
-                | otherwise = 
-                  case b of 
-                     Top -> showTypes                     
+                | otherwise =
+                  case b of
+                     Top -> showTypes
                      _   -> show b ++ " & " ++ showTypes
                      where
                         showTypes = "{" ++ intercalate (", ") (S.toList xs) ++ "}"
@@ -100,7 +120,7 @@ instance Show Xtype where
   show _ = undefined
 
 instance ToJSON Xtype where
- 
+
 -- | A function type can be from a plain type to a plain type (no curried functions)
 data Ftype = Ft Xtype Xtype
    deriving (Eq, Generic)
