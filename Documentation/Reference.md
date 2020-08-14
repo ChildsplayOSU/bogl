@@ -12,6 +12,12 @@ To this end, we've provided the following reference items for everything you can
 
 
 ## References
+- `Int|Bool|Board|Symbol`, collectively the `Types` available in BoGL
+  - the valid types that can be used in his language, pronounced as spelled
+  - `Int` is any whole integer
+  - `Bool` is either `True` or `False` (uppercase T/F matters)
+  - `Board` represents an array of spaces with values, a representation of an actual board.
+  - `Symbol` is used to denote any other letter or word that starts with an uppercase A-Z, like `X`, `O`, `Apple`, `Orange`, `BoGL2`, or `Something_Else` (but not `bogl`, `2`, or `_A`)
 - `game Example`
   - Written at the top of every file. This is used to distinguish what kind of game you're writing in this program, both for your own reference and BoGL's.
   - *This program represents an 'Example' 'game'*
