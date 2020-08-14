@@ -30,10 +30,10 @@ To this end, we've provided the following reference items for everything you can
 - `type Name = <AnyType>`
   - Used to define a type synonym, which stands for any other pre-existing type (not a new one).
   - *Name is a type synonym for Int*
-  - *Name is a type synonym for A or B* (if `<AnyType>` was `{A,B}`)
+  - *Name is a type synonym for A and B* (if `<AnyType>` was `{A,B}`)
 - `{A,B,C,...}`
   - Represents a set of symbols that are collectively organized under a category, which we can refer to as a type.
-  - *A or B or C or ...*
+  - *A and B and C and ...*
 - ```
 x : <AnyType>
 x = expression
@@ -44,7 +44,7 @@ x = expression
 x : <AnyType> -> <AnyType>
 x(a) = expression
 ```
-  - A function declaration, which binds a name to an equation that takes a value of a given type, and produces a value of another type.
+  - A function declaration, which binds a name to an equation that takes a value of a given type, and produces a value of another type. If you pass in a tuple of types (as mentioned in the next item), you would have `(a,b)`, or more if you had a larger tuple.
   - *x is a function that takes a/an Type1 represented by 'a', and computes a/an Type2 from the expression ...*
 - ```(Int,Int)```
   - A tuple type, which is a valid type on it's own, but is composed of multiple instances of types, instead of just one.
@@ -60,7 +60,7 @@ xyz!(1,1) = expression -- places the value of this expr in (1,1)
   - *xyz is a Board, where every space has the value of the expression ..., and the space 1, 1, has the value of the expression ...*
 - `Int & {A1,B1}`
   - Extends the type `Int` by the set of values that are given, which are symbols. The result is a type that is valid for any Integer, A1, or B1
-  - *Int, and A1 or B1*
+  - *Int, and A1 and B1*
 - `xyz!(1,1)`
   - Similar to what we wrote above, this can also be used on it's own to access a space on a board, instead of setting it.
   - *Get the value of space 1, 1, from Board xyz*
