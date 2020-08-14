@@ -39,7 +39,7 @@ x : <AnyType> -> <AnyType>
 x(a) = expression
 ```
   - A function declaration, which binds a name to an equation that takes a value of a given type, and produces a value of another type.
-  - *x is a function that takes a/an `<AnyType>` represented by 'a', and computes a/an <AnyType> from the expression ...*
+  - *x is a function that takes a/an Type1 represented by 'a', and computes a/an Type2 from the expression ...*
 - ```(Int,Int)```
   - A tuple type, which is a valid type on it's own, but is composed of multiple instances of types, instead of just one.
   - *Int and an Int*
