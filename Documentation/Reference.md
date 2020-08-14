@@ -39,7 +39,7 @@ x : <AnyType> -> <AnyType>
 x(a) = expression
 ```
   - A function declaration, which binds a name to an equation that takes a value of a given type, and produces a value of another type.
-  - *x is a function that takes `<AnyType>`, represented by 'a', and computes a/an Int from the expression ...
+  - *x is a function that takes a/an `<AnyType>` represented by 'a', and computes a/an <AnyType> from the expression ...*
 - ```(Int,Int)```
   - A tuple type, which is a valid type on it's own, but is composed of multiple instances of types, instead of just one.
   - *Int and an Int*
@@ -54,7 +54,7 @@ xyz!(1,1) = expression -- places the value of this expr in (1,1)
   - *xyz is a Board, where every space has the value of the expression ..., and the space 1, 1, has the value of the expression ...*
 - `Int & {A1,B1}`
   - Extends the type `Int` by the set of values that are given, which are symbols. The result is a type that is valid for any Integer, A1, or B1
-  - *Int or A1 or B1*
+  - *Int, and A1 or B1*
 - `xyz!(1,1)`
   - Similar to what we wrote above, this can also be used on it's own to access a space on a board, instead of setting it.
   - *Get the value of space 1, 1, from Board xyz*
