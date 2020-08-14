@@ -22,19 +22,17 @@ single x = Tup [x]
 
 builtinT :: Xtype -> Xtype -> [(String, Type)]
 builtinT = \inputT pieceT -> [
-  ("input", Plain $ inputT),
-  ("place", Function (Ft (Tup [pieceT, (X Board S.empty), (Tup [X Itype S.empty, X Itype S.empty])]) (X Board S.empty))),
-  ("remove", Function (Ft (Tup [(X Board S.empty), (Tup [X Itype S.empty, X Itype S.empty])]) (X Board S.empty))),
-  ("countBoard", Function (Ft (Tup [pieceT, (X Board S.empty)]) (X Itype S.empty))),
-  ("countCol", Function (Ft (Tup [pieceT, (X Board S.empty)]) (X Itype S.empty))),
-  ("countRow", Function (Ft (Tup [pieceT, (X Board S.empty)]) (X Itype S.empty))),
-  ("countDiag", Function (Ft (Tup [pieceT, (X Board S.empty)]) (X Itype S.empty))),
-  ("isFull", Function (Ft (single (X Board S.empty)) (X Booltype S.empty))),
-  ("inARow", Function (Ft (Tup [X Itype S.empty, pieceT, X Board S.empty]) (X Booltype S.empty))),
-  --("next", Function (Ft (single (X Top (S.fromList ["X", "O"]))) (X Top (S.fromList ["X", "O"])))),
-  ("not", Function (Ft (single (X Booltype S.empty)) (X Booltype S.empty))),
-  ("or", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty))),
-  ("and", Function (Ft (Tup [X Booltype S.empty, X Booltype S.empty]) (X Booltype S.empty)))
+  ("input",      Plain $ inputT),
+  ("place",      Function (Ft (Tup [pieceT, boardxt, (Tup [intxt, intxt])]) boardxt)),
+  ("countBoard", Function (Ft (Tup [pieceT, boardxt]) intxt)),
+  ("countCol",   Function (Ft (Tup [pieceT, boardxt]) intxt)),
+  ("countRow",   Function (Ft (Tup [pieceT, boardxt]) intxt)),
+  ("countDiag",  Function (Ft (Tup [pieceT, boardxt]) intxt)),
+  ("isFull",     Function (Ft (single boardxt) boolxt)),
+  ("inARow",     Function (Ft (Tup [intxt, pieceT, X Board S.empty]) boolxt)),
+  ("not",        Function (Ft (single boolxt) boolxt)),
+  ("or",         Function (Ft (Tup [boolxt, boolxt]) boolxt)),
+  ("and",        Function (Ft (Tup [boolxt, boolxt]) boolxt))
            ]
 
 -- | places a piece on a board and also adds this new board to the display buffer.
@@ -48,24 +46,25 @@ place = \[v, Vboard arr, Vt [Vi x, Vi y]] -> do
 
 -- | Verifies the parameters are of the expected number & type from their respective lambdas
 -- A final case reports a Runtime error in case anything slips by,
--- which indicates that the number and/or type of parameters didn't match what was expected for that builtin
--- Note: This prevents a crash and gives 'somewhat' better feedback to users, but this should not normally be reachable
+-- which indicates that the number and/or type of parameters didn't match what was expected
+-- for that builtin
+-- Note: This prevents a crash and gives 'somewhat' better feedback to users,
+-- but this should not normally be reachable
 -- if the typechecker verifies the expressions correctly in advance
 builtinsChecker :: [Char] -> [Val] -> Eval Val
 builtinsChecker "place" [v, Vboard arr, Vt [Vi x, Vi y]] = place [v, Vboard arr, Vt [Vi x, Vi y]]
-builtinsChecker "remove" [Vboard arr, Vt [Vi x, Vi y]] = return $ Vboard $ arr // pure ((x,y), Vs "Empty")
 builtinsChecker "countBoard" [v, Vboard arr] = return $ Vi $ length $ filter (== v) (elems arr)
 builtinsChecker "countCol" [v, Vboard arr] = return $ Vi $ countCol arr v
 builtinsChecker "countRow" [v, Vboard arr] = return $ Vi $ countRow arr v
 builtinsChecker "countDiag" [v, Vboard arr] = return $ Vi $ countDiag arr v
 builtinsChecker "isFull" [Vboard arr] = return $ Vb $ all (/= Vs "Empty") $ elems arr
 builtinsChecker "inARow" [Vi i, v, Vboard arr] = return $ Vb $ inARow arr v i
---builtinsChecker "next" [Vs s] = return $ if s == "X" then Vs "O" else Vs "X"
 builtinsChecker "not" [Vb b] = return $ Vb (not b)
 builtinsChecker "or" [Vb a, Vb b] = return $ Vb (a || b)
 builtinsChecker "and" [Vb a, Vb b] = return $ Vb (a && b)
 -- mismatch case for any builtin
-builtinsChecker n _ = return $ Err ("Unexpected parameter(s) to '" ++ n ++ "', one or more may have an incorrect Type.")
+builtinsChecker n _ = return $ Err ("Unexpected parameter(s) to '" ++ n ++
+                                    "', one or more may have an incorrect Type.")
 
 builtins :: [(Name, [Val] -> Eval Val)]
 builtins = [
@@ -77,7 +76,6 @@ builtins = [
   ("countDiag", \x -> builtinsChecker "countDiag" x),
   ("isFull", \x -> builtinsChecker "isFull" x),
   ("inARow", \x -> builtinsChecker "inARow" x),
-  --("next", \x -> builtinsChecker "next" x),
   ("not", \x -> builtinsChecker "not" x),
   ("or", \x -> builtinsChecker "or" x),
   ("and", \x -> builtinsChecker "and" x)

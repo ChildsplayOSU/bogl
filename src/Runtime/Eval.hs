@@ -20,7 +20,8 @@ import Text.Parsec.Pos
 
 import Debug.Trace
 
--- | Produce all of the bindings from a list of value definitions. This is done sequentially. Errors are reported as they're found.
+-- | Produce all of the bindings from a list of value definitions.
+--   This is done sequentially. Errors are reported as they're found.
 bindings :: (Int, Int) -> [ValDef a] -> Writer [Exception] Env
 bindings sz vs = e
   where
@@ -29,7 +30,6 @@ bindings sz vs = e
                                 Left err -> (tell [err]) >> return env)
         (emptyEnv sz)
         (map bind vs)
-
 
 bindings_ :: (Int, Int) -> [ValDef a] -> Env
 bindings_ x y = (fst . runWriter) (bindings x y)
@@ -54,7 +54,8 @@ bind (BVal (Sig n _) defs _) = (n, do
          Just (Vboard b) -> return $ Vboard (fill b sz defs values)
          _ -> error "TODO")
    where
-      newBoard sz = array ((1,1), sz) (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?"))) -- TODO: replace ?
+      newBoard sz = array ((1,1), sz)
+                    (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?")))
       fill board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) board (zip ds vs)
 
 updateBoard :: Board -> (Int, Int) -> (BoardEq a) -> Val -> Board
@@ -68,69 +69,58 @@ posMatches xp yp (x, y) = match xp x && match yp y
       match (ForAll _) _        = True
       match (Index ix) i = ix == i
 
-
 -- | Attempt to access a position on the board that may be invalid
 -- If the position is invalid, return an Err value instead of causing an actual array access error
 tryUnsafeBoardAccess :: (Int,Int) -> Board -> Val
 tryUnsafeBoardAccess (x,y) arr = let (_,(bx,by)) = bounds arr in
-                           case (x < 1 || x > bx || y < 1 || y > by) of
-                                      -- indicate this is not a valid space
-                             True  -> let p1   = "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. " in
-                                      -- give additional information, about whether there is one or many spaces on this board
-                                      let p2  = if bx == by && bx == 1 then "The board only has one space at (1,1)." else "The board size is ("++ show bx ++ "," ++ show by ++")." in
-                                      Err $ p1 ++ p2
-                             False -> arr ! (x,y)-- good index
-
+   case (x < 1 || x > bx || y < 1 || y > by) of
+     False -> arr ! (x,y) -- good index
+     True  -> Err $ p1 ++ p2
+         where
+            p1 = "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, " ++
+              "this is not a valid space. "
+            p2 = if bx == by && bx == 1 then "The board only has one space at (1,1)."
+                                     else "The board size is ("++ show bx ++ "," ++ show by ++")."
 
 -- | Binary operation evaluation
 evalBinOp :: Op -> (Expr a) -> (Expr a) -> Eval Val
-evalBinOp Plus l r      = evalNumOp "+" (+) l r
-evalBinOp Minus l r     = evalNumOp "-" (-) l r
-evalBinOp Times l r     = evalNumOp "*" (*) l r
-evalBinOp Div l r       = evalNumOp "/" div l r
-evalBinOp Mod l r       = evalNumOp "%" mod l r
-evalBinOp Less l r      = evalCompareOpInt (<) l r
-evalBinOp Leq l r       = evalCompareOpInt (<=) l r
-evalBinOp NotEquiv l r  = evalNotEquiv l r
-evalBinOp Equiv l r     = evalEquiv l r
-evalBinOp Geq l r       = evalCompareOpInt (>=) l r
-evalBinOp Greater l r   = evalCompareOpInt (>) l r
-evalBinOp Get l r       = do
-									board <- eval l
-									pos   <- eval r
-									case (board, pos) of
-										(Vboard arr, Vt [Vi x, Vi y]) -> return $ tryUnsafeBoardAccess (x,y) arr
-										_ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
-                 -- not a great error message, but this should be caught in the typechecker anyways
+evalBinOp Plus l r     = evalNumOp "+" (+) l r
+evalBinOp Minus l r    = evalNumOp "-" (-) l r
+evalBinOp Times l r    = evalNumOp "*" (*) l r
+evalBinOp Div l r      = evalNumOp "/" div l r
+evalBinOp Mod l r      = evalNumOp "%" mod l r
+evalBinOp Less l r     = evalCompareOpInt (<) l r
+evalBinOp Leq l r      = evalCompareOpInt (<=) l r
+evalBinOp NotEquiv l r = evalNotEquiv l r
+evalBinOp Equiv l r    = evalEquiv l r
+evalBinOp Geq l r      = evalCompareOpInt (>=) l r
+evalBinOp Greater l r  = evalCompareOpInt (>) l r
+evalBinOp Get l r      = do
+   board <- eval l
+   pos   <- eval r
+   case (board, pos) of
+      (Vboard arr, Vt [Vi x, Vi y]) -> return $ tryUnsafeBoardAccess (x,y) arr
+      _ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
 
 -- | evaluates the /= operation
--- TODO redundant, but tests are in place for both this and 'evalEquiv' below.
--- For == and /= these should be merged together into a more general form,
--- and then modified with a simple 'not' to avoid this duplication of logic
-evalNotEquiv :: (Expr a) -> (Expr a) -> Eval Val
 evalNotEquiv l r = do
-                 v1 <- eval l
-                 v2 <- eval r
-                 case (v1,v2) of
-                   (Vi l', Vi r') -> return $ Vb (l' /= r')
-                   (Vs l', Vs r') -> return $ Vb (l' /= r')
-                   (Vb l', Vb r')   -> return $ Vb (l' /= r')
-                   (Vt l', Vt r')   -> return $ Vb (l' /= r')
-                   (Vboard l', Vboard r') -> return $ Vb (l' /= r')
-                   _              -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
+   eq <- evalEquiv l r
+   case eq of
+      (Vb b) -> return $ Vb (not b)
+      eq     -> return eq
 
 -- | evaluates the == operation
 evalEquiv :: (Expr a) -> (Expr a) -> Eval Val
 evalEquiv l r = do
-                  v1 <- eval l
-                  v2 <- eval r
-                  case (v1,v2) of
-                    (Vi l', Vi r') -> return $ Vb (l' == r')
-                    (Vs l', Vs r') -> return $ Vb (l' == r')
-                    (Vb l', Vb r')   -> return $ Vb (l' == r')
-                    (Vt l', Vt r')   -> return $ Vb (l' == r')
-                    (Vboard l', Vboard r') -> return $ Vb (l' == r')
-                    _              -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
+   v1 <- eval l
+   v2 <- eval r
+   case (v1,v2) of
+     (Vi l', Vi r') -> return $ Vb (l' == r')
+     (Vs l', Vs r') -> return $ Vb (l' == r')
+     (Vb l', Vb r')   -> return $ Vb (l' == r')
+     (Vt l', Vt r')   -> return $ Vb (l' == r')
+     (Vboard l', Vboard r') -> return $ Vb (l' == r')
+     _              -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
 
 -- | evaluates comparison operations for only Ints (except for == & /=)
 evalCompareOpInt :: (Int -> Int -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
@@ -143,14 +133,17 @@ evalCompareOpInt f l r = do
 
 -- | evaluates numerical operations
 evalNumOp :: String -> (Int -> Int -> Int) -> (Expr a) -> (Expr a) -> Eval Val
-evalNumOp sym f l r = do
-                     v1 <- eval l
-                     v2 <- eval r
-                     case (v1, v2) of
-                       -- if div/mod and denominator is 0, report an error, otherwise proceed
-                       (Vi l', Vi r') -> if r' == 0 && (sym == "/" || sym == "%") then return (Err "Cannot divide by zero") else return (Vi (f l' r'))
-                       _              -> return $ Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
-
+evalNumOp sym f l r =
+   do
+        v1 <- eval l
+        v2 <- eval r
+        case (v1, v2) of
+          -- if div/mod and denominator is 0, report an error, otherwise proceed
+          (Vi l', Vi r') -> if r' == 0 && (sym == "/" || sym == "%")
+                              then return (Err "Cannot divide by zero")
+                              else return (Vi (f l' r'))
+          _  -> return $
+                  Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
 
 eval :: (Expr a) -> Eval Val
 eval (Annotation a e) = eval e
@@ -199,7 +192,8 @@ eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   case b of
     (Just bb) -> if bb then evalWithLimit $ eval e1 else evalWithLimit $ eval e2
-    Nothing   -> return $ Err $ "The expression " ++ show p ++ " did not evaluate to a Bool as expected!"
+    Nothing   -> return $ Err e
+      where e = "The expression " ++ show p ++ " did not evaluate to a Bool as expected!"
 
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
@@ -207,20 +201,20 @@ eval (While c b names exprs) = do
    c' <- unpackBool <$> eval c   -- evaluate the condition
    case c' of
       (Just True)  -> do
-         env <- getEnv                          -- get the current environment
-         result <- eval b                                       -- evaluate the body
-         case result of                                         -- update the variables in the environment w/ new values and recurse:
+         env <- getEnv         -- get the current environment
+         result <- eval b      -- evaluate the body
+         case result of        -- update the variables in the environment w/ new values and recurse:
             (Vt vs) -> extScope ((zip names vs) ++ env) recurse
-            r       -> extScope ((head names, r) : env) recurse -- that head should never fail...famous last words
+            r       -> extScope ((head names, r) : env) recurse -- that head should never fail...
       (Just False) -> do
         e <- eval exprs
         return e
-      Nothing      -> return $ Err $ "The expression " ++ show c ++ " did not evaluate to a Bool as expected!"
+      Nothing      -> return $ Err $ "The expression " ++ show c ++
+                                     " did not evaluate to a Bool as expected!"
    where
       recurse = evalWithLimit $ eval (While c b names exprs)
 
 eval (HE n) = err ("Type hole: ")
-
 
 runWithBuffer :: Env -> Buffer -> (Expr SourcePos) -> Either ([Val], Buffer) ([Val], Val)
 runWithBuffer env buf e = do

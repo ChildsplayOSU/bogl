@@ -36,9 +36,10 @@ modifyEval :: (EvalEnv -> EvalEnv) -> Env -> Env
 modifyEval f (Env e b) = Env (f e) b
 
 -- | Input buffer and display buffer.
---   The display buffer stores all boards which are to be printed on the front end after an
---   expression is evaluated.
---   Additionally counts the number of evaluation iterations, stopping after a fixed amount with a 'Error $ "Stack Overflow!"'
+--   The display buffer stores all boards which are to be printed on the front end after
+--   a board is updated
+--   Additionally counts the number of evaluation iterations,
+--   stopping after a fixed amount with a 'Error $ "Stack Overflow!"'
 type Buffer = ([Val], [Val], Int)
 
 -- | Exceptions
@@ -49,15 +50,18 @@ data Exception =
 
 
 -- | Take an expressions, and before evaluating it checks & updates evaluation iterations
--- If the count is less than the limit, continue evaluating, otherwise return an error instead of evluating further.
--- Prevents infinite loops via recursion, while, or self referencing value equations, among other things
+-- If the count is less than the limit, continue evaluating,
+-- otherwise return an error instead of evluating further.
+-- Prevents infinite loops via recursion, while, or
+-- self referencing value equations, among other things
 evalWithLimit :: Eval Val -> Eval Val
 evalWithLimit e = do
   (tape,bord,iters) <- get
   put (tape,bord,iters+1)
   case iters < 5000 of -- hard limit of 5k iterations before stopping
     True  -> e
-    False -> return $ Err $ "Your expression took too long to evaluate and was stopped! Please double check your program and try again."
+    False -> return $ Err $ "Your expression took too long to evaluate and was stopped!"
+                            ++ "Please double check your program and try again."
 
 -- | Evaluation occurs in the Identity monad with these side effects:
 -- ReaderT: Evaluation enviroment, board size and piece type, and input type
@@ -98,6 +102,3 @@ readTape = do
 unpackBool :: Val -> Maybe Bool
 unpackBool (Vb b) = Just b
 unpackBool v = Nothing      -- not a valid boolean, should trip a runtime error
-
-
--- | Bind the value of a definition to its name in the current Environment

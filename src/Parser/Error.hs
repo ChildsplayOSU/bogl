@@ -1,4 +1,4 @@
-module Parser.ParseError where 
+module Parser.Error where
 
 import Data.List
 

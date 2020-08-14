@@ -1,6 +1,6 @@
 -- | Typechecker.
 -- todo emit types of expressions
-module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), errors, rtypes, e, success, showTCError) where
+module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), showTCError) where
 
 import Runtime.Builtins
 import Language.Syntax hiding (input, piece, size)
@@ -26,7 +26,8 @@ import qualified Data.Set as S
 -- | return Nothing or the first element of a list which doen't satisfy a predicate
 all' p xs = foldl (\none x -> if p x then none else Just x) Nothing xs
 
--- | Get the type of a valDef. Check the expression's type with the signature's. If they don't match, throw exception.
+-- | Get the type of a valDef. Check the expression's type with the signature's.
+--   If they don't match, throw exception.
 deftype :: (ValDef SourcePos) -> Typechecked Type
 deftype (Val (Sig n t) eqn x) = do
   setPos x
@@ -82,7 +83,8 @@ exprtype (Ref s) = do
   x <- getType s
   case x of
     (Plain t) -> return t
-    other -> unknown $ "Object " ++ s ++ " of type " ++ show other ++ " is a function and cannot be dereferenced."
+    other -> unknown $ "Object " ++ s ++ " of type " ++ show other ++
+                       " is a function and cannot be dereferenced."
 exprtype (Tuple xs) = do
   xs' <- mapM exprtype xs
   return $ Tup xs'
@@ -104,7 +106,8 @@ exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
             -- verify the unified result is ultimately the same as the input type
             x1 -> if x1 == i then return o else mismatch (Plain es'') (Plain i)
     _ -> do
-      (traceM "???") >> mismatch (Function $ (Ft es' (X Undef S.empty))) t -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
+      (traceM "???") >> mismatch (Function $ (Ft es' (X Undef S.empty))) t
+      -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
 exprtype e@(Binop Equiv e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
@@ -194,4 +197,5 @@ tcexpr :: Env -> (Expr SourcePos) -> Either TypeError (Xtype, TypeEnv)
 tcexpr e x = typeHoles e (exprtypeE x)
 
 printT :: (Xtype, TypeEnv) -> String
-printT (x, env) = show x ++ "\n" ++ "Type Holes:" ++ (intercalate "\n" (map (\(a, b) -> a ++ ": " ++ show b) env))
+printT (x, env) = show x ++ "\n" ++ "Type Holes:" ++
+                  (intercalate "\n" (map (\(a, b) -> a ++ ": " ++ show b) env))
