@@ -60,7 +60,7 @@ evalWithLimit e = do
   put (tape,bord,iters+1)
   case iters < 5000 of -- hard limit of 5k iterations before stopping
     True  -> e
-    False -> return $ Err $ "Your expression took too long to evaluate and was stopped!"
+    False -> return $ Err $ "Your expression took too long to evaluate and was stopped! "
                             ++ "Please double check your program and try again."
 
 -- | Evaluation occurs in the Identity monad with these side effects:

@@ -12,6 +12,7 @@ import Data.Aeson hiding (Array)
 import GHC.Generics
 
 type Board = Array (Int, Int) Val
+type EvalEnv = [(Name, Val)]
 
 -- | Values
 data Val = Vi Int                      -- ^ Integer value
@@ -55,8 +56,6 @@ instance Eq Val where
   (Vt x) == (Vt y)           = x == y
   (Vs n) == (Vs n2)          = n == n2
   _ == _                     = False
-
-type EvalEnv = [(Name, Val)]
 
 instance Show Val where
   show (Vi i)         = show i

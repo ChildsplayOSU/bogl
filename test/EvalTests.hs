@@ -1,4 +1,4 @@
-module EvalTests(evalTests) where
+module EvalTests(evalTests, evalTicTacToe) where
 --
 -- EvalTests.hs
 --
@@ -12,6 +12,8 @@ import Language.Syntax
 import Runtime.Monad
 import Runtime.Values
 import Data.Array
+import Language.Types
+import Parser.Parser
 
 evalTests :: Test
 evalTests = TestList [
@@ -143,3 +145,20 @@ testNegativeBoardAccess = TestCase (
    let buffer = ([],[],1) in
    let evalVal= eval (Ref "b!(1,-1)") in
    runEval env buffer evalVal)))
+
+-- | Evaluate tic tac toe with a series of moves that leads to X winning
+--   This is reflected as the output Vs "X"
+evalTicTacToe :: IO (Bool, String)
+evalTicTacToe = do
+   res <- parseGameFile $ examplesPath ++ "TicTacToe.bgl"
+   case res of
+      (Left _) -> return (False, "TicTacToe parse error")
+      (Right (Game _ (BoardDef (szx, szy) _) _ vs)) -> return val
+         where
+            val        = case evalResult of
+                           (Right (_, r)) -> (r == Vs "X", show r)
+                           e              -> (False, show e)
+            evalResult = runWithBuffer (bindings_ (szx, szy) vs) buf (Ref "result")
+            buf        = (moves, [], 0)
+            moves      = map Vt (map (\p -> [Vi (fst p), Vi (snd p)]) coords)
+            coords     = [(1, 1), (2, 1), (2, 2), (3, 1), (3, 3)]
