@@ -1,9 +1,11 @@
 -- | Parser for BOGL
 
-module Parser.Parser (parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameText, expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser) where
+module Parser.Parser (
+   parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameText,
+   expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser)
+where
 
-
-import Parser.ParseError
+import Parser.Error
 import Language.Syntax hiding (input, board)
 import Language.Types
 import Debug.Trace(trace, traceM)
@@ -26,16 +28,20 @@ import Data.Either
 import Data.List
 
 -- | State for the parser
-data ParState = PS {
-  ctype :: Maybe Type,
-  whileNames :: (Name, [Name]),
-  ids :: [Name],
-  syn :: [(Name, Xtype)]
-                   }
+data ParState =
+   PS {
+       ctype      :: Maybe Type,       -- ^ type of current object being parsed
+       whileNames :: (Name, [Name]),   -- ^ arguments to the last-parsed function, needed for While
+       ids        :: [Name],           -- ^ identifiers
+       syn        :: [(Name, Xtype)]   -- ^ type synonyms
+      }
+
 -- | A parse context with builtins
 startState = PS Nothing ("", []) (map fst builtins ++ map fst builtinRefs) []
 
 type Parser = Parsec String (ParState)
+
+type ParseResult = Either ParseError (Game SourcePos)
 
 -- | Get all used ids
 getids :: Parser [Name]
@@ -78,22 +84,26 @@ putType :: Type -> Parser ()
 putType t = do
   PS c w ids x <- getState
   putState (PS (Just t) w ids x)
+
 -- | The 'Type' keywords
 types = ["Bool", "Int", "AnySymbol", "Input", "Board"]
 
 -- | The lexer, using the reserved keywords and operation names
-lexer = P.makeTokenParser (haskellStyle {P.reservedNames =
-   ["True", "False",
-    "let", "in", "if", "then", "else",
-    "while", "do", "game", "type", "Array", "of", "case", "type"
-    ] ++ types,
+lexer = P.makeTokenParser (haskellStyle
+   {P.reservedNames  =
+                        ["True", "False",
+                         "let", "in", "if", "then", "else",
+                         "while", "do", "game", "type", "Array", "of", "case", "type"
+                        ] ++ types,
     P.reservedOpNames = ["=", "*", "<", "<=", "==", "/=", ">", ">=", "-", "/=",
-                         "/", "+", ":", "->", "{", "}"]})
+                         "/", "+", ":", "->", "{", "}"]
+    })
 
 -- | Operators (might want to fix the order of operations)
 operators = [
              [op "!" (Binop Get) AssocLeft],
-             [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft, op "%" (Binop Mod) AssocLeft],
+             [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft,
+              op "%" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
              [op "<" (Binop Less) AssocLeft],
              [op "<=" (Binop Leq) AssocLeft],
@@ -250,7 +260,8 @@ btype =
   -- reserved "AnySymbol" *> pure AnySymbol
 
 enum :: Parser (S.Set Name)
-enum = reservedOp "{" *> (S.fromList <$> (commaSep1 (notAlreadyInUse capIdentifier))) <* reservedOp "}"
+enum = reservedOp "{" *>
+         (S.fromList <$> (commaSep1 (notAlreadyInUse capIdentifier))) <* reservedOp "}"
 
 -- | Extended types: types after the first are restricted to symbols
 xtype :: Parser Xtype
@@ -274,20 +285,6 @@ xtype' =
   <|>
   (try $ Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype))))
 
--- |
---
--- >>> parseAll ttype "" "(Board, Int)" == Right (Tup [X Board S.empty, X Itype S.empty])
--- True
---
--- >>> parseAll ttype "" "(Symbol,Board)"
--- Right (Symbol,Board)
---
--- >>> isLeft $ parseAll ttype "" "(Symbol)"
--- True
---
--- >>> isLeft $ parseAll ttype "" "(3)"
--- True
-
 -- | Function types
 ftype :: Parser Ftype
 ftype = do
@@ -298,7 +295,7 @@ ftype = do
     Tup xs -> return $ Ft (Tup xs) r
     y -> return $ Ft (Tup [y]) r
 
--- | 'Type's
+-- | Types
 typ :: Parser Type
 typ =
   (try $ (do
@@ -323,7 +320,8 @@ valdef = do
   (Sig n t) <- sig
   b <- getCtype
   case b of
-    Just (Plain (X Board set)) | S.null set  -> (BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition
+    Just (Plain (X Board set))
+      | S.null set -> (BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition
     _ -> (Val (Sig n t)) <$> (equation) <*> getPosition
 
 decl :: Parser (Maybe (ValDef SourcePos))
@@ -336,7 +334,8 @@ board = do
   -- attempt to parse a regular board def
   -- if the words 'type Board' are seen, assume we are parsing a board
   -- otherwise fall to the alternative below with a default board instead
-  (try(reserved "type" *> reserved "Board") *> reservedOp "=") *> (reserved "Array" *> (lexeme . char) '(')
+  (try (reserved "type" *> reserved "Board") *> reservedOp "=")
+     *> (reserved "Array" *> (lexeme . char) '(')
   x <- int
   (lexeme . char) ','
   y <- int
@@ -369,7 +368,6 @@ prelude = do
              s    <- getState
              return (defs, s)
 
-
 -- | Game definition
 parseGame :: [ValDef SourcePos] -> Parser (Game SourcePos)
 parseGame vs =
@@ -379,7 +377,6 @@ parseGame vs =
   (many typesyn *> board) <*> (many typesyn *> input) <*>
   -- followed by the prelude contents, and any other declarations
   ((\p -> vs ++ catMaybes p) <$> (many decl))
-
 
 -- | Uses the parser p to parse all input with state ps, throws an error if anything is left over
 parseWithState :: ParState -> Parser a -> String -> String -> Either ParseError a
@@ -404,21 +401,20 @@ parseFromText p fn content = parseAll p fn content
 parseLine :: String -> Either ParseError (Expr SourcePos)
 parseLine = parseAll expr ""
 
-parseGameFile :: String -> IO (Either ParseError (Game SourcePos))
+parseGameFile :: String -> IO (ParseResult)
 parseGameFile = parseFromFile (parseGame [])
 
 -- | Parse the prelude from text
 parsePreludeFromText :: String -> Either ParseError ([Maybe (ValDef SourcePos)], ParState)
 parsePreludeFromText content = parseFromText prelude "Prelude" content
 
--- | Parse a game from text and a list of possible valdefs
--- This list of possible valdefs can be obtained by parsing a prelude first, and unpacking the maybe result
+-- | Parse a game from text and the result of a previous parse (e.g. the prelude)
 -- Such as in the case of the function above 'parsePreludeFromtext'
-parseGameFromText :: String -> ([Maybe (ValDef SourcePos)], ParState) -> Either ParseError (Game SourcePos)
-parseGameFromText content pr = parseWithState (snd pr) (parseGame (catMaybes (fst pr))) "Code" content
+parseGameFromText :: String -> ([Maybe (ValDef SourcePos)], ParState) -> ParseResult
+parseGameFromText prog pr = parseWithState (snd pr) (parseGame (catMaybes (fst pr))) "Code" prog
 
 -- | Parse a prelude and game from text directly, without a file
-parsePreludeAndGameText :: String -> String -> IO (Either ParseError (Game SourcePos))
+parsePreludeAndGameText :: String -> String -> IO ParseResult
 parsePreludeAndGameText preludeContent gameFileContent = do
   prel <- return (parsePreludeFromText preludeContent)
   case prel of

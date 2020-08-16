@@ -16,6 +16,8 @@ main =  do
   parseResult <- checkParseAllExamples -- Custom test: parse all examples, return Pass | (Fail #failures)
   tcResult    <- typeCheckAllExamples  -- Custom test: tc all examples, return Pass | (Fail #failures #errors)
   illTCResult <- typeCheckIll  -- type check ill typed examples (note: intentionally display only)
-  let failed = or [(errors result) > 0, (failures result) > 0, not $ parsePassed parseResult, not $ tcPassed tcResult]
+  (tttR, msg) <- evalTicTacToe
+  let failed = or [(errors result) > 0, (failures result) > 0, not $ parsePassed parseResult, not $ tcPassed tcResult, not tttR]
   putStrLn ("\n\n" ++ show tcResult ++ "\n\n" ++ show parseResult ++ "\n") -- print example TC/Parse results for verification
+  putStrLn $ "Evaluating tic tac toe led to: " ++ msg
   if failed then exitFailure else exitSuccess

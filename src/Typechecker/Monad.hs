@@ -19,7 +19,7 @@ import qualified Data.Set as S
 import Language.Syntax hiding (piece, input, size)
 import Runtime.Builtins
 
-import Parser.ParseError
+import Parser.Error
 
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]
@@ -187,4 +187,4 @@ instance Show TypeError where
   show (SigMismatch n sig t p) = errString p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show t
   show (Unknown s p)           = errString p ++ s
   show (BadOp o t1 t2 e p)     = errString p ++ "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
-  show (OutOfBounds x y p)       = errString p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
+  show (OutOfBounds x y p)     = errString p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
