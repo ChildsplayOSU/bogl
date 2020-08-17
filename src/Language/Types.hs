@@ -29,7 +29,6 @@ data Btype = Booltype      -- ^ Boolean
            | AnySymbol     -- ^ this is the type all symbols live in
            | Input         -- ^ The input type specified at the top of the program
            | Board         -- ^ A game board
-           | Player        -- ^ A player
            | Top           -- ^ Really this is bottom FIXME
            | Undef         -- ^ Not definable by a user (only occurs when typechecking)
    deriving (Generic, Eq)
@@ -118,7 +117,6 @@ instance Show Btype where
   show Top       = "T"
   show Input     = "Input"
   show Board     = "Board"
-  show Player    = "Player"
   show AnySymbol = "AnySymbol"
   show Undef     = "?"
 
