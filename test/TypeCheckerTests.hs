@@ -30,6 +30,7 @@ typeCheckerTests = TestList
    ,testLargeLiteralBoardEq
    ,testOutOfBoundsLiteralGet
    ,testBadBinopCompare
+   ,testBadBinop
    ]
 
 -- | Represents the rest result for typchecking examples
@@ -112,7 +113,7 @@ testLargeLiteralBoardEq = TestCase (
 
 testBadBinopCompare :: Test
 testBadBinopCompare = TestCase (
-   assertBool "== and /= across non-symbol types fails type check" $
+   assertBool "equality across non-symbol types fails type check" $
    allFailTCexpr env [a, b, c]
    )
    where
@@ -121,6 +122,17 @@ testBadBinopCompare = TestCase (
       b = equiv (I 1) (Ref "b")
       c = equiv (Ref "b") (B False)
       equiv = \l r -> Binop Equiv l r
+
+testBadBinop :: Test
+testBadBinop = TestCase (
+   assertBool "invalid binary expressions fail type check" $
+   allFailTCexpr exampleEnv [a, b, c]
+   )
+   where
+      op = \l o r -> Binop o l r
+      a  = op (S "X") Geq (I 1)
+      b  = op (S "X") Plus (I 1)
+      c  = op (B True) Plus (B False)
 
 typeCheckAllExamples :: IO TypeCheckerTestResult
 typeCheckAllExamples = do
