@@ -123,6 +123,20 @@ data Op = Plus
         | Get              -- ^ Gets contents from a position on a board
    deriving (Eq, Generic)
 
+-- Note: the three predicates below are used in the type checker
+
+-- | Check if a binary operator is arithmetic
+arithmetic :: Op -> Bool
+arithmetic o = o `elem` [Plus, Minus, Times, Div, Mod]
+
+-- | Check if a binary operator is relational (excluding == and /=)
+relational :: Op -> Bool
+relational o = o `elem` [Less, Leq, Geq, Greater]
+
+-- | Check if a binary operator is == or /=
+equiv :: Op -> Bool
+equiv o = o `elem` [Equiv, NotEquiv]
+
 deAnnotate :: Expr a -> Expr a
 deAnnotate (Annotation a e) = e
 deAnnotate x = x

@@ -20,7 +20,7 @@ evalTests = TestList [
   testEvalEquiv,
   testEvalMod,
   testEvalNotEquiv,
-  testWrongArgsInNotEquiv,
+  testIntSymbolNotEquiv,
   testEvalNotEquivSymbols,
   testEvalEquivSymbols,
   testEvalLeqNotForSymbols,
@@ -53,11 +53,11 @@ testEvalNotEquiv = TestCase (
   (Right (Vb True))
   (evalTest (eval (Binop NotEquiv (I 92) (I 64)))))
 
-testWrongArgsInNotEquiv :: Test
-testWrongArgsInNotEquiv = TestCase (
-  assertEqual "Test bad args in not equiv via eval"
-  True
-  (isRightErr (evalTest (eval (Binop NotEquiv (I 92) (S "Oops"))))))
+testIntSymbolNotEquiv :: Test
+testIntSymbolNotEquiv = TestCase (
+  assertEqual "Test eval not equiv with Int and Symbol"
+  (Right (Vb True))
+  (evalTest (eval (Binop NotEquiv (I 92) (S "X")))))
 
 testEvalNotEquivSymbols :: Test
 testEvalNotEquivSymbols = TestCase (

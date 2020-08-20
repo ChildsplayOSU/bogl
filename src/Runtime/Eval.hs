@@ -91,8 +91,8 @@ evalBinOp Div l r      = evalNumOp "/" div l r
 evalBinOp Mod l r      = evalNumOp "%" mod l r
 evalBinOp Less l r     = evalCompareOpInt (<) l r
 evalBinOp Leq l r      = evalCompareOpInt (<=) l r
-evalBinOp NotEquiv l r = evalNotEquiv l r
-evalBinOp Equiv l r    = evalEquiv l r
+evalBinOp Equiv l r    = evalEq (==) l r
+evalBinOp NotEquiv l r = evalEq (/=) l r
 evalBinOp Geq l r      = evalCompareOpInt (>=) l r
 evalBinOp Greater l r  = evalCompareOpInt (>) l r
 evalBinOp Get l r      = do
@@ -100,27 +100,14 @@ evalBinOp Get l r      = do
    pos   <- eval r
    case (board, pos) of
       (Vboard arr, Vt [Vi x, Vi y]) -> return $ tryUnsafeBoardAccess (x,y) arr
-      _ -> return $ Err $ "Could not access" ++ show l ++ " in " ++ show "r"
+      _ -> return $ Err $ "Could not access " ++ show r ++ " on the board \n" ++ show l
 
--- | evaluates the /= operation
-evalNotEquiv l r = do
-   eq <- evalEquiv l r
-   case eq of
-      (Vb b) -> return $ Vb (not b)
-      eq     -> return eq
-
--- | evaluates the == operation
-evalEquiv :: (Expr a) -> (Expr a) -> Eval Val
-evalEquiv l r = do
-   v1 <- eval l
-   v2 <- eval r
-   case (v1,v2) of
-     (Vi l', Vi r') -> return $ Vb (l' == r')
-     (Vs l', Vs r') -> return $ Vb (l' == r')
-     (Vb l', Vb r')   -> return $ Vb (l' == r')
-     (Vt l', Vt r')   -> return $ Vb (l' == r')
-     (Vboard l', Vboard r') -> return $ Vb (l' == r')
-     _              -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
+-- | evaluates the == and /= operations
+evalEq :: (Val -> Val -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
+evalEq f l r = do
+                  v1 <- eval l
+                  v2 <- eval r
+                  return $ Vb (f v1 v2)
 
 -- | evaluates comparison operations for only Ints (except for == & /=)
 evalCompareOpInt :: (Int -> Int -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
@@ -129,7 +116,7 @@ evalCompareOpInt f l r = do
                      v2 <- eval r
                      case (v1, v2) of
                         (Vi l', Vi r') -> return (Vb (f l' r'))
-                        _ -> return $ Err $ "Could not compare " ++ (show l) ++ " to " ++ (show r)
+                        _ -> return $ Err $ "Could not compare " ++ show l ++ " to " ++ show r
 
 -- | evaluates numerical operations
 evalNumOp :: String -> (Int -> Int -> Int) -> (Expr a) -> (Expr a) -> Eval Val
