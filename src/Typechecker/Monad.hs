@@ -152,6 +152,7 @@ data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos),
                | Unknown {msg :: String, srcPos :: SourcePos}                                              -- ^ Errors that "shouldn't happen"
                | BadOp {op :: Op, t1 ::Type, t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos} -- ^ Can't perform a primitive operation
                | OutOfBounds {xpos :: Pos, ypos :: Pos, srcPos :: SourcePos}
+               | Uninitialized {name :: Name, srcPos :: SourcePos}
                deriving (Eq)
 
 instance ToJSON TypeError where
@@ -170,6 +171,8 @@ badop :: Op -> Type -> Type -> Typechecked a
 badop o t1 t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) ->  throwError $ BadOp o t1 t2 e x)
 outofbounds :: Pos -> Pos -> Typechecked a
 outofbounds p sz = getPos >>= \x -> throwError $ OutOfBounds p sz x
+uninitialized :: Name -> Typechecked a
+uninitialized n = getPos >>= \x -> throwError $ Uninitialized n x
 
 -- | Retrieve the extensions from an Xtype
 extensions :: Xtype -> Typechecked (S.Set Name)
@@ -188,3 +191,4 @@ instance Show TypeError where
   show (Unknown s p)           = errString p ++ s
   show (BadOp o t1 t2 e p)     = errString p ++ "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
   show (OutOfBounds x y p)     = errString p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
+  show (Uninitialized n p)     = errString p ++ "Incomplete initialization of Board '" ++ n ++ "'"

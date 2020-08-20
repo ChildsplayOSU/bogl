@@ -26,6 +26,16 @@ import qualified Data.Set as S
 -- | return Nothing or the first element of a list which doen't satisfy a predicate
 all' p xs = foldl (\none x -> if p x then none else Just x) Nothing xs
 
+
+-- | Return a list of the covered positions for a board equation
+getCovered :: (Int,Int) -> BoardEq SourcePos -> [(Int,Int)]
+getCovered (mx,my) (PosDef _ xp yp _) = case (xp,yp) of
+                                  (ForAll _,ForAll _) -> fmap (\x -> (x `mod` mx, x `div` my)) [1..(mx*my)]
+                                  (ForAll _, Index y) -> fmap (\x -> (x,y)) [1..mx]
+                                  (Index x, ForAll _) -> fmap (\y -> (x,y)) [1..my]
+                                  (Index x, Index y)  -> [(x,y)]
+
+
 -- | Get the type of a valDef. Check the expression's type with the signature's.
 --   If they don't match, throw exception.
 deftype :: (ValDef SourcePos) -> Typechecked Type
@@ -38,9 +48,13 @@ deftype (Val (Sig n t) eqn x) = do
 
 deftype (BVal (Sig n t) eqs x) = do
   setPos x
+  (mx, my) <- getSize
+  -- get a set of the spaces covered by these board equations
+  let placesCovered = S.fromList $ concat $ map (getCovered (mx,my)) eqs
   eqTypes <- mapM beqntype eqs
   case all' (<= t) eqTypes of
-    Nothing -> return t
+    -- pass if all spaces are defined, otherwise incomplete/uninitialized
+    Nothing -> if length placesCovered == mx*my then return t else uninitialized n
     (Just badEqn) -> sigmismatch n t badEqn
 
 beqntype :: BoardEq SourcePos -> Typechecked Type
