@@ -28,7 +28,8 @@ parserTests = TestList [
   testProperTypeSharing,
   testOptionalBoardInputTests,
   testTypeSynCannotBeItsOwnValue,
-  testIdentifiersMustBeLower
+  testIdentifiersMustBeLower,
+  testNestedExprInWhileOkay
   ]
 
 --
@@ -514,3 +515,10 @@ testIdentifiersMustBeLower = TestCase (
   assertEqual "Tests that identifiers must begin with a lowercase character"
   False
   (isRight $ parseAll (many decl) "" "F:Int\nF=5\nF2:Int->Int\nF2(x)=x"))
+
+-- | Inputs should be okay where a normal Input would be
+testNestedExprInWhileOkay :: Test
+testNestedExprInWhileOkay = TestCase (
+  assertEqual "Test that unparenthesized nested expressions are allowed in while"
+  True
+  (isRight $ parseAll expr "" "while x < 10 do x + 1"))

@@ -187,9 +187,9 @@ atom' =
   <|>
   (do
       reserved "while"
-      c <- atom
+      c <- expr
       reserved "do"
-      e <- atom
+      e <- expr
       (recurse, names) <- getWhileNames
       let exprs = map Ref names
       let exprs' = case exprs of
