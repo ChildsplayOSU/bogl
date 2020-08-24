@@ -83,8 +83,7 @@ exprtype (Ref s) = do
   x <- getType s
   case x of
     (Plain t) -> return t
-    other -> unknown $ "Object " ++ s ++ " of type " ++ show other ++
-                       " is a function and cannot be dereferenced."
+    other -> dereff s other
 exprtype (Tuple xs) = do
   xs' <- mapM exprtype xs
   return $ Tup xs'
@@ -106,8 +105,7 @@ exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
             -- verify the unified result is ultimately the same as the input type
             x1 -> if x1 == i then return o else mismatch (Plain es'') (Plain i)
     _ -> do
-      (traceM "???") >> mismatch (Function $ (Ft es' (X Undef S.empty))) t
-      -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
+      badapp n es
 exprtype (Binop Get e1 (Annotation _ (Tuple [Annotation _ (I x), Annotation _ (I y)]))) =
    exprtype (Binop Get e1 (Tuple [I x, I y]))
 exprtype (Binop Get e1 (Tuple [(I x), (I y)])) = do
