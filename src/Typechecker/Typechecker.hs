@@ -30,9 +30,9 @@ all' p xs = foldl (\none x -> if p x then none else Just x) Nothing xs
 -- | Return a list of the covered positions for a board equation
 getCovered :: (Int,Int) -> BoardEq SourcePos -> [(Int,Int)]
 getCovered (mx,my) (PosDef _ xp yp _) = case (xp,yp) of
-                                  (ForAll _,ForAll _) -> fmap (\x -> (x `mod` mx, x `div` my)) [1..(mx*my)]
-                                  (ForAll _, Index y) -> fmap (\x -> (x,y)) [1..mx]
-                                  (Index x, ForAll _) -> fmap (\y -> (x,y)) [1..my]
+                                  (ForAll _,ForAll _) -> [(x,y) | x <- [1..mx], y <- [1..my]] --fmap (\x -> (x `mod` mx, x `div` my)) [1..(mx*my)]
+                                  (ForAll _, Index y) -> [(x,y) | x <- [1..mx]]               --fmap (\x -> (x,y)) [1..mx]
+                                  (Index x, ForAll _) -> [(x,y) | y <- [1..my]]               --fmap (\y -> (x,y)) [1..my]
                                   (Index x, Index y)  -> [(x,y)]
 
 
@@ -54,6 +54,8 @@ deftype (BVal (Sig n t) eqs x) = do
   eqTypes <- mapM beqntype eqs
   case all' (<= t) eqTypes of
     -- pass if all spaces are defined, otherwise incomplete/uninitialized
+    -- placesCovered is a set of all places. Places of invalid positions do not count
+    -- i.e, if the size of the set of positions is equivalent to mx*my, then all correct positions have been covered
     Nothing -> if length placesCovered == mx*my then return t else uninitialized n
     (Just badEqn) -> sigmismatch n t badEqn
 
