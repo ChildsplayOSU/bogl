@@ -145,6 +145,7 @@ unify a b = mismatch (Plain a) (Plain b)
 
 t :: Btype -> Typechecked Xtype
 t b = return (X b S.empty)
+
 -- | Encoding the different type errors as types should let us do interesting things with them
 data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos}      -- ^ Couldn't match two types in an expression
                | NotBound {name :: Name, srcPos :: SourcePos}                                              -- ^ Name isn't (yet) bound in the enviroment
@@ -152,6 +153,8 @@ data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos),
                | Unknown {msg :: String, srcPos :: SourcePos}                                              -- ^ Errors that "shouldn't happen"
                | BadOp {op :: Op, t1 ::Type, t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos} -- ^ Can't perform a primitive operation
                | OutOfBounds {xpos :: Pos, ypos :: Pos, srcPos :: SourcePos}
+               | BadApp {name :: Name, arg :: (Expr SourcePos), srcPos :: SourcePos}                       -- ^ An attempt to apply a non-function expr as if it were a function
+               | Dereff {name :: Name, typ :: Type, srcPos :: SourcePos}                                   -- ^ An attempt to dereference a function
                | Uninitialized {name :: Name, srcPos :: SourcePos}
                deriving (Eq)
 
@@ -161,18 +164,29 @@ instance ToJSON TypeError where
 -- | smart constructors for type errors
 mismatch :: Type -> Type -> Typechecked a
 mismatch t1 t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) -> throwError $ Mismatch t1 t2 e x)
+
 notbound :: Name -> Typechecked a
 notbound n  = getPos >>= \p -> throwError $ NotBound n p
+
 sigmismatch :: Name -> Type -> Type -> Typechecked a
 sigmismatch n t1 t2= getPos >>= \p -> throwError $ SigMismatch n t1 t2 p
+
 unknown :: String -> Typechecked a
 unknown s = getPos >>= (\x -> throwError $ Unknown s x)
+
 badop :: Op -> Type -> Type -> Typechecked a
 badop o t1 t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) ->  throwError $ BadOp o t1 t2 e x)
+
 outofbounds :: Pos -> Pos -> Typechecked a
 outofbounds p sz = getPos >>= \x -> throwError $ OutOfBounds p sz x
 uninitialized :: Name -> Typechecked a
 uninitialized n = getPos >>= \x -> throwError $ Uninitialized n x
+
+badapp :: Name -> Expr SourcePos -> Typechecked a
+badapp n e = getPos >>= \p -> throwError $ BadApp n e p
+
+dereff :: Name -> Type -> Typechecked a
+dereff n t = getPos >>= \p -> throwError $ Dereff n t p
 
 -- | Retrieve the extensions from an Xtype
 extensions :: Xtype -> Typechecked (S.Set Name)
@@ -191,4 +205,6 @@ instance Show TypeError where
   show (Unknown s p)           = errString p ++ s
   show (BadOp o t1 t2 e p)     = errString p ++ "Cannot " ++ quote (show o) ++ " types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
   show (OutOfBounds x y p)     = errString p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
+  show (BadApp n e p)          = errString p ++ "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function."
+  show (Dereff n t p)          = errString p ++ "Could not dereference the function " ++ n ++ " with type " ++ show t ++ ". Maybe you forgot to give it arguments."
   show (Uninitialized n p)     = errString p ++ "Incomplete initialization of Board " ++ quote n

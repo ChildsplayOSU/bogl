@@ -99,8 +99,7 @@ exprtype (Ref s) = do
   x <- getType s
   case x of
     (Plain t) -> return t
-    other -> unknown $ "Object " ++ s ++ " of type " ++ show other ++
-                       " is a function and cannot be dereferenced."
+    other -> dereff s other
 exprtype (Tuple xs) = do
   xs' <- mapM exprtype xs
   return $ Tup xs'
@@ -122,14 +121,7 @@ exprtype e@(App n es) = do -- FIXME. Tuple composition is bad.
             -- verify the unified result is ultimately the same as the input type
             x1 -> if x1 == i then return o else mismatch (Plain es'') (Plain i)
     _ -> do
-      (traceM "???") >> mismatch (Function $ (Ft es' (X Undef S.empty))) t
-      -- TODO Get expected output from enviroment (fill in Undef what we know it should be)
-exprtype e@(Binop Equiv e1 e2) = do
-  t1 <- exprtype e1
-  t2 <- exprtype e2
-  unify t1 t2
-  t Booltype
-exprtype (Binop NotEquiv e1 e2) = exprtype $ Binop Equiv e1 e2
+      badapp n es
 exprtype (Binop Get e1 (Annotation _ (Tuple [Annotation _ (I x), Annotation _ (I y)]))) =
    exprtype (Binop Get e1 (Tuple [I x, I y]))
 exprtype (Binop Get e1 (Tuple [(I x), (I y)])) = do
@@ -145,18 +137,15 @@ exprtype (Binop Get e1 e2) = do
   unify t1 (X Board S.empty)
   unify t2 (Tup [X Itype S.empty, X Itype S.empty])
   getPiece
-exprtype (Binop x e1 e2) = do
+exprtype (Binop o e1 e2) = do
   t1 <- exprtype e1
   t2 <- exprtype e2
   t' <- unify t1 t2
-  case (t') of
-    (X Itype s1) | S.null s1 -> if x `elem` [Plus, Minus, Times, Div, Mod]
-                                              then t Itype
-                                              else if x `elem` [Less, Leq, Geq, Greater]
-                                                then t Booltype
-                                              else
-                                                badop x (Plain t1) (Plain t2)
-    _ -> badop x (Plain t1) (Plain t2)
+  case (t' == intxt, arithmetic o, relational o, equiv o) of
+     (True, True, _, _)      -> return intxt
+     (True, False, True, _)  -> return boolxt
+     (_, False, False, True) -> return boolxt
+     _                       -> badop o (Plain t1) (Plain t2)
 exprtype (If e1 e2 e3) = do
   t1 <- exprtype e1
   t2 <- exprtype e2

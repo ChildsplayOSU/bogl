@@ -21,7 +21,7 @@ board!(x, y) = Empty
 -- If these stipulations seem strange, think of them as recursion.
 -- The base case is triggered on a false result in the condition.
 loop : (Player, Board) -> (Player, Board)
-loop(p, b) = while (countRow(p, b) < 3) do let pos = input in (p, place(p, b, pos))
+loop(p, b) = while countRow(p, b) < 3 do let pos = input in (p, place(p, b, pos))
 
 play : Board -> {Finished}
 play(b) = let pair = loop(P, board) in Finished
