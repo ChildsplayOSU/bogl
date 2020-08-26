@@ -199,12 +199,12 @@ errString p = case sourceName p of
             where str = "Type error at: " ++ show p
 
 instance Show TypeError where
-  show (Mismatch t1 t2 e p)    = errString p ++ "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
-  show (NotBound n p)          = errString p ++ "You did not define " ++ n
-  show (SigMismatch n sig t p) = errString p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show t
-  show (Unknown s p)           = errString p ++ s
-  show (BadOp o t1 t2 e p)     = errString p ++ "Cannot " ++ quote (show o) ++ " types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
-  show (OutOfBounds x y p)     = errString p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
-  show (BadApp n e p)          = errString p ++ "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function."
-  show (Dereff n t p)          = errString p ++ "Could not dereference the function " ++ n ++ " with type " ++ show t ++ ". Maybe you forgot to give it arguments."
-  show (Uninitialized n p)     = errString p ++ "Incomplete initialization of Board " ++ quote n
+  show (Mismatch t1 t2 e p)    = errString p ++ "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e -- ^ Type mismatch
+  show (NotBound n p)          = errString p ++ "You did not define " ++ n -- ^ Attempt to reference an unbound reference
+  show (SigMismatch n sig t p) = errString p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show t -- ^ Signature mismatch between function type and definition
+  show (Unknown s p)           = errString p ++ s -- ^ Unknown type error
+  show (BadOp o t1 t2 e p)     = errString p ++ "Cannot " ++ quote (show o) ++ " types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e -- ^ Indicates a bad BinOp between two operands
+  show (OutOfBounds x y p)     = errString p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. " -- ^ Indicates an invalid space on the board
+  show (BadApp n e p)          = errString p ++ "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function." -- ^ Indicates a misused reference that was not a recognized function
+  show (Dereff n t p)          = errString p ++ "Could not dereference the function " ++ n ++ " with type " ++ show t ++ ". Maybe you forgot to give it arguments." -- ^ Shows an attempt to dereference a function, which is not possible in BogL
+  show (Uninitialized n p)     = errString p ++ "Incomplete initialization of Board " ++ quote n -- ^ Shows an incomplete board initialization
