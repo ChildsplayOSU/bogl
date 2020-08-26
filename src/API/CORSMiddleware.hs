@@ -1,7 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
---
--- Based on @https://stackoverflow.com/questions/41399055/haskell-yesod-cors-problems-with-browsers-options-requests-when-doing-post-req
---
+{-|
+Module      : API.CORSMiddleware
+Description : CORS Middleware for the Spiel Server API
+Copyright   : (c)
+License     : BSD-3
+
+Based on @https://stackoverflow.com/questions/41399055/haskell-yesod-cors-problems-with-browsers-options-requests-when-doing-post-req
+Enables CORS requests to be made to this server by accepting all origins
+
+-}
 
 module API.CORSMiddleware where
 

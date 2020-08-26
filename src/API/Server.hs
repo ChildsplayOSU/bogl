@@ -2,13 +2,17 @@
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TypeOperators   #-}
 
---
--- Server.hs
---
--- Handles starting up an instance of Servant
--- Returns encoded board data on request, and computes
--- boards when input data is taken
---
+{-|
+Module      : API.Server
+Description : API Server for BoGL
+Copyright   : (c)
+License     : BSD-3
+
+Handles starting up an instance of Servant
+Returns encoded board data on request, and computes
+boards when input data is taken
+-}
+
 module API.Server (startServer, serverApp, SpielApi) where
 
 import API.JSONData
@@ -26,7 +30,7 @@ import Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
 
 
--- (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
+-- | Type of the API (Headers '[Header "Access-Control-Allow-Origin" String] SpielResponses)
 type SpielApi = "share" :> ReqBody '[JSON] SpielShare :> Post '[JSON] SpielResponses      -- /share (SpielShare -> SpielResponses) shares a url for files
     :<|> "load" :> ReqBody '[JSON] SpielRead :> Post '[JSON] SpielResponse                -- /load (SpielRead -> SpielShare), loads prelude & gamefile content
     :<|> "runCode"  :> ReqBody '[JSON] SpielCommand :> Post '[JSON] SpielResponses        -- /runCode (SpielCommand -> SpielResponses) runs w/out a file, using Prelude and File code provided in the request
@@ -34,11 +38,11 @@ type SpielApi = "share" :> ReqBody '[JSON] SpielShare :> Post '[JSON] SpielRespo
     :<|> "test" :> Get '[JSON] SpielResponses                                             -- /test () nothing, just indicates it's running, good uptime-checker
 
 
--- defining the api
+-- | Defining the api
 api :: Proxy SpielApi
 api = Proxy
 
--- |handler for actual requests
+-- | Handler for actual requests
 -- performs mapping from endpoints to functions and responses
 -- in order by which they are defined for the API above ^^^
 handler :: Server SpielApi
@@ -74,6 +78,7 @@ curl --verbose --request POST --header "Content-Type: application/json" --data '
 curl --verbose http://localhost:8080/test
 --}
 
+-- | Starts the language server
 startServer :: Int -> IO ()
 startServer port = do
   putStrLn "Spiel Backend listening for POST/GET with endpoints:"

@@ -1,6 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
--- | Spiel language AST.
--- this slightly deviates from the specified syntax in spots.
+
+{-|
+Module      : Language.Syntax
+Description : BoGL Syntax
+Copyright   : (c)
+License     : BSD-3
+
+Spiel language AST. This slightly deviates from the specified syntax in spots.
+
+-}
 
 module Language.Syntax where
 
@@ -11,6 +19,7 @@ import Data.Aeson
 import Data.Array
 import qualified Data.Set as S
 
+-- | Names of games, signatures, etc.
 type Name = String
 
 -- | Game datatype
@@ -27,20 +36,20 @@ data Game a = Game
 data Signature = Sig Name Type
    deriving (Eq)
 
--- | Parameter lists are lists of 'Name'
+-- | Parameters are lists of 'Name'
 data Parlist = Pars [Name]
    deriving (Eq, Generic)
 
--- | Top level values are signatures paired with either an ordinary 'Equation'
-data ValDef a = Val Signature (Equation a) a
-              | BVal Signature [BoardEq a] a
+-- | Top level values are signatures paired with either an ordinary Equation or a list of Board Equations
+data ValDef a = Val Signature (Equation a) a -- ^ Regular Value
+              | BVal Signature [BoardEq a] a -- ^ Board value
    deriving (Eq, Generic)
 
 instance Functor ValDef where
   fmap f (Val s e a)  = Val s (fmap f e) (f a)
   fmap f (BVal s e a) = BVal s ((fmap . fmap) f e) (f a)
 
--- | Equations:
+-- | Equations
 data Equation a = Veq Name (Expr a)          -- ^ Value equations (a mapping from 'Name' to 'Expr')
                 | Feq Name Parlist (Expr a)  -- ^ Function equations
    deriving (Eq, Generic)
@@ -62,8 +71,9 @@ data BoardEq a = PosDef
 instance Functor BoardEq where
   fmap f (PosDef n p1 p2 e) = PosDef n p1 p2 (fmap f e)
 
-data Pos = Index Int
-         | ForAll Name
+-- | Types of individual positions for the x and y in a board equation
+data Pos = Index Int    -- ^ Singular index as
+         | ForAll Name  -- ^ All indices with a given name
          deriving (Eq, Generic)
 
 instance Ord Pos where
@@ -109,18 +119,18 @@ instance Functor Expr where
   fmap f (I x)               = (I x)
 
 -- | Binary operations
-data Op = Plus
-        | Minus
-        | Times
-        | Div
-        | Mod
-        | Less
-        | Leq
-        | Equiv
-        | NotEquiv
-        | Geq
-        | Greater
-        | Get              -- ^ Gets contents from a position on a board
+data Op = Plus      -- ^ Addition (+)
+        | Minus     -- ^ Subtraction (-)
+        | Times     -- ^ Multiplication (*)
+        | Div       -- ^ Division (/)
+        | Mod       -- ^ Modulus (%)
+        | Less      -- ^ Less than comparison (<)
+        | Leq       -- ^ Less than equal to comparison (<=)
+        | Equiv     -- ^ Equivalent comparison (==)
+        | NotEquiv  -- ^ Not equivalent comparison (/=)
+        | Geq       -- ^ Greater than equal to comparison (>=)
+        | Greater   -- ^ Greater than comparison (>)
+        | Get       -- ^ Gets contents from a position on a board (!)
    deriving (Eq, Generic)
 
 -- Note: the three predicates below are used in the type checker
@@ -137,10 +147,12 @@ relational o = o `elem` [Less, Leq, Geq, Greater]
 equiv :: Op -> Bool
 equiv o = o `elem` [Equiv, NotEquiv]
 
+-- | Deannotate an expression
 deAnnotate :: Expr a -> Expr a
 deAnnotate (Annotation a e) = e
 deAnnotate x = x
 
+-- | Clear the annotation from an expression
 clearAnn :: Expr a -> Expr ()
 clearAnn = (() <$)
 

@@ -1,4 +1,9 @@
---- | Interpreter for Spiel
+{-|
+Module      : Runtime.Eval
+Description : Interpreter for Spiel
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module Runtime.Eval where
 import Language.Syntax
@@ -31,20 +36,24 @@ bindings sz vs = e
         (emptyEnv sz)
         (map bind vs)
 
+-- | Partial application of of args to 'bindings', allows passing in just a list of ValDefs
 bindings_ :: (Int, Int) -> [ValDef a] -> Env
 bindings_ x y = (fst . runWriter) (bindings x y)
 
+-- | Binds a ValDef to a name and a Val in the Eval monad
 bind :: (ValDef a) -> (Name, Eval Val)
+-- | Binds a value equation
 bind (Val _ (Veq n e) _) = do
   (n, do
     env <- getEnv
     -- bind as a Pending Value
     -- this allows lazy evaluation of vals that use input at runtime
     return $ Pv env (clearAnn e))
-
+-- | Binds a function equation
 bind  (Val _ (Feq n (Pars ls) e) _) = (n, do
                                         env <- getEnv
                                         return $ Vf ls env (clearAnn e))
+-- | Binds a board equation
 bind (BVal (Sig n _) defs _) = (n, do
       sz <- getBounds
       values <- mapM (eval . boardExpr) defs
@@ -58,6 +67,7 @@ bind (BVal (Sig n _) defs _) = (n, do
                     (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?")))
       fill board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) board (zip ds vs)
 
+-- | Updates a board
 updateBoard :: Board -> (Int, Int) -> (BoardEq a) -> Val -> Board
 updateBoard b sz d v = let indices = range ((1,1), sz) in
                               b // zip (filter (posMatches (xpos d) (ypos d)) indices) (repeat v)
@@ -132,16 +142,19 @@ evalNumOp sym f l r =
           _  -> return $
                   Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
 
+-- | Evaluates an expression, producing a Val in the Eval monad
 eval :: (Expr a) -> Eval Val
+-- ^ evaluate an Annotation
 eval (Annotation a e) = eval e
+-- ^ evaluate an Integer
 eval (I i) = return $ Vi i
-
+-- ^ evaluate a Boolean
 eval (B b) = return $ Vb b
-
+-- ^ evaluate a Symbol
 eval (S s) = return $ Vs s
-
+-- ^ evaluate a Tuple
 eval (Tuple es) = mapM eval es >>= (return . Vt)
-
+-- ^ evaluate a Ref
 eval (Ref n) = do
   e <- lookupName n
   let b = lookup n builtinRefs
@@ -154,6 +167,7 @@ eval (Ref n) = do
         (_, Just v) -> v
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 
+-- ^ evalute a function application
 eval (App n es) = do
   args <- eval es >>= \x -> case x of
     (Vt [Vt args]) -> return args
@@ -171,10 +185,12 @@ eval (App n es) = do
     vals ((Vt xs):ys) = xs ++ (vals ys)
     vals (x:xs) = x : vals xs
 
+-- ^ evaluate a Let expression
 eval (Let n e1 e2) = do
   v <- eval e1
   extScope (pure (n, v)) (eval e2)
 
+-- ^ evaluate an If-Then-Else expression
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   case b of
@@ -182,8 +198,10 @@ eval (If p e1 e2) = do
     Nothing   -> return $ Err e
       where e = "The expression " ++ show p ++ " did not evaluate to a Bool as expected!"
 
+-- ^ evaluate a BinOp expression
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
+-- ^ evaluate a while expression
 eval (While c b names exprs) = do
    c' <- unpackBool <$> eval c   -- evaluate the condition
    case c' of
@@ -201,8 +219,11 @@ eval (While c b names exprs) = do
    where
       recurse = evalWithLimit $ eval (While c b names exprs)
 
+-- ^ evaluate a type hole
 eval (HE n) = err ("Type hole: ")
 
+-- | Runs an expression under a given environment and a given buffer, producing
+-- a result of either a list of values and a buffer, or a list of values and a single value
 runWithBuffer :: Env -> Buffer -> (Expr SourcePos) -> Either ([Val], Buffer) ([Val], Val)
 runWithBuffer env buf e = do
   let v = runEval env buf (eval' e) in

@@ -1,6 +1,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 
--- | BOGL types
+{-|
+Module      : Language.Types
+Description : BoGL Types
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module Language.Types where
 
@@ -11,16 +16,19 @@ import GHC.Generics
 
 import qualified Data.Set as S
 
--- | Board definition: m * n size board of type Type
+-- | Board definition
 data BoardDef = BoardDef
   {
-    size  :: (Int, Int)
-  , piece :: Xtype
+    size  :: (Int, Int) -- ^ size of the board
+  , piece :: Xtype      -- ^ types of pieces that can be on the board
   }
   deriving (Generic)
 
--- | Input definition: Player inputs must be an accepted type
-data InputDef = InputDef {inputType :: Xtype}
+-- | Input definition
+data InputDef = InputDef
+  {
+    inputType :: Xtype -- ^ Type of input, Player inputs must be an accepted type
+  }
   deriving (Generic)
 
 -- | Atomic types

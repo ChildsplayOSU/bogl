@@ -1,11 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
---
--- JSONData.hs
---
--- Defines JSON data for the API
---
+
+{-|
+Module      : API.JSONData
+Description : Defines JSON data for the Spiel API
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module API.JSONData where
 
@@ -23,8 +25,7 @@ import Typechecker.Monad (TypeError)
 import Data.List
 import Data.Array
 
--- | representation of a request to read a BoGL file
--- TODO: Use Path type
+-- | Representation of a request to read a BoGL file
 data SpielRead = SpielRead {
   path :: String
 } deriving (Eq, Show, Generic)
@@ -33,7 +34,7 @@ instance FromJSON SpielRead where
   parseJSON (Object v) = SpielRead <$> v .: "fileName"
 
 
--- | representation of a request to share a prelude & gamefile
+-- | Representation of a request to share a prelude & gamefile
 data SpielShare = SpielShare {
   preludeContent :: String,
   gameContent :: String
@@ -44,8 +45,7 @@ instance ToJSON SpielShare where
 instance FromJSON SpielShare where
   parseJSON (Object v) = SpielShare <$> v .: "preludeContent" <*> v.: "gameContent"
 
--- | representation of a file that will be saved by the user
--- TODO Probably want to use a lock or something
+-- | Representation of a file that will be saved by the user
 data SpielFile = SpielFile {
   fileName  :: String,
   content   :: String
@@ -67,7 +67,7 @@ instance FromJSON Val where
   parseJSON _ = fail "FAILURE?"
 
 
--- | representation of input to the repl, from the user
+-- | Representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
     prelude :: String,
     file   :: String,
@@ -80,39 +80,48 @@ instance ToJSON SpielCommand
 instance FromJSON SpielCommand
 
 
--- | for errors
+-- | Error message
 type Message = String
+-- | Error line number
 type LineNum = Int
+-- | Error column number
 type ColNum  = Int
+-- | Error file name
 type FileName= String
 
--- a buffer of boards which should be printed with the value of executing the expression
+-- | A buffer of boards which should be printed with the value of executing the expression
 type BufferedBoards = [Val]
+-- | An execution value
 type ExecutionValue = Val
 
 -- | Represents possible response categories from the server
 -- These are then parsed accordingly on the front-end
 data SpielResponse =
-  -- represents a prompt for input and buffered boards
+  -- | represents a prompt for input and buffered boards
   SpielPrompt [Val] |
-  -- represents a successful operation
+  -- | represents a successful operation
   SpielSuccess String |
-  -- represents a successful load
+  -- | represents a successful load
   -- 1st prelude, 2nd gamefile
   SpielLoadResult String String |
-  -- represents a win/lose result
+  -- | represents a win/lose result
   SpielGameResult String |
-  -- represents a type error
+  -- | represents a type error
   SpielTypeError TypeError |
-  -- represents a parse error
+  -- | represents a parse error
   SpielParseError LineNum ColNum FileName Message |
-  -- represents a runtime error in spiel
+  -- | represents a runtime error in spiel
   SpielValue BufferedBoards ExecutionValue |
-  SpielTypeHole LineNum ColNum Xtype | -- ^ represents a typed hole that can be filled
-  SpielError String | -- ^ fallback standard error, something went wrong in spiel
+  -- | represents a typed hole that can be filled
+  SpielTypeHole LineNum ColNum Xtype |
+  -- | fallback standard error, something went wrong in spiel
+  SpielError String |
+  -- | generic runtime error
   SpielRuntimeError String |
-  SpielTypes [(String, Type)] | -- ^ List of typechecked types
-  Log String -- ^ String
+  -- | List of typechecked types
+  SpielTypes [(String, Type)] |
+  -- | String
+  Log String
   deriving(Eq, Generic)
 
 instance ToJSON SpielResponse where
@@ -136,5 +145,5 @@ instance Show SpielResponse where
   show (SpielError m)                   = show m
 
 
-
+-- | List of spiel responses
 type SpielResponses = [SpielResponse]

@@ -1,5 +1,10 @@
--- | Typechecker.
--- todo emit types of expressions
+{-|
+Module      : Typechecker.Typechecker
+Description : Implementation of the BoGL typechecker
+Copyright   : (c)
+License     : BSD-3
+-}
+
 module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), showTCError) where
 
 import Runtime.Builtins
@@ -43,6 +48,7 @@ deftype (BVal (Sig n t) eqs x) = do
     Nothing -> return t
     (Just badEqn) -> sigmismatch n t badEqn
 
+-- | Get the type of a board equation
 beqntype :: BoardEq SourcePos -> Typechecked Type
 beqntype (PosDef n xp yp e) = do
    et <- exprtype e
@@ -71,6 +77,7 @@ eqntype _ _ = throwError (Unknown "Environment corrupted." undefined) -- this sh
 exprtypeE :: (Expr SourcePos) -> Typechecked Xtype -- TODO do this with mapStateT stack thing
 exprtypeE e = setSrc e >> exprtype e
 
+-- | Get the type of an expression
 exprtype :: (Expr SourcePos) -> Typechecked Xtype
 exprtype (Annotation a e) = setPos a >> exprtype e
 exprtype (I _) = t Itype
@@ -154,6 +161,7 @@ environment (BoardDef sz t) (InputDef i) vs = Env (map f vs ++ (builtinT i t)) i
   where f (Val (Sig n t1) eq x) = (n, t1)
         f (BVal (Sig n t1) eq x) = (n, t1)
 
+-- | Runs the typechecker on a board def, input def, list of valdefs, and produces results of errors or successfully typechecked names
 -- recursion is not allowed by this.
 runTypeCheck :: BoardDef -> InputDef -> [ValDef SourcePos] -> Writer [Either (ValDef SourcePos, TypeError) (Name, Type)] Env
 runTypeCheck (BoardDef sz t) (InputDef i) vs = foldM (\env v -> case typecheck env (deftype v) of
@@ -162,22 +170,26 @@ runTypeCheck (BoardDef sz t) (InputDef i) vs = foldM (\env v -> case typecheck e
                                     (initEnv i t sz)
                                     (vs)
 
+-- | Typechecker Result
 data TcResult =
   Tc {
-  success :: Bool,
-  e :: Env,
-  errors :: [(ValDef SourcePos, TypeError)],
-  rtypes :: [(Name, Type)]
+  success :: Bool,  -- ^ Success result
+  e :: Env,         -- ^ Env associated with the result
+  errors :: [(ValDef SourcePos, TypeError)],  -- ^ Typechecker errors
+  rtypes :: [(Name, Type)]  -- ^ List of (name,type) pairs
      }
 
+-- | Produces an error corresponding to a typechecker error
 showTCError :: (ValDef SourcePos, TypeError) -> String
 showTCError (p, e) = (show e) ++ "\n" ++ show p
 
+-- | Typecheck a game and produce a typechecker result
 tc :: (Game SourcePos) -> TcResult
 tc g = case tc' g of
   (e, ls) -> let l = lefts ls in
     Tc (length l == 0) e l (rights ls ++ types e)
 
+-- | Typecheck a game, and produce a tuple of an environment, with a list of errors and/or successfully typechecked names
 tc' :: (Game SourcePos) -> (Env, [Either (ValDef SourcePos, TypeError) (Name, Type)])
 tc' (Game n b i v) = runWriter (runTypeCheck b i v)
 
@@ -185,6 +197,7 @@ tc' (Game n b i v) = runWriter (runTypeCheck b i v)
 tcexpr :: Env -> (Expr SourcePos) -> Either TypeError (Xtype, TypeEnv)
 tcexpr e x = typeHoles e (exprtypeE x)
 
+-- | Produce a string of types in the environment
 printT :: (Xtype, TypeEnv) -> String
 printT (x, env) = show x ++ "\n" ++ "Type Holes:" ++
                   (intercalate "\n" (map (\(a, b) -> a ++ ": " ++ show b) env))

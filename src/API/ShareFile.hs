@@ -1,10 +1,12 @@
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TypeOperators   #-}
---
--- SaveFile.hs
---
--- Endpoint to handle saving of a file
---
+
+{-|
+Module      : API.ShareFile
+Description : Endpoint to handle saving of a file
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module API.ShareFile (handleShareFile,genUniqueFilename) where
 
@@ -15,7 +17,7 @@ import Control.Exception hiding (Handler)
 import System.Directory
 import Test.RandomStrings
 
-
+-- | Generates a unique filename for the shared directory
 genUniqueFilename :: IO String
 genUniqueFilename = do
   b       <- createDirectoryIfMissing False "shared"
@@ -28,7 +30,7 @@ genUniqueFilename = do
     False -> return (word)
 
 
--- |Handles sharing files to the server space
+-- | Handles sharing files to the server space
 handleShareFile :: SpielShare -> Handler SpielResponses
 handleShareFile (SpielShare prelude gamefile) = liftIO $ do
     -- generates a unique filename for both the prelude & gamefile

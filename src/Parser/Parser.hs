@@ -1,4 +1,9 @@
--- | Parser for BOGL
+{-|
+Module      : Parser.Parser
+Description : Parser for BoGL
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module Parser.Parser (
    parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameText,
@@ -39,8 +44,10 @@ data ParState =
 -- | A parse context with builtins
 startState = PS Nothing ("", []) (map fst builtins ++ map fst builtinRefs) []
 
+-- | Parser type
 type Parser = Parsec String (ParState)
 
+-- | Result of parsing
 type ParseResult = Either ParseError (Game SourcePos)
 
 -- | Get all used ids
@@ -149,13 +156,20 @@ notAlreadyInUse x = do
 gameIdentifierChars = ['a'..'z']++['A'..'Z']++['0'..'9']++"_"
 gameIdentifier = lexeme ((:) <$> upper <*> (many (oneOf gameIdentifierChars)))
 
+-- | Starting uppercase letter identifier
 capIdentifier = gameIdentifier--lexeme ((:) <$> upper <*> (many alphaNum))
+-- | Comma separated values, 1 or more
 commaSep1 = P.commaSep1 lexer
+-- | 0 or more comma separated values
 commaSep = P.commaSep lexer
+-- | Reserved ops
 reservedOp = P.reservedOp lexer
+-- | Literal comopsed of characters
 charLiteral = P.charLiteral lexer
+-- | Comma separator
 comma = P.comma lexer
 
+-- | Atomic expression, under an annotation
 atom :: Parser (Expr SourcePos)
 atom =
   Annotation <$> getPosition <*> atom'
@@ -198,6 +212,7 @@ atom' =
       return $ While c e names exprs')
   <?> "expression"
 
+-- | Parse parameters
 params :: Name -> Parser [Name]
 params n = do
    params <- parens $ commaSep1 identifier
@@ -220,6 +235,7 @@ equation =
     e <- expr
     return $ Feq name (Pars params) e)
 
+-- | Parse a position
 position :: Parser Pos
 position =
    Index <$> int
@@ -259,6 +275,7 @@ btype =
   -- <|>
   -- reserved "AnySymbol" *> pure AnySymbol
 
+-- | Parse an enum of a set of names
 enum :: Parser (S.Set Name)
 enum = reservedOp "{" *>
          (S.fromList <$> (commaSep1 (notAlreadyInUse capIdentifier))) <* reservedOp "}"
@@ -275,11 +292,12 @@ xtype = (try $ do
   <|>
       xtype'
 
+-- | Parse an xtype
 xtype' :: Parser Xtype
 xtype' =
   (try $ capIdentifier >>= lookupSyn)
   <|>
-  (try $ X <$> (pure Top) <*> enum) -- ^ Plain enum
+  (try $ X <$> (pure Top) <*> enum) -- Plain enum
   <|>
   (try $ X <$> btype <*> (pure S.empty))
   <|>
@@ -324,6 +342,7 @@ valdef = do
       | S.null set -> (BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition
     _ -> (Val (Sig n t)) <$> (equation) <*> getPosition
 
+-- | Parse a typesyn or a valdef
 decl :: Parser (Maybe (ValDef SourcePos))
 decl = typesyn *> return Nothing
        <|> Just <$> valdef
@@ -394,13 +413,15 @@ parseFromFile p fname = do
 
 -- | Parse from text directly w/out a file
 -- Still takes a file name so as to provide a reasonable debug message if parsing fails
--- This will likely be something general, such as 'Prelude' or 'Gamefile'
+-- This will likely be something general, such as Prelude or Gamefile
 parseFromText :: Parser a -> String -> String -> Either ParseError a
 parseFromText p fn content = parseAll p fn content
 
+-- | Parse a single line as an expression
 parseLine :: String -> Either ParseError (Expr SourcePos)
 parseLine = parseAll expr ""
 
+-- | Parse a game from a string
 parseGameFile :: String -> IO (ParseResult)
 parseGameFile = parseFromFile (parseGame [])
 
@@ -409,7 +430,7 @@ parsePreludeFromText :: String -> Either ParseError ([Maybe (ValDef SourcePos)],
 parsePreludeFromText content = parseFromText prelude "Prelude" content
 
 -- | Parse a game from text and the result of a previous parse (e.g. the prelude)
--- Such as in the case of the function above 'parsePreludeFromtext'
+-- Such as in the case of the function above 'Parser.Parser.parsePreludeFromtext'
 parseGameFromText :: String -> ([Maybe (ValDef SourcePos)], ParState) -> ParseResult
 parseGameFromText prog pr = parseWithState (snd pr) (parseGame (catMaybes (fst pr))) "Code" prog
 

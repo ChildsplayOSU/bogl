@@ -1,9 +1,12 @@
---
--- Run.hs
---
--- Holds utility run code for both /runCmds and /runCode.
--- Holds the routines for parsing and interpreting a BoGL Prelude and Game file
---
+{-|
+Module      : API.Run
+Description : Allows running of commands via the API
+Copyright   : (c)
+License     : BSD-3
+
+Holds utility run code for both /runCmds and /runCode.
+Holds the routines for parsing and interpreting a BoGL Prelude and Game file.
+-}
 
 module API.Run (_runCodeWithCommands) where
 
@@ -22,7 +25,6 @@ import Runtime.Values
 import Runtime.Monad
 
 -- | Runs BoGL code from raw text with the given commands
--- Similar to the above '_runFileWithCommands', but instead
 -- utilizes parsePreludeAndGameText to parse the code directly,
 -- without reading it from a file first
 _runCodeWithCommands :: SpielCommand -> IO SpielResponses

@@ -1,10 +1,10 @@
 name:                Spiel-Lang
-version:             0.1.0.0
-github:              "githubuser/Spiel-Lang"
+version:             0.1.0.6
+github:              "The-Code-In-Sheep-s-Clothing/Spiel-Lang"
 license:             BSD3
-author:              "Author name here"
+author:              "The-Code-In-Sheep-s-Clothing"
 maintainer:          "example@example.com"
-copyright:           "2019 Author name here"
+copyright:           "2020 The-Code-In-Sheep-s-Clothing"
 
 extra-source-files:
 - README.md

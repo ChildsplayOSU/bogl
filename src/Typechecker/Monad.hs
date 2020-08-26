@@ -1,6 +1,12 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-} -- why isn't this on by default :(
--- | Typechecker monad: TODO sort and document all these
+
+{-|
+Module      : Typechecker.Monad
+Description : Typechecker monad
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module Typechecker.Monad where
 
@@ -56,9 +62,11 @@ typecheck :: Env -> Typechecked a -> Either TypeError (a, Stat)
 typecheck e a = runIdentity . runExceptT . (flip runReaderT e) $
                 (runStateT a (Stat [] Nothing (newPos "" 0 0)))
 
+-- | Typecheck type holes
 typeHoles e a = case typecheck e a of
   Left err -> Left err
   Right (x, stat) -> Right (x, holes stat)
+
 -- | Add some types to the environment
 extendEnv :: Env -> (Name, Type) -> Env
 extendEnv (Env t i p s) v = Env (v:t) i p s
@@ -97,9 +105,11 @@ getHoles = holes <$> get
 setSrc :: (Expr SourcePos) -> Typechecked ()
 setSrc e = modify (\(Stat h _ x) -> Stat h (Just e) x)
 
+-- | Set the position
 setPos :: (SourcePos) -> Typechecked ()
 setPos e = modify (\stat -> stat{pos = e})
 
+-- | Get the position
 getPos :: Typechecked SourcePos
 getPos = pos <$> get
 
@@ -142,7 +152,7 @@ unify (X y z) (X w k)
   | w <= y = return $ X y (z `S.union` k)
 unify a b = mismatch (Plain a) (Plain b)
 
-
+-- | Returns a typechecked base type
 t :: Btype -> Typechecked Xtype
 t b = return (X b S.empty)
 
@@ -160,28 +170,37 @@ data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos),
 instance ToJSON TypeError where
   toJSON te = let src = srcPos te in object ["message" .= (show te), "line" .= sourceLine src, "col" .= sourceColumn src]
 
--- | smart constructors for type errors
+-- smart constructors for type errors
+
+-- | Type mismatch error
 mismatch :: Type -> Type -> Typechecked a
 mismatch t1 t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) -> throwError $ Mismatch t1 t2 e x)
 
+-- | Not bound type error
 notbound :: Name -> Typechecked a
 notbound n  = getPos >>= \p -> throwError $ NotBound n p
 
+-- | Signature mismatch type error
 sigmismatch :: Name -> Type -> Type -> Typechecked a
 sigmismatch n t1 t2= getPos >>= \p -> throwError $ SigMismatch n t1 t2 p
 
+-- | Unknown type error
 unknown :: String -> Typechecked a
 unknown s = getPos >>= (\x -> throwError $ Unknown s x)
 
+-- | Bad Op type error
 badop :: Op -> Type -> Type -> Typechecked a
 badop o t1 t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) ->  throwError $ BadOp o t1 t2 e x)
 
+-- | Out of Bounds type error
 outofbounds :: Pos -> Pos -> Typechecked a
 outofbounds p sz = getPos >>= \x -> throwError $ OutOfBounds p sz x
 
+-- | Bad function application type error
 badapp :: Name -> Expr SourcePos -> Typechecked a
 badapp n e = getPos >>= \p -> throwError $ BadApp n e p
 
+-- | Cannot dereference function type error
 dereff :: Name -> Type -> Typechecked a
 dereff n t = getPos >>= \p -> throwError $ Dereff n t p
 
@@ -189,6 +208,7 @@ dereff n t = getPos >>= \p -> throwError $ Dereff n t p
 extensions :: Xtype -> Typechecked (S.Set Name)
 extensions (X _ xs) = return xs
 
+-- | Produce a human readable error string from a source position
 errString :: SourcePos -> String
 errString p = case sourceName p of
                "" -> str ++ " in the Interpreter expression" ++ "\n"
