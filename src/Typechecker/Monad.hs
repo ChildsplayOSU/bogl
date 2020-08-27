@@ -210,7 +210,7 @@ dereff n _t = getPos >>= \_p -> throwError $ Dereff n _t _p
 -- | Retrieve the extensions from an Xtype
 extensions :: Xtype -> Typechecked (S.Set Name)
 extensions (X _ xs) = return xs
-extensions _        = unknown "No extension for type!" -- ^ no extension for this
+extensions _        = unknown "No extension for type!" -- no extension for this
 
 -- | Produce a human readable error string from a source position
 errString :: SourcePos -> String

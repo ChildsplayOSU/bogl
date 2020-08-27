@@ -104,5 +104,5 @@ readTape = do
 
 -- | Helper function to get the Bool out of a value. This is a partial function.
 unpackBool :: Val -> Maybe Bool
-unpackBool (Vb b) = Just b  -- ^ Just a boolean
-unpackBool _      = Nothing -- ^ Not a valid boolean, should trip a runtime error
+unpackBool (Vb b) = Just b  -- Just a boolean
+unpackBool _      = Nothing -- Not a valid boolean, should trip a runtime error

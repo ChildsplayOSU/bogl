@@ -60,7 +60,7 @@ instance ToJSON Val where
   toJSON (Vf _ _ _)    = object ["type" .= String "Function", "value" .= Null]
   toJSON (Pv _ _)      = object ["type" .= String "PendingValue", "value" .= Null]
   toJSON (Err s)       = object ["type" .= String "Error", "value" .= s] -- null or something
-  toJSON (Deferred)    = object ["type" .= String "Deferred", "value" .= Null] -- ^ deferred value needs an input
+  toJSON (Deferred)    = object ["type" .= String "Deferred", "value" .= Null] -- deferred value needs an input
 
 -- | Can't compare two functions.
 instance Eq Val where

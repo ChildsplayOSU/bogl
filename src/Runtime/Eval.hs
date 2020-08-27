@@ -137,19 +137,19 @@ evalNumOp sym f l r =
           _  -> return $
                   Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
 
--- | Evaluates an expression, producing a Val in the Eval monad
+-- | Evaluates an expression at runtime, producing a Val in the Eval monad
 eval :: (Expr a) -> Eval Val
--- | evaluate an Annotation
+-- evaluate an Annotation
 eval (Annotation _ e) = eval e
--- | evaluate an Integer
+-- evaluate an Integer
 eval (I i) = return $ Vi i
--- | evaluate a Boolean
+-- evaluate a Boolean
 eval (B b) = return $ Vb b
--- | evaluate a Symbol
+-- evaluate a Symbol
 eval (S s) = return $ Vs s
--- | evaluate a Tuple
+-- evaluate a Tuple
 eval (Tuple es) = mapM eval es >>= (return . Vt)
--- | evaluate a Ref
+-- evaluate a Ref
 eval (Ref n) = do
   e <- lookupName n
   let b = lookup n builtinRefs
@@ -162,7 +162,7 @@ eval (Ref n) = do
         (_, Just v) -> v
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 
--- | evalute a function application
+-- evalute a function application
 eval (App n es) = do
   args <- eval es >>= \x -> case x of
     (Vt [Vt args]) -> return args
@@ -185,12 +185,12 @@ eval (App n es) = do
     --vals ((Vt xs):ys) = xs ++ (vals ys)
     --vals (x:xs) = x : vals xs
 
--- | evaluate a Let expression
+-- evaluate a Let expression
 eval (Let n e1 e2) = do
   v <- eval e1
   extScope (pure (n, v)) (eval e2)
 
--- | evaluate an If-Then-Else expression
+-- evaluate an If-Then-Else expression
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   case b of
@@ -198,10 +198,10 @@ eval (If p e1 e2) = do
     Nothing   -> return $ Err e
       where e = "The expression " ++ show p ++ " did not evaluate to a Bool as expected!"
 
--- | evaluate a BinOp expression
+-- evaluate a BinOp expression
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
--- | evaluate a while expression
+-- evaluate a while expression
 eval (While c b names exprs) = do
    c' <- unpackBool <$> eval c   -- evaluate the condition
    case c' of
@@ -219,7 +219,7 @@ eval (While c b names exprs) = do
    where
       recurse = evalWithLimit $ eval (While c b names exprs)
 
--- | evaluate a type hole
+-- evaluate a type hole
 eval (HE _) = err ("Type hole: ")
 
 -- | Runs an expression under a given environment and a given buffer, producing
