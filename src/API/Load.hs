@@ -24,7 +24,7 @@ _handleLoad (SpielRead fn) = do
   preludeResult   <- try $ readFile ("shared/"++fn++".bglp") :: IO (Either IOException String)
   gamefileResult  <- try $ readFile ("shared/"++fn++".bgl") :: IO (Either IOException String)
   case preludeResult of
-    Right preludeContent -> case gamefileResult of
-      Right gameContent       -> return (SpielLoadResult preludeContent gameContent)
-      Left e2                 -> return (SpielError ("Could load gamefile: " ++ (show e2)))
+    Right preludeData -> case gamefileResult of
+      Right gameData       -> return (SpielLoadResult preludeData gameData)
+      Left e2              -> return (SpielError ("Could load gamefile: " ++ (show e2)))
     Left e1              -> return (SpielError ("Couldn't load prelude: " ++ (show e1)))

@@ -15,9 +15,6 @@ module Language.Syntax where
 import Language.Types
 import Data.List
 import GHC.Generics
-import Data.Aeson
-import Data.Array
-import qualified Data.Set as S
 
 -- | Names of games, signatures, etc.
 type Name = String
@@ -79,7 +76,7 @@ data Pos = Index Int    -- ^ Singular index as
 instance Ord Pos where
   compare (Index i) (Index j)       = compare i j
   compare (ForAll _) (Index i)      = if i <= 0 then GT else LT
-  compare ix@(Index i) f@(ForAll _) = compare f ix
+  compare ix@(Index _) f@(ForAll _) = compare f ix
   compare (ForAll _) (ForAll _)     = EQ
 
 -- | Expressions
@@ -105,8 +102,8 @@ data Expr a = I Int                                 -- ^ Integer
 
 -- | this is just "deriving functor"
 instance Functor Expr where
-  fmap f (B x)               = (B x)
-  fmap f (HE n)              = (HE n)
+  fmap _ (B x)               = (B x)
+  fmap _ (HE n)              = (HE n)
   fmap f (Annotation a e)    = Annotation (f a) (fmap f e)
   fmap f (While e1 e2 ns e3) = While (fmap f e1) (fmap f e2) ns (fmap f e3)
   fmap f (If e1 e2 e3)       = If (fmap f e1) (fmap f e2) (fmap f e3)
@@ -114,9 +111,9 @@ instance Functor Expr where
   fmap f (Binop o e1 e2)     = Binop o (fmap f e1) (fmap f e2)
   fmap f (App n es)          = App n (fmap f es)
   fmap f (Tuple xs)          = Tuple (fmap (fmap f) xs)
-  fmap f (Ref n)             = (Ref n)
-  fmap f (S n)               = (S n)
-  fmap f (I x)               = (I x)
+  fmap _ (Ref n)             = (Ref n)
+  fmap _ (S n)               = (S n)
+  fmap _ (I x)               = (I x)
 
 -- | Binary operations
 data Op = Plus      -- ^ Addition (+)
@@ -149,7 +146,7 @@ equiv o = o `elem` [Equiv, NotEquiv]
 
 -- | Deannotate an expression
 deAnnotate :: Expr a -> Expr a
-deAnnotate (Annotation a e) = e
+deAnnotate (Annotation _ e) = e
 deAnnotate x = x
 
 -- | Clear the annotation from an expression
@@ -170,7 +167,7 @@ instance Show Pos where
 
 instance Show (Equation a) where
   show (Veq n e)   = n ++ " = " ++ show e
-  show (Feq n p e) = n ++ show p ++ " = " ++ show e
+  show (Feq n pl e) = n ++ show pl ++ " = " ++ show e
 
 instance Show (Expr a) where
   show (Annotation _ e) = show e -- can refactor
@@ -184,7 +181,7 @@ instance Show (Expr a) where
   show (Binop o e1 e2)  = show e1 ++ show o ++ show e2
   show (Let n e1 e2)    = "let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
   show (If e1 e2 e3)    = "if " ++ show e1 ++ " then " ++ show e2 ++ " else " ++ show e3
-  show (While c b n e ) = "while " ++ show c ++ " do " ++ show b
+  show (While c b _ _)  = "while " ++ show c ++ " do " ++ show b
 
 instance Show (ValDef a) where
   show (Val s e _)  = show s ++ "\n" ++ show e

@@ -7,7 +7,6 @@ License     : BSD-3
 
 module Runtime.Eval where
 import Language.Syntax
-import Language.Types
 
 import Runtime.Values
 import Runtime.Monad
@@ -15,15 +14,11 @@ import Runtime.Builtins
 
 import Control.Monad
 import Data.Array
-import Data.List
-import Data.Either
 
 import Control.Monad.Writer
 import Control.Monad.State
 
 import Text.Parsec.Pos
-
-import Debug.Trace
 
 -- | Produce all of the bindings from a list of value definitions.
 --   This is done sequentially. Errors are reported as they're found.
@@ -32,7 +27,7 @@ bindings sz vs = e
   where
     e = foldM (\env (n, v) -> case runEval env ([], [], 1) v of
                                 Right v' -> return $ modifyEval ((n, v'):) env
-                                Left err -> (tell [err]) >> return env)
+                                Left _err -> (tell [_err]) >> return env)
         (emptyEnv sz)
         (map bind vs)
 
@@ -65,12 +60,12 @@ bind (BVal (Sig n _) defs _) = (n, do
    where
       newBoard sz = array ((1,1), sz)
                     (zip [(x,y) | x <- [1..(fst sz)], y <- [1..(snd sz)]] (repeat (Vs "?")))
-      fill board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) board (zip ds vs)
+      fill _board sz ds vs = foldl (\b p -> updateBoard b sz (fst p) (snd p)) _board (zip ds vs)
 
 -- | Updates a board
 updateBoard :: Board -> (Int, Int) -> (BoardEq a) -> Val -> Board
-updateBoard b sz d v = let indices = range ((1,1), sz) in
-                              b // zip (filter (posMatches (xpos d) (ypos d)) indices) (repeat v)
+updateBoard b sz d v = let _indices = range ((1,1), sz) in
+                              b // zip (filter (posMatches (xpos d) (ypos d)) _indices) (repeat v)
 
 -- | Check if a Pos matches a coordinate pair
 posMatches :: Pos -> Pos -> (Int, Int) -> Bool
@@ -106,9 +101,9 @@ evalBinOp NotEquiv l r = evalEq (/=) l r
 evalBinOp Geq l r      = evalCompareOpInt (>=) l r
 evalBinOp Greater l r  = evalCompareOpInt (>) l r
 evalBinOp Get l r      = do
-   board <- eval l
-   pos   <- eval r
-   case (board, pos) of
+   _board <- eval l
+   pos    <- eval r
+   case (_board, pos) of
       (Vboard arr, Vt [Vi x, Vi y]) -> return $ tryUnsafeBoardAccess (x,y) arr
       _ -> return $ Err $ "Could not access " ++ show r ++ " on the board \n" ++ show l
 
@@ -144,53 +139,58 @@ evalNumOp sym f l r =
 
 -- | Evaluates an expression, producing a Val in the Eval monad
 eval :: (Expr a) -> Eval Val
--- ^ evaluate an Annotation
-eval (Annotation a e) = eval e
--- ^ evaluate an Integer
+-- | evaluate an Annotation
+eval (Annotation _ e) = eval e
+-- | evaluate an Integer
 eval (I i) = return $ Vi i
--- ^ evaluate a Boolean
+-- | evaluate a Boolean
 eval (B b) = return $ Vb b
--- ^ evaluate a Symbol
+-- | evaluate a Symbol
 eval (S s) = return $ Vs s
--- ^ evaluate a Tuple
+-- | evaluate a Tuple
 eval (Tuple es) = mapM eval es >>= (return . Vt)
--- ^ evaluate a Ref
+-- | evaluate a Ref
 eval (Ref n) = do
   e <- lookupName n
   let b = lookup n builtinRefs
   case (e, b) of
         (Just v, _) -> case v of
           -- Pending Value, need to eval this to get the actual value
-          (Pv evalenv e') -> evalWithLimit $ eval e'
+          (Pv _ e') -> evalWithLimit $ eval e'
           -- normal value, return as is
-          v'              -> return $ v
+          _         -> return $ v
         (_, Just v) -> v
         _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 
--- ^ evalute a function application
+-- | evalute a function application
 eval (App n es) = do
   args <- eval es >>= \x -> case x of
     (Vt [Vt args]) -> return args
-    (Vt args) -> return args
+    (Vt args)      -> return args
+    -- not what we expected
+    q              -> return [Err $ "Function application did not get the expected arguments from: " ++ (show q)]
   f <- lookupName n
   case f of
     Just (Vf params env' e) -> extScope (zip params (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
     Just (Pv env' e) -> extScope (zip [] (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
     Nothing -> case lookup n builtins of
-      Just f -> do
-        (f (args))
+      Just f2 -> do
+        (f2 (args))
       Nothing -> do
-        return $ Err $ "Couldn't find " ++ n ++ " in environment!"
-  where
-    vals ((Vt xs):ys) = xs ++ (vals ys)
-    vals (x:xs) = x : vals xs
+        return $ Err $ "Couldn't find " ++ n ++ " in the environment!"
+    -- incorrect kind of value was looked up from the environment
+    _ -> return $ Err $ n ++ " was not correct when looking it up in the environment!"
+  -- TODO REMOVED WARNING
+  --where
+    --vals ((Vt xs):ys) = xs ++ (vals ys)
+    --vals (x:xs) = x : vals xs
 
--- ^ evaluate a Let expression
+-- | evaluate a Let expression
 eval (Let n e1 e2) = do
   v <- eval e1
   extScope (pure (n, v)) (eval e2)
 
--- ^ evaluate an If-Then-Else expression
+-- | evaluate an If-Then-Else expression
 eval (If p e1 e2) = do
   b <- unpackBool <$> (eval p)
   case b of
@@ -198,10 +198,10 @@ eval (If p e1 e2) = do
     Nothing   -> return $ Err e
       where e = "The expression " ++ show p ++ " did not evaluate to a Bool as expected!"
 
--- ^ evaluate a BinOp expression
+-- | evaluate a BinOp expression
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
--- ^ evaluate a while expression
+-- | evaluate a while expression
 eval (While c b names exprs) = do
    c' <- unpackBool <$> eval c   -- evaluate the condition
    case c' of
@@ -219,8 +219,8 @@ eval (While c b names exprs) = do
    where
       recurse = evalWithLimit $ eval (While c b names exprs)
 
--- ^ evaluate a type hole
-eval (HE n) = err ("Type hole: ")
+-- | evaluate a type hole
+eval (HE _) = err ("Type hole: ")
 
 -- | Runs an expression under a given environment and a given buffer, producing
 -- a result of either a list of values and a buffer, or a list of values and a single value
@@ -230,11 +230,12 @@ runWithBuffer env buf e = do
     case v of
       Left (NeedInput bs) -> Left (bs, buf)
       Right (boards, val) -> Right (boards, val)
-      Left (Error e)      -> Right $ ([], Err e) -- not good
-      Left e              -> Right $ ([], Err ("Bad Error (Not Good): " ++ (show e))) -- not good
+      Left (Error er)     -> Right $ ([], Err er) -- not good
+      -- TODO REMOVED REDUNDANT
+      --Left er             -> Right $ ([], Err ("Bad Error (Not Good): " ++ (show er))) -- not good
    where
       eval' :: (Expr a) -> Eval ([Val], Val)
       eval' expr = do
          v <- (eval expr)
-         (_, boards,iters) <- get
+         (_, boards, _) <- get
          return (boards, v)

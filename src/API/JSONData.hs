@@ -16,14 +16,11 @@ import Language.Types
 
 import GHC.Generics
 import Data.Aeson
-import Data.Aeson.TH
 import Runtime.Values
 import Runtime.Eval
 import Parser.Parser
 import Runtime.Monad
 import Typechecker.Monad (TypeError)
-import Data.List
-import Data.Array
 
 -- | Representation of a request to read a BoGL file
 data SpielRead = SpielRead {
@@ -32,6 +29,7 @@ data SpielRead = SpielRead {
 
 instance FromJSON SpielRead where
   parseJSON (Object v) = SpielRead <$> v .: "fileName"
+  parseJSON _          = undefined -- fallback
 
 
 -- | Representation of a request to share a prelude & gamefile
@@ -44,6 +42,7 @@ instance ToJSON SpielShare where
 
 instance FromJSON SpielShare where
   parseJSON (Object v) = SpielShare <$> v .: "preludeContent" <*> v.: "gameContent"
+  parseJSON _          = fail "Unable to parse Share option" -- fallback
 
 -- | Representation of a file that will be saved by the user
 data SpielFile = SpielFile {
@@ -55,6 +54,7 @@ instance ToJSON SpielFile where
 
 instance FromJSON SpielFile where
   parseJSON (Object v) = SpielFile <$> v .: "fileName" <*> v .: "content"
+  parseJSON _          = fail "Unable to parse File option" -- fallback
 
 instance FromJSON Val where
   parseJSON (Object v) = do
@@ -62,9 +62,9 @@ instance FromJSON Val where
     case parseLine t of
       Right x -> case runWithBuffer (emptyEnv (0,0)) ([], [], 1) x of
         Right (_, v') -> return v'
-        Left err -> fail "failed to parse..." -- FIXME
-      Left err -> fail "failed to parse..."
-  parseJSON _ = fail "FAILURE?"
+        Left _ -> fail "failed to parse..." -- FIXME
+      Left _ -> fail "failed to parse..."
+  parseJSON _ = fail "Unable to parse Val"
 
 
 -- | Representation of input to the repl, from the user
@@ -140,9 +140,10 @@ instance Show SpielResponse where
   show (SpielValue bs v)                = show bs ++ " " ++ show v
   -- show a typed hole
   -- TODO this one needs cleaning up
-  show (SpielTypeHole m x y)            = show m
+  show (SpielTypeHole m _ _)            = show m
   -- show a fallback error, such as reading a bad-file
   show (SpielError m)                   = show m
+  show x                                = show x
 
 
 -- | List of spiel responses

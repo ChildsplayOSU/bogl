@@ -17,7 +17,6 @@ import Language.Types
 import Text.Parsec.Pos
 import Text.Parsec (errorPos)
 import Text.Parsec.Error
-import Control.Exception
 
 import Typechecker.Typechecker
 import Runtime.Eval
@@ -42,12 +41,12 @@ _handleParsed (SpielCommand _ gameFile inpt buf) parsed = do
       if success checked
         then return $ [SpielTypes (rtypes checked), (serverRepl game gameFile inpt (buf, [], 1))]
         else return $ SpielTypes (rtypes checked) : map (SpielTypeError . snd) (errors checked)
-    Left err -> do
-      let position = errorPos err
+    Left _err -> do
+      let position = errorPos _err
           l = sourceLine position
           c = sourceColumn position
           in
-        return $ [SpielParseError l c gameFile (show err)]
+        return $ [SpielParseError l c gameFile (show _err)]
 
 
 -- |Handles running a command in the repl from the server
@@ -59,7 +58,7 @@ serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
         Right _ -> do -- Right t
           case runWithBuffer (bindings_ (szx, szy) vs) buf x of
             -- with a runtime error
-            Right (bs, (Err s)) -> (SpielRuntimeError (show s))
+            Right (_, (Err s)) -> (SpielRuntimeError (show s))
 
             -- program terminated normally with a value
             Right (bs, val) -> (SpielValue bs val)
@@ -68,13 +67,14 @@ serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn inpt buf = do
             Left (bs, _) -> (SpielPrompt bs)
 
             -- runtime error encountered
-            Left err -> (SpielRuntimeError (show err))
+            -- TODO REMOVED Redundant clause?
+            --Left err -> (SpielRuntimeError (show err))
 
         -- typechecker encountered an error in the expression
-        Left err -> (SpielTypeError err)
+        Left _err -> (SpielTypeError _err)
     -- bad parse
-    Left err ->
-      let position = errorPos err
+    Left _err ->
+      let position = errorPos _err
           l = sourceLine position
           c = sourceColumn position in
-      (SpielParseError l c fn (show err))
+      (SpielParseError l c fn (show _err))

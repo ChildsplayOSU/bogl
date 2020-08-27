@@ -18,11 +18,11 @@ import Control.Monad.Reader
 import Text.Parsec.Pos
 
 
-import Language.Types hiding (input, piece, size)
+import Language.Types hiding (piece, size)
 
 import qualified Data.Set as S
 
-import Language.Syntax hiding (piece, input, size)
+import Language.Syntax hiding (input)
 import Runtime.Builtins
 
 import Parser.Error
@@ -40,7 +40,7 @@ data Env = Env {
 
 -- | Initial empty environment
 initEnv :: Xtype -> Xtype -> (Int, Int) -> Env
-initEnv i p s = Env [] i p s
+initEnv i _p s = Env [] i _p s
 
 -- | An example environment for interal use (e.g. testing, ghci)
 exampleEnv :: Env
@@ -63,13 +63,14 @@ typecheck e a = runIdentity . runExceptT . (flip runReaderT e) $
                 (runStateT a (Stat [] Nothing (newPos "" 0 0)))
 
 -- | Typecheck type holes
+typeHoles :: Env -> Typechecked a -> Either TypeError (a, TypeEnv)
 typeHoles e a = case typecheck e a of
   Left err -> Left err
   Right (x, stat) -> Right (x, holes stat)
 
 -- | Add some types to the environment
 extendEnv :: Env -> (Name, Type) -> Env
-extendEnv (Env t i p s) v = Env (v:t) i p s
+extendEnv (Env _t i _p s) v = Env (v:_t) i _p s
 
 -- | Get the type environment
 getEnv :: Typechecked TypeEnv
@@ -118,8 +119,9 @@ getSrc :: Typechecked (Expr SourcePos)
 getSrc = do
   e <- source <$> get
   case e of
-    Nothing -> unknown "!" -- fixme
-    Just e -> return e
+    Nothing -> unknown "!" -- TODO FIXME: This seems to popup when you assign an invalid type on a board (I think),
+                           -- either that or an invalid index, one of the 2 (can be checked) @montymxb
+    Just _e -> return _e
 
 -- | Get a type from the environment
 getType :: Name -> Typechecked Type
@@ -140,13 +142,14 @@ addHole a = modify (\(Stat h s e) -> Stat (a:h) s e)
 unify :: Xtype -> Xtype -> Typechecked Xtype
 unify (Tup xs) (Tup ys)
   | length xs == length ys = Tup <$> zipWithM unify xs ys
-unify (Hole n) (Hole n2) = undefined
+unify (Hole _) (Hole _) = undefined
 unify x (Hole n) = unify (Hole n) x
 unify (Hole n) x = do
   hs <- getHoles
   case lookup n hs of
-    Just (Plain t) -> if t <= x then return x else mismatch (Plain t) (Plain x) -- function holes FIXME
+    Just (Plain _t) -> if _t <= x then return x else mismatch (Plain _t) (Plain x) -- function holes FIXME
     Nothing -> addHole (n, Plain x) >> return x
+    _       -> undefined -- unhandled case when a lookup does not match one of the above
 unify (X y z) (X w k)
   | y <= w = return $ X w (z `S.union` k) -- take the more defined type
   | w <= y = return $ X y (z `S.union` k)
@@ -174,15 +177,15 @@ instance ToJSON TypeError where
 
 -- | Type mismatch error
 mismatch :: Type -> Type -> Typechecked a
-mismatch t1 t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) -> throwError $ Mismatch t1 t2 e x)
+mismatch _t1 _t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) -> throwError $ Mismatch _t1 _t2 e x)
 
 -- | Not bound type error
 notbound :: Name -> Typechecked a
-notbound n  = getPos >>= \p -> throwError $ NotBound n p
+notbound n  = getPos >>= \_p -> throwError $ NotBound n _p
 
 -- | Signature mismatch type error
 sigmismatch :: Name -> Type -> Type -> Typechecked a
-sigmismatch n t1 t2= getPos >>= \p -> throwError $ SigMismatch n t1 t2 p
+sigmismatch n _t1 _t2= getPos >>= \_p -> throwError $ SigMismatch n _t1 _t2 _p
 
 -- | Unknown type error
 unknown :: String -> Typechecked a
@@ -190,37 +193,38 @@ unknown s = getPos >>= (\x -> throwError $ Unknown s x)
 
 -- | Bad Op type error
 badop :: Op -> Type -> Type -> Typechecked a
-badop o t1 t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) ->  throwError $ BadOp o t1 t2 e x)
+badop o _t1 _t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) ->  throwError $ BadOp o _t1 _t2 e x)
 
 -- | Out of Bounds type error
 outofbounds :: Pos -> Pos -> Typechecked a
-outofbounds p sz = getPos >>= \x -> throwError $ OutOfBounds p sz x
+outofbounds _p sz = getPos >>= \x -> throwError $ OutOfBounds _p sz x
 
 -- | Bad function application type error
 badapp :: Name -> Expr SourcePos -> Typechecked a
-badapp n e = getPos >>= \p -> throwError $ BadApp n e p
+badapp n e = getPos >>= \_p -> throwError $ BadApp n e _p
 
 -- | Cannot dereference function type error
 dereff :: Name -> Type -> Typechecked a
-dereff n t = getPos >>= \p -> throwError $ Dereff n t p
+dereff n _t = getPos >>= \_p -> throwError $ Dereff n _t _p
 
 -- | Retrieve the extensions from an Xtype
 extensions :: Xtype -> Typechecked (S.Set Name)
 extensions (X _ xs) = return xs
+extensions _        = unknown "No extension for type!" -- ^ no extension for this
 
 -- | Produce a human readable error string from a source position
 errString :: SourcePos -> String
-errString p = case sourceName p of
+errString _p = case sourceName _p of
                "" -> str ++ " in the Interpreter expression" ++ "\n"
                _  -> str ++ "\n"
-            where str = "Type error at: " ++ show p
+            where str = "Type error at: " ++ show _p
 
 instance Show TypeError where
-  show (Mismatch t1 t2 e p)    = errString p ++ "Could not match types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
-  show (NotBound n p)          = errString p ++ "You did not define " ++ n
-  show (SigMismatch n sig t p) = errString p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show t
-  show (Unknown s p)           = errString p ++ s
-  show (BadOp o t1 t2 e p)     = errString p ++ "Cannot '" ++ show o ++ "' types " ++ show t1 ++ " and " ++ show t2 ++ " in expression:\n\t" ++ show e
-  show (OutOfBounds x y p)     = errString p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
-  show (BadApp n e p)          = errString p ++ "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function."
-  show (Dereff n t p)          = errString p ++ "Could not dereference the function " ++ n ++ " with type " ++ show t ++ ". Maybe you forgot to give it arguments."
+  show (Mismatch _t1 _t2 e _p)  = errString _p ++ "Could not match types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
+  show (NotBound n _p)          = errString _p ++ "You did not define " ++ n
+  show (SigMismatch n sig _t _p)= errString _p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show _t
+  show (Unknown s _p)           = errString _p ++ s
+  show (BadOp o _t1 _t2 e _p)   = errString _p ++ "Cannot '" ++ show o ++ "' types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
+  show (OutOfBounds x y _p)     = errString _p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
+  show (BadApp n e _p)          = errString _p ++ "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function."
+  show (Dereff n _t _p)         = errString _p ++ "Could not dereference the function " ++ n ++ " with type " ++ show _t ++ ". Maybe you forgot to give it arguments."

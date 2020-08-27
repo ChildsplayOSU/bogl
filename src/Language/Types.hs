@@ -10,7 +10,6 @@ License     : BSD-3
 module Language.Types where
 
 import Data.List
-import Data.Array
 import Data.Aeson
 import GHC.Generics
 
@@ -88,6 +87,7 @@ intxt :: Xtype
 intxt = bnestx Itype
 
 -- | Type smart constructor for Board
+boardt :: Type
 boardt = Plain boardxt
 
 -- | Xtype smart constructor for Board
@@ -107,8 +107,7 @@ instance Show Xtype where
                      where
                         showTypes = "{" ++ intercalate (", ") (S.toList xs) ++ "}"
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
-  show (Hole n) = "?"
-  show _ = undefined
+  show (Hole _) = "?"
 
 instance ToJSON Xtype where
 

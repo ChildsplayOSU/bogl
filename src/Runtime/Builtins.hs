@@ -101,13 +101,13 @@ type CountMap = M.Map (Int, Int) Count
 
 -- | A safe map lookup function which returns a default value for keys not in the map
 peek :: (Int, Int) -> CountMap -> Count
-peek p m = case M.lookup p m of
+peek q m = case M.lookup q m of
                Nothing   -> (0,0,0,0)
                (Just c)  -> c
 
 -- | Adds a cell into the count map
 addCell :: (Int, Int) -> CountMap -> CountMap
-addCell p@(x,y) m = M.insert p (top + 1, tdiag + 1, left + 1, bdiag + 1) m
+addCell c@(x,y) m = M.insert c (top + 1, tdiag + 1, left + 1, bdiag + 1) m
    where
       (top,_,_,_)   = peek (x, y - 1) m
       (_,tdiag,_,_) = peek (x - 1, y - 1) m
@@ -116,7 +116,7 @@ addCell p@(x,y) m = M.insert p (top + 1, tdiag + 1, left + 1, bdiag + 1) m
 
 -- | Checks a cell in the count map
 checkCell :: Val -> ((Int, Int), Val) -> CountMap -> CountMap
-checkCell v (p,v') m = if v == v' then addCell p m else m
+checkCell v (c,v') m = if v == v' then addCell c m else m
 
 -- | Scans cells downwards by column (the order given by (assocs b) with (x,y) coords)
 -- each cell's count is the increment of the counts of the four cells before it

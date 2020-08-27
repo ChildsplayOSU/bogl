@@ -48,7 +48,8 @@ encode2DArray (ar:ls) = "[" ++ (encode1DArray ar) ++ "]"
                             ++ (if length ls > 0 then "," else "") ++ (encode2DArray ls)
 
 -- | Convert an array to a grid
-toGrid x = transpose (groupBy (\x y -> (fst . fst) x == (fst . fst) y) (assocs x))
+toGrid :: (Ix c, Ix b1) => Array (c, b1) b2 -> [[((c, b1), b2)]]
+toGrid x = transpose (groupBy (\z y -> (fst . fst) z == (fst . fst) y) (assocs x))
 
 instance ToJSON Val where
   toJSON (Vi i)        = object ["type" .= String "Int", "value" .= i]
@@ -56,9 +57,10 @@ instance ToJSON Val where
   toJSON (Vboard b)    = object ["type" .= String "Board", "value" .= toGrid b]
   toJSON (Vt vs)       = object ["type" .= String "Tuple", "value" .= map toJSON vs]
   toJSON (Vs n)        = object ["type" .= String "Symbol", "value" .= n]
-  toJSON (Vf args _ e) = object ["type" .= String "Function", "value" .= Null]
-  toJSON (Pv _ e)      = object ["type" .= String "PendingValue", "value" .= Null]
+  toJSON (Vf _ _ _)    = object ["type" .= String "Function", "value" .= Null]
+  toJSON (Pv _ _)      = object ["type" .= String "PendingValue", "value" .= Null]
   toJSON (Err s)       = object ["type" .= String "Error", "value" .= s] -- null or something
+  toJSON (Deferred)    = object ["type" .= String "Deferred", "value" .= Null] -- ^ deferred value needs an input
 
 -- | Can't compare two functions.
 instance Eq Val where
@@ -75,6 +77,7 @@ instance Show Val where
   show (Vboard b)     = "Board: " ++ show b
   show (Vt xs)        = "(" ++ (intercalate ", " $ map show xs) ++ ")"
   show (Vs s)         = s
-  show (Vf xs env' e) = "\\" ++ show xs ++ " -> " ++ show e
-  show (Pv env' e)    = show e
+  show (Vf xs _ e)    = "\\" ++ show xs ++ " -> " ++ show e
+  show (Pv _ e)       = show e
   show (Err s)        = "ERR: " ++ s
+  show (Deferred)     = "Deferred"
