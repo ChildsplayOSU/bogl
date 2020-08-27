@@ -5,7 +5,6 @@ module Utils where
 -- Various testing utilities
 --
 
-import Runtime.Eval
 import Runtime.Values
 import Runtime.Monad
 import Parser.Parser
@@ -16,7 +15,6 @@ import System.FilePath
 import Language.Types
 import Language.Syntax
 import Text.Parsec.Pos
-import Typechecker.Monad
 
 -- | The boilerplate for a Game which is to be filled in with ValDefs
 testGame :: [ValDef SourcePos] -> Game SourcePos
