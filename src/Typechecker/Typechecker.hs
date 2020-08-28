@@ -33,7 +33,7 @@ getCovered (mx,my) (PosDef _ xp yp _) = case (xp,yp) of
                                   (ForAll _,ForAll _) -> [(x,y) | x <- [1..mx], y <- [1..my]] -- (x,y) all spaces
                                   (ForAll _, Index y) -> [(x,y) | x <- [1..mx]] -- (x,#) row of spaces
                                   (Index x, ForAll _) -> [(x,y) | y <- [1..my]] -- (#,y) column of spaces
-                                  (Index x, Index y)  -> [(x,y)]  -- ^ (#,#), single space
+                                  (Index x, Index y)  -> [(x,y)]  -- (#,#), single space
 
 
 -- | Get the type of a valDef. Check the expression's type with the signature's.
