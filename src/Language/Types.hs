@@ -1,26 +1,33 @@
 {-# LANGUAGE DeriveGeneric #-}
 
--- | BOGL types
+{-|
+Module      : Language.Types
+Description : BoGL Types
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module Language.Types where
 
 import Data.List
-import Data.Array
 import Data.Aeson
 import GHC.Generics
 
 import qualified Data.Set as S
 
--- | Board definition: m * n size board of type Type
+-- | Board definition
 data BoardDef = BoardDef
   {
-    size  :: (Int, Int)
-  , piece :: Xtype
+    size  :: (Int, Int) -- ^ size of the board
+  , piece :: Xtype      -- ^ types of pieces that can be on the board
   }
   deriving (Generic)
 
--- | Input definition: Player inputs must be an accepted type
-data InputDef = InputDef {inputType :: Xtype}
+-- | Input definition
+data InputDef = InputDef
+  {
+    inputType :: Xtype -- ^ Type of input, Player inputs must be an accepted type
+  }
   deriving (Generic)
 
 -- | Atomic types
@@ -80,6 +87,7 @@ intxt :: Xtype
 intxt = bnestx Itype
 
 -- | Type smart constructor for Board
+boardt :: Type
 boardt = Plain boardxt
 
 -- | Xtype smart constructor for Board
@@ -99,8 +107,7 @@ instance Show Xtype where
                      where
                         showTypes = "{" ++ intercalate (", ") (S.toList xs) ++ "}"
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
-  show (Hole n) = "?"
-  show _ = undefined
+  show (Hole _) = "?"
 
 instance ToJSON Xtype where
 

@@ -1,8 +1,9 @@
---
--- ReadFile.hs
---
--- API Endpoint that allows reading a .bgl file
---
+{-|
+Module      : API.ReadFile
+Description : API Endpoint that allows reading a .bgl file
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module API.ReadFile (handleReadFile) where
 
@@ -11,14 +12,14 @@ import Servant
 import Control.Exception hiding (Handler)
 import Control.Monad.IO.Class
 
--- | handles reading a file and returning it's
+-- | Handles reading a file and returning it's
 -- contents to the requester
 handleReadFile :: SpielRead -> Handler SpielFile
 handleReadFile rf = do
   (liftIO (_handleReadFile rf))
 
 
--- internally attempts to read and return a file
+-- | Internally attempts to read and return a file
 _handleReadFile :: SpielRead -> IO SpielFile
 _handleReadFile (SpielRead fn) = do
   result <- try $ readFile (fn) :: IO (Either IOException String)

@@ -1,9 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
---
--- RunCode.hs
---
--- Endpoint for running literal BoGL code without a file (for the Prelude as well)
---
+
+{-|
+Module      : API.RunCode
+Description : Endpoint for running literal BoGL code without a file (for the Prelude as well)
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module API.RunCode (handleRunCode) where
 

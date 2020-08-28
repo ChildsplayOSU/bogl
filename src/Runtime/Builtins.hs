@@ -1,4 +1,9 @@
--- | Language builtins/Prelude
+{-|
+Module      : Runtime.Builtins
+Description : Language builtins/Prelude
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module Runtime.Builtins where
 
@@ -20,6 +25,7 @@ import Control.Monad.State
 single :: Xtype -> Xtype
 single x = Tup [x]
 
+-- | List of builtin function signatures
 builtinT :: Xtype -> Xtype -> [(String, Type)]
 builtinT = \inputT pieceT -> [
   ("input",      Plain $ inputT),
@@ -48,7 +54,7 @@ place = \[v, Vboard arr, Vt [Vi x, Vi y]] -> do
 -- A final case reports a Runtime error in case anything slips by,
 -- which indicates that the number and/or type of parameters didn't match what was expected
 -- for that builtin
--- Note: This prevents a crash and gives 'somewhat' better feedback to users,
+-- Note: This prevents a crash and gives somewhat better feedback to users,
 -- but this should not normally be reachable
 -- if the typechecker verifies the expressions correctly in advance
 builtinsChecker :: [Char] -> [Val] -> Eval Val
@@ -66,6 +72,7 @@ builtinsChecker "and" [Vb a, Vb b] = return $ Vb (a && b)
 builtinsChecker n _ = return $ Err ("Unexpected parameter(s) to '" ++ n ++
                                     "', one or more may have an incorrect Type.")
 
+-- | List of builtin functions, with definitions for evaluation
 builtins :: [(Name, [Val] -> Eval Val)]
 builtins = [
   ("place", \x -> builtinsChecker "place" x),
@@ -81,33 +88,37 @@ builtins = [
   ("and", \x -> builtinsChecker "and" x)
   ]
 
+-- | Builtin references, just input for now
 builtinRefs :: [(Name, Eval Val)]
 builtinRefs = [
    ("input", readTape)
    ]
 
--- the count of adjacent cells in four directions (above, diagonal @ 10:30, left, diagonal @ 7:30)
+-- | the count of adjacent cells in four directions (above, diagonal @ 10:30, left, diagonal @ 7:30)
 type Count = (Int, Int, Int, Int)
+-- | Map of the count
 type CountMap = M.Map (Int, Int) Count
 
 -- | A safe map lookup function which returns a default value for keys not in the map
 peek :: (Int, Int) -> CountMap -> Count
-peek p m = case M.lookup p m of
+peek q m = case M.lookup q m of
                Nothing   -> (0,0,0,0)
                (Just c)  -> c
 
+-- | Adds a cell into the count map
 addCell :: (Int, Int) -> CountMap -> CountMap
-addCell p@(x,y) m = M.insert p (top + 1, tdiag + 1, left + 1, bdiag + 1) m
+addCell c@(x,y) m = M.insert c (top + 1, tdiag + 1, left + 1, bdiag + 1) m
    where
       (top,_,_,_)   = peek (x, y - 1) m
       (_,tdiag,_,_) = peek (x - 1, y - 1) m
       (_,_,left,_)  = peek (x - 1, y) m
       (_,_,_,bdiag) = peek (x - 1, y + 1) m
 
+-- | Checks a cell in the count map
 checkCell :: Val -> ((Int, Int), Val) -> CountMap -> CountMap
-checkCell v (p,v') m = if v == v' then addCell p m else m
+checkCell v (c,v') m = if v == v' then addCell c m else m
 
--- scans cells downwards by column (the order given by (assocs b) with (x,y) coords)
+-- | Scans cells downwards by column (the order given by (assocs b) with (x,y) coords)
 -- each cell's count is the increment of the counts of the four cells before it
 checkCells :: Board -> Val -> [Int]
 checkCells b v = maxCount
@@ -117,6 +128,7 @@ checkCells b v = maxCount
       counts = M.elems processedBoard
       processedBoard = foldl (\m c -> checkCell v c m) M.empty (assocs b)
 
+-- | Counts cols, rows, and diagonals in a board
 countCol, countRow, countDiag :: Board -> Val -> Int
 countCol b v = checkCells b v !! 0
 countRow b v = checkCells b v !! 2

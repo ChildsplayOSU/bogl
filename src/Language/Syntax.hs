@@ -1,16 +1,22 @@
 {-# LANGUAGE DeriveGeneric #-}
--- | Spiel language AST.
--- this slightly deviates from the specified syntax in spots.
+
+{-|
+Module      : Language.Syntax
+Description : BoGL Syntax
+Copyright   : (c)
+License     : BSD-3
+
+Spiel language AST. This slightly deviates from the specified syntax in spots.
+
+-}
 
 module Language.Syntax where
 
 import Language.Types
 import Data.List
 import GHC.Generics
-import Data.Aeson
-import Data.Array
-import qualified Data.Set as S
 
+-- | Names of games, signatures, etc.
 type Name = String
 
 -- | Game datatype
@@ -27,20 +33,20 @@ data Game a = Game
 data Signature = Sig Name Type
    deriving (Eq)
 
--- | Parameter lists are lists of 'Name'
+-- | Parameters are lists of 'Name'
 data Parlist = Pars [Name]
    deriving (Eq, Generic)
 
--- | Top level values are signatures paired with either an ordinary 'Equation'
-data ValDef a = Val Signature (Equation a) a
-              | BVal Signature [BoardEq a] a
+-- | Top level values are signatures paired with either an ordinary Equation or a list of Board Equations
+data ValDef a = Val Signature (Equation a) a -- ^ Regular Value
+              | BVal Signature [BoardEq a] a -- ^ Board value
    deriving (Eq, Generic)
 
 instance Functor ValDef where
   fmap f (Val s e a)  = Val s (fmap f e) (f a)
   fmap f (BVal s e a) = BVal s ((fmap . fmap) f e) (f a)
 
--- | Equations:
+-- | Equations
 data Equation a = Veq Name (Expr a)          -- ^ Value equations (a mapping from 'Name' to 'Expr')
                 | Feq Name Parlist (Expr a)  -- ^ Function equations
    deriving (Eq, Generic)
@@ -62,14 +68,15 @@ data BoardEq a = PosDef
 instance Functor BoardEq where
   fmap f (PosDef n p1 p2 e) = PosDef n p1 p2 (fmap f e)
 
-data Pos = Index Int
-         | ForAll Name
+-- | Types of individual positions for the x and y in a board equation
+data Pos = Index Int    -- ^ Singular index as
+         | ForAll Name  -- ^ All indices with a given name
          deriving (Eq, Generic)
 
 instance Ord Pos where
   compare (Index i) (Index j)       = compare i j
   compare (ForAll _) (Index i)      = if i <= 0 then GT else LT
-  compare ix@(Index i) f@(ForAll _) = compare f ix
+  compare ix@(Index _) f@(ForAll _) = compare f ix
   compare (ForAll _) (ForAll _)     = EQ
 
 -- | Expressions
@@ -95,8 +102,8 @@ data Expr a = I Int                                 -- ^ Integer
 
 -- | this is just "deriving functor"
 instance Functor Expr where
-  fmap f (B x)               = (B x)
-  fmap f (HE n)              = (HE n)
+  fmap _ (B x)               = (B x)
+  fmap _ (HE n)              = (HE n)
   fmap f (Annotation a e)    = Annotation (f a) (fmap f e)
   fmap f (While e1 e2 ns e3) = While (fmap f e1) (fmap f e2) ns (fmap f e3)
   fmap f (If e1 e2 e3)       = If (fmap f e1) (fmap f e2) (fmap f e3)
@@ -104,23 +111,23 @@ instance Functor Expr where
   fmap f (Binop o e1 e2)     = Binop o (fmap f e1) (fmap f e2)
   fmap f (App n es)          = App n (fmap f es)
   fmap f (Tuple xs)          = Tuple (fmap (fmap f) xs)
-  fmap f (Ref n)             = (Ref n)
-  fmap f (S n)               = (S n)
-  fmap f (I x)               = (I x)
+  fmap _ (Ref n)             = (Ref n)
+  fmap _ (S n)               = (S n)
+  fmap _ (I x)               = (I x)
 
 -- | Binary operations
-data Op = Plus
-        | Minus
-        | Times
-        | Div
-        | Mod
-        | Less
-        | Leq
-        | Equiv
-        | NotEquiv
-        | Geq
-        | Greater
-        | Get              -- ^ Gets contents from a position on a board
+data Op = Plus      -- ^ Addition (+)
+        | Minus     -- ^ Subtraction (-)
+        | Times     -- ^ Multiplication (*)
+        | Div       -- ^ Division (/)
+        | Mod       -- ^ Modulus (%)
+        | Less      -- ^ Less than comparison (<)
+        | Leq       -- ^ Less than equal to comparison (<=)
+        | Equiv     -- ^ Equivalent comparison (==)
+        | NotEquiv  -- ^ Not equivalent comparison (/=)
+        | Geq       -- ^ Greater than equal to comparison (>=)
+        | Greater   -- ^ Greater than comparison (>)
+        | Get       -- ^ Gets contents from a position on a board (!)
    deriving (Eq, Generic)
 
 -- Note: the three predicates below are used in the type checker
@@ -137,10 +144,12 @@ relational o = o `elem` [Less, Leq, Geq, Greater]
 equiv :: Op -> Bool
 equiv o = o `elem` [Equiv, NotEquiv]
 
+-- | Deannotate an expression
 deAnnotate :: Expr a -> Expr a
-deAnnotate (Annotation a e) = e
+deAnnotate (Annotation _ e) = e
 deAnnotate x = x
 
+-- | Clear the annotation from an expression
 clearAnn :: Expr a -> Expr ()
 clearAnn = (() <$)
 
@@ -158,7 +167,7 @@ instance Show Pos where
 
 instance Show (Equation a) where
   show (Veq n e)   = n ++ " = " ++ show e
-  show (Feq n p e) = n ++ show p ++ " = " ++ show e
+  show (Feq n pl e) = n ++ show pl ++ " = " ++ show e
 
 instance Show (Expr a) where
   show (Annotation _ e) = show e -- can refactor
@@ -172,7 +181,7 @@ instance Show (Expr a) where
   show (Binop o e1 e2)  = show e1 ++ show o ++ show e2
   show (Let n e1 e2)    = "let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
   show (If e1 e2 e3)    = "if " ++ show e1 ++ " then " ++ show e2 ++ " else " ++ show e3
-  show (While c b n e ) = "while " ++ show c ++ " do " ++ show b
+  show (While c b _ _)  = "while " ++ show c ++ " do " ++ show b
 
 instance Show (ValDef a) where
   show (Val s e _)  = show s ++ "\n" ++ show e

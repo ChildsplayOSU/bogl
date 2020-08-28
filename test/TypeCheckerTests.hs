@@ -7,7 +7,6 @@ module TypeCheckerTests where
 import Test.HUnit
 import Parser.Parser
 import Language.Types
-import qualified Data.Set as S
 import Data.Either
 import Utils
 import Typechecker.Typechecker
@@ -17,7 +16,6 @@ import System.Directory
 import System.FilePath
 
 import Text.Parsec
-import Text.Parsec.Error
 import Text.Parsec.Pos
 
 --
@@ -77,7 +75,7 @@ allFailTC = and . map (not . success) . map tc
 
 -- | Check that every Expr in a list fails to type check
 allFailTCexpr :: Env -> [Expr SourcePos] -> Bool
-allFailTCexpr = \e -> and . map isLeft . map (tcexpr e)
+allFailTCexpr = \_e -> and . map isLeft . map (tcexpr _e)
 
 testOutOfBoundsLiteralGet :: Test
 testOutOfBoundsLiteralGet = TestCase (
@@ -121,10 +119,10 @@ testBadBinopCompare = TestCase (
    )
    where
       env = exampleEnv { types = ("b", boardt) : types exampleEnv }
-      a = equiv (I 1) (B True)
-      b = equiv (I 1) (Ref "b")
-      c = equiv (Ref "b") (B False)
-      equiv = \l r -> Binop Equiv l r
+      a = _equiv (I 1) (B True)
+      b = _equiv (I 1) (Ref "b")
+      c = _equiv (Ref "b") (B False)
+      _equiv = \l r -> Binop Equiv l r
 
 testBadBinop :: Test
 testBadBinop = TestCase (
@@ -132,10 +130,10 @@ testBadBinop = TestCase (
    allFailTCexpr exampleEnv [a, b, c]
    )
    where
-      op = \l o r -> Binop o l r
-      a  = op (S "X") Geq (I 1)
-      b  = op (S "X") Plus (I 1)
-      c  = op (B True) Plus (B False)
+      _op = \l o r -> Binop o l r
+      a  = _op (S "X") Geq (I 1)
+      b  = _op (S "X") Plus (I 1)
+      c  = _op (B True) Plus (B False)
 
 typeCheckAllExamples :: IO TypeCheckerTestResult
 typeCheckAllExamples = do
@@ -144,12 +142,12 @@ typeCheckAllExamples = do
    mapM_ (putStrLn . ("\t" ++)) bglFiles
    results <- mapM parseGameFile bglFiles
    let parsed = rights results           -- the parser tests report these failures
-       failures = filter (not . success) $ map tc parsed
-       errs = map Typechecker.Typechecker.errors failures
+       _failures = filter (not . success) $ map tc parsed
+       errs = map Typechecker.Typechecker.errors _failures
    logTestStmt "Failures:"
    mapM_ (putStrLn . ("\n" ++)) (map showTCError (concat errs))
    let errCount = length errs
-   let failCount= length failures
+   let failCount= length _failures
    return $ if errCount > 0 || failCount > 0 then (Fail failCount errCount) else Pass
 
 illTypedPath :: String
@@ -169,9 +167,9 @@ typeCheckIll = do
    mapM_ (putStrLn . ("\t" ++)) bglFiles
    results <- mapM parseGameFile bglFiles
    let parsed = zip bglFiles $ rights results -- assume they all parsed correctly
-       succs  = filter (success . snd) $ map (\p -> (fst p, (tc . snd) p)) parsed
+       succs  = filter (success . snd) $ map (\_p -> (fst _p, (tc . snd) _p)) parsed
    logTestStmt "Incorrect successes:"
-   mapM_ (putStrLn . ("\t" ++)) $ map (\p -> fst p ++ "\n\t\t" ++ (show (((rtypes . snd) p)))) succs
+   mapM_ (putStrLn . ("\t" ++)) $ map (\_p -> fst _p ++ "\n\t\t" ++ (show (((rtypes . snd) _p)))) succs
    return $ length succs
 
 -- test TC on incomplete board

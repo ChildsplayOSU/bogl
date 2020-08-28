@@ -1,10 +1,12 @@
 {-# LANGUAGE DataKinds       #-}
 {-# LANGUAGE TypeOperators   #-}
---
--- SaveFile.hs
---
--- Endpoint to handle saving of a file
---
+
+{-|
+Module      : API.ShareFile
+Description : Endpoint to handle saving of a file
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module API.ShareFile (handleShareFile,genUniqueFilename) where
 
@@ -15,10 +17,10 @@ import Control.Exception hiding (Handler)
 import System.Directory
 import Test.RandomStrings
 
-
+-- | Generates a unique filename for the shared directory
 genUniqueFilename :: IO String
 genUniqueFilename = do
-  b       <- createDirectoryIfMissing False "shared"
+  _       <- createDirectoryIfMissing False "shared"
   word    <- randomWord randomASCII 30
   exists  <- doesFileExist ("shared/"++word ++ ".bglp")
   case exists of
@@ -28,13 +30,13 @@ genUniqueFilename = do
     False -> return (word)
 
 
--- |Handles sharing files to the server space
+-- | Handles sharing files to the server space
 handleShareFile :: SpielShare -> Handler SpielResponses
-handleShareFile (SpielShare prelude gamefile) = liftIO $ do
+handleShareFile (SpielShare prlude gamefile) = liftIO $ do
     -- generates a unique filename for both the prelude & gamefile
     fn <- genUniqueFilename
     -- verifies the files are able to be written to
-    success1 <- try $ writeFile ("shared/"++ fn ++ ".bglp") prelude :: IO (Either IOException ())
+    success1 <- try $ writeFile ("shared/"++ fn ++ ".bglp") prlude :: IO (Either IOException ())
     success2 <- try $ writeFile ("shared/"++ fn ++ ".bgl") gamefile :: IO (Either IOException ())
     case success1 of
       Right _ -> case success2 of

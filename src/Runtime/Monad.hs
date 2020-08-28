@@ -12,7 +12,7 @@ import Control.Monad.State
 import Control.Monad.Identity
 
 
-
+-- | Eval Monad transformer
 type Eval a = StateT Buffer (ExceptT Exception (ReaderT Env (Identity))) a
 
 -- | Call-by-value semantics
@@ -22,9 +22,11 @@ data Env = Env {
                }
   deriving Show
 
+-- | Uses the StateT monad to request the typed board dimensions in the runtime environment
 getBounds :: Eval (Int, Int)
 getBounds = boardSize <$> ask
 
+-- | Uses the StateT monad to get the evaluation environment in the runtime environment
 getEnv :: Eval (EvalEnv)
 getEnv = evalEnv <$> ask
 
@@ -32,6 +34,7 @@ getEnv = evalEnv <$> ask
 emptyEnv :: (Int,Int) -> Env
 emptyEnv x = Env [] x
 
+-- | Modifies the evaluation environment, producing a new environment
 modifyEval :: (EvalEnv -> EvalEnv) -> Env -> Env
 modifyEval f (Env e b) = Env (f e) b
 
@@ -87,6 +90,7 @@ lookupName n = do
 waitForInput :: [Val] -> Eval a
 waitForInput vs = throwError (NeedInput vs)
 
+-- | Converts a string into an evaluation error
 err :: String -> Eval a
 err n = throwError (Error n)
 
@@ -100,5 +104,5 @@ readTape = do
 
 -- | Helper function to get the Bool out of a value. This is a partial function.
 unpackBool :: Val -> Maybe Bool
-unpackBool (Vb b) = Just b
-unpackBool v = Nothing      -- not a valid boolean, should trip a runtime error
+unpackBool (Vb b) = Just b  -- Just a boolean
+unpackBool _      = Nothing -- Not a valid boolean, should trip a runtime error

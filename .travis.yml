@@ -1,6 +1,7 @@
 language: haskell
 
-sudo: false
+dist: xenial
+os: linux
 
 # Caching so the next build will be fast too.
 cache:
@@ -19,7 +20,21 @@ before_install:
 
 install: stack setup && stack build
 
-script: stack --no-terminal --skip-ghc-check test --coverage
+# regular stack tests must pass, and so must haddock
+script: stack --no-terminal --skip-ghc-check test --coverage && stack haddock
+
+# move generated haddock material into the 'haddock' diectory
+before_deploy:
+  - mkdir -p haddock && cp -r `stack path --dist-dir`/doc/html/Spiel-Lang/* haddock
+
+deploy:
+  strategy: git
+  provider: pages
+  cleanup: false
+  token: $GITHUB_TOKEN
+  local_dir: haddock
+  on:
+    branch: master
 
 # TODO reimplement code coverage, doesn't work currently
 #after_script:

@@ -1,11 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
---
--- JSONData.hs
---
--- Defines JSON data for the API
---
+
+{-|
+Module      : API.JSONData
+Description : Defines JSON data for the Spiel API
+Copyright   : (c)
+License     : BSD-3
+-}
 
 module API.JSONData where
 
@@ -14,26 +16,23 @@ import Language.Types
 
 import GHC.Generics
 import Data.Aeson
-import Data.Aeson.TH
 import Runtime.Values
 import Runtime.Eval
 import Parser.Parser
 import Runtime.Monad
 import Typechecker.Monad (TypeError)
-import Data.List
-import Data.Array
 
--- | representation of a request to read a BoGL file
--- TODO: Use Path type
+-- | Representation of a request to read a BoGL file
 data SpielRead = SpielRead {
   path :: String
 } deriving (Eq, Show, Generic)
 
 instance FromJSON SpielRead where
   parseJSON (Object v) = SpielRead <$> v .: "fileName"
+  parseJSON _          = undefined -- fallback
 
 
--- | representation of a request to share a prelude & gamefile
+-- | Representation of a request to share a prelude & gamefile
 data SpielShare = SpielShare {
   preludeContent :: String,
   gameContent :: String
@@ -43,9 +42,9 @@ instance ToJSON SpielShare where
 
 instance FromJSON SpielShare where
   parseJSON (Object v) = SpielShare <$> v .: "preludeContent" <*> v.: "gameContent"
+  parseJSON _          = fail "Unable to parse Share option" -- fallback
 
--- | representation of a file that will be saved by the user
--- TODO Probably want to use a lock or something
+-- | Representation of a file that will be saved by the user
 data SpielFile = SpielFile {
   fileName  :: String,
   content   :: String
@@ -55,6 +54,7 @@ instance ToJSON SpielFile where
 
 instance FromJSON SpielFile where
   parseJSON (Object v) = SpielFile <$> v .: "fileName" <*> v .: "content"
+  parseJSON _          = fail "Unable to parse File option" -- fallback
 
 instance FromJSON Val where
   parseJSON (Object v) = do
@@ -62,12 +62,12 @@ instance FromJSON Val where
     case parseLine t of
       Right x -> case runWithBuffer (emptyEnv (0,0)) ([], [], 1) x of
         Right (_, v') -> return v'
-        Left err -> fail "failed to parse..." -- FIXME
-      Left err -> fail "failed to parse..."
-  parseJSON _ = fail "FAILURE?"
+        Left _ -> fail "failed to parse..." -- FIXME
+      Left _ -> fail "failed to parse..."
+  parseJSON _ = fail "Unable to parse Val"
 
 
--- | representation of input to the repl, from the user
+-- | Representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
     prelude :: String,
     file   :: String,
@@ -80,39 +80,48 @@ instance ToJSON SpielCommand
 instance FromJSON SpielCommand
 
 
--- | for errors
+-- | Error message
 type Message = String
+-- | Error line number
 type LineNum = Int
+-- | Error column number
 type ColNum  = Int
+-- | Error file name
 type FileName= String
 
--- a buffer of boards which should be printed with the value of executing the expression
+-- | A buffer of boards which should be printed with the value of executing the expression
 type BufferedBoards = [Val]
+-- | An execution value
 type ExecutionValue = Val
 
 -- | Represents possible response categories from the server
 -- These are then parsed accordingly on the front-end
 data SpielResponse =
-  -- represents a prompt for input and buffered boards
+  -- | represents a prompt for input and buffered boards
   SpielPrompt [Val] |
-  -- represents a successful operation
+  -- | represents a successful operation
   SpielSuccess String |
-  -- represents a successful load
+  -- | represents a successful load
   -- 1st prelude, 2nd gamefile
   SpielLoadResult String String |
-  -- represents a win/lose result
+  -- | represents a win/lose result
   SpielGameResult String |
-  -- represents a type error
+  -- | represents a type error
   SpielTypeError TypeError |
-  -- represents a parse error
+  -- | represents a parse error
   SpielParseError LineNum ColNum FileName Message |
-  -- represents a runtime error in spiel
+  -- | represents a runtime error in spiel
   SpielValue BufferedBoards ExecutionValue |
-  SpielTypeHole LineNum ColNum Xtype | -- ^ represents a typed hole that can be filled
-  SpielError String | -- ^ fallback standard error, something went wrong in spiel
+  -- | represents a typed hole that can be filled
+  SpielTypeHole LineNum ColNum Xtype |
+  -- | fallback standard error, something went wrong in spiel
+  SpielError String |
+  -- | generic runtime error
   SpielRuntimeError String |
-  SpielTypes [(String, Type)] | -- ^ List of typechecked types
-  Log String -- ^ String
+  -- | List of typechecked types
+  SpielTypes [(String, Type)] |
+  -- | String
+  Log String
   deriving(Eq, Generic)
 
 instance ToJSON SpielResponse where
@@ -131,10 +140,11 @@ instance Show SpielResponse where
   show (SpielValue bs v)                = show bs ++ " " ++ show v
   -- show a typed hole
   -- TODO this one needs cleaning up
-  show (SpielTypeHole m x y)            = show m
+  show (SpielTypeHole m _ _)            = show m
   -- show a fallback error, such as reading a bad-file
   show (SpielError m)                   = show m
+  show x                                = show x
 
 
-
+-- | List of spiel responses
 type SpielResponses = [SpielResponse]

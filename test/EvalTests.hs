@@ -128,8 +128,8 @@ testEvalLimit :: Test
 testEvalLimit = TestCase (
   assertEqual "Test that the evaluation limit works"
   True
-  (isRightErr (let valdef = (Vf ["x"] [] (If (Binop Less (Ref "x") (I 6000)) (App "iloop" (Tuple [(Binop Plus (Ref "x") (I 1))])) (Ref "x"))) in
-     let env    = Env [("iloop", valdef)] (1,1) in
+  (isRightErr (let _valdef = (Vf ["x"] [] (If (Binop Less (Ref "x") (I 6000)) (App "iloop" (Tuple [(Binop Plus (Ref "x") (I 1))])) (Ref "x"))) in
+     let env    = Env [("iloop", _valdef)] (1,1) in
      let buffer = ([],[],1) in
      let evalVal= eval (App "iloop" (Tuple [(I 0)])) in
      runEval env buffer evalVal)))
@@ -140,8 +140,8 @@ testNegativeBoardAccess = TestCase (
   assertEqual "Test that evaluating a negative board position gives an appropriate error"
   True
   (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
-   let board  = Vboard barray in
-   let env    = Env [("b", board)] (1,1) in
+   let _board  = Vboard barray in
+   let env    = Env [("b", _board)] (1,1) in
    let buffer = ([],[],1) in
    let evalVal= eval (Ref "b!(1,-1)") in
    runEval env buffer evalVal)))
@@ -160,5 +160,5 @@ evalTicTacToe = do
                            e              -> (False, show e)
             evalResult = runWithBuffer (bindings_ (szx, szy) vs) buf (Ref "result")
             buf        = (moves, [], 0)
-            moves      = map Vt (map (\p -> [Vi (fst p), Vi (snd p)]) coords)
+            moves      = map Vt (map (\_p -> [Vi (fst _p), Vi (snd _p)]) coords)
             coords     = [(1, 1), (2, 1), (2, 2), (3, 1), (3, 3)]
