@@ -29,6 +29,9 @@ typeCheckerTests = TestList
    ,testOutOfBoundsLiteralGet
    ,testBadBinopCompare
    ,testBadBinop
+   ,testIncompleteBoardEq
+   ,testOneSpaceIncompleteBoardEq
+   ,testCompleteBoardEq
    ]
 
 -- | Represents the rest result for typchecking examples
@@ -168,3 +171,33 @@ typeCheckIll = do
    logTestStmt "Incorrect successes:"
    mapM_ (putStrLn . ("\t" ++)) $ map (\_p -> fst _p ++ "\n\t\t" ++ (show (((rtypes . snd) _p)))) succs
    return $ length succs
+
+-- test TC on incomplete board
+testIncompleteBoardEq :: Test
+testIncompleteBoardEq = TestCase (
+  (assertBool "Verifies that an incomplete board equation is disallowed") $
+  allFailTC [testGame [(BVal (Sig "b" (Plain boardxt)) [PosDef "b" (ForAll ("x")) (Index 1) (I 1)] dummyPos)]]
+  )
+
+-- test all but one place is still an invalid board
+testOneSpaceIncompleteBoardEq :: Test
+testOneSpaceIncompleteBoardEq = TestCase (
+  (assertBool "Verifies that an incomplete board equation is disallowed") $
+  allFailTC [testGame [(BVal (Sig "b" (Plain boardxt)) [
+    PosDef "b" (ForAll ("x")) (Index 1) (I 1),
+    PosDef "b" (ForAll ("x")) (Index 2) (I 1),
+    PosDef "b" (ForAll ("x")) (Index 3) (I 1),
+    PosDef "b" (ForAll ("x")) (Index 4) (I 1),
+    PosDef "b" (Index (1)) (Index 5) (I 1),
+    PosDef "b" (Index (2)) (Index 5) (I 1),
+    PosDef "b" (Index (3)) (Index 5) (I 1),
+    PosDef "b" (Index (4)) (Index 5) (I 1)
+    -- missing (5,5) should constitute an incomplete board
+  ] dummyPos)]])
+
+-- test TC on complete board
+testCompleteBoardEq :: Test
+testCompleteBoardEq = TestCase (
+  (assertBool "Verifies that an complete board equation is valid") $
+  allPassTC [testGame [(BVal (Sig "b" (Plain boardxt)) [PosDef "b" (ForAll ("x")) (ForAll ("y")) (I 1)] dummyPos)]]
+  )

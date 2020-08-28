@@ -332,7 +332,7 @@ xtype = (try $ do
   <|>
       xtype'
 
--- | Parse an xtype
+-- | Parse just a type, before it is possibly extended
 xtype' :: Parser Xtype
 xtype' =
   (try $ capIdentifier >>= lookupSyn)

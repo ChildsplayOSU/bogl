@@ -168,6 +168,7 @@ data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos),
                | OutOfBounds {xpos :: Pos, ypos :: Pos, srcPos :: SourcePos}
                | BadApp {name :: Name, arg :: (Expr SourcePos), srcPos :: SourcePos}                       -- ^ An attempt to apply a non-function expr as if it were a function
                | Dereff {name :: Name, typ :: Type, srcPos :: SourcePos}                                   -- ^ An attempt to dereference a function
+               | Uninitialized {name :: Name, srcPos :: SourcePos}
                deriving (Eq)
 
 instance ToJSON TypeError where
@@ -199,6 +200,10 @@ badop o _t1 _t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) ->  throwError $ BadO
 outofbounds :: Pos -> Pos -> Typechecked a
 outofbounds _p sz = getPos >>= \x -> throwError $ OutOfBounds _p sz x
 
+-- | Uninitialized board type error
+uninitialized :: Name -> Typechecked a
+uninitialized n = getPos >>= \x -> throwError $ Uninitialized n x
+
 -- | Bad function application type error
 badapp :: Name -> Expr SourcePos -> Typechecked a
 badapp n e = getPos >>= \_p -> throwError $ BadApp n e _p
@@ -228,3 +233,4 @@ instance Show TypeError where
   show (OutOfBounds x y _p)     = errString _p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
   show (BadApp n e _p)          = errString _p ++ "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function."
   show (Dereff n _t _p)         = errString _p ++ "Could not dereference the function " ++ n ++ " with type " ++ show _t ++ ". Maybe you forgot to give it arguments."
+  show (Uninitialized n _p)     = errString _p ++ "Incomplete initialization of Board " ++ quote n -- Shows an incomplete board initialization

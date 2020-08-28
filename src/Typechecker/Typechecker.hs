@@ -26,6 +26,16 @@ import qualified Data.Set as S
 all' :: Foldable t => (a -> Bool) -> t a -> Maybe a
 all' _p xs = foldl (\none x -> if _p x then none else Just x) Nothing xs
 
+
+-- | Return a list of the covered positions for a board equation
+getCovered :: (Int,Int) -> BoardEq SourcePos -> [(Int,Int)]
+getCovered (mx,my) (PosDef _ xp yp _) = case (xp,yp) of
+                                  (ForAll _,ForAll _) -> [(x,y) | x <- [1..mx], y <- [1..my]] -- ^ (x,y) all spaces
+                                  (ForAll _, Index y) -> [(x,y) | x <- [1..mx]] -- ^ (x,#) row of spaces
+                                  (Index x, ForAll _) -> [(x,y) | y <- [1..my]] -- ^ (#,y) column of spaces
+                                  (Index x, Index y)  -> [(x,y)]  -- ^ (#,#), single space
+
+
 -- | Get the type of a valDef. Check the expression's type with the signature's.
 --   If they don't match, throw exception.
 deftype :: (ValDef SourcePos) -> Typechecked Type
@@ -38,9 +48,15 @@ deftype (Val (Sig n _t) eqn x) = do
 
 deftype (BVal (Sig n _t) eqs x) = do
   setPos x
+  (mx, my) <- getSize
+  -- get a set of the spaces covered by these board equations
+  let placesCovered = S.fromList $ concat $ map (getCovered (mx,my)) eqs
   eqTypes <- mapM beqntype eqs
   case all' (<= _t) eqTypes of
-    Nothing -> return _t
+    -- pass if all spaces are defined, otherwise incomplete/uninitialized
+    -- placesCovered is a set of all places. Places of invalid positions do not count
+    -- i.e, if the size of the set of positions is equivalent to mx*my, then all correct positions have been covered
+    Nothing -> if length placesCovered == mx*my then return _t else uninitialized n
     (Just badEqn) -> sigmismatch n _t badEqn
 
 -- | Get the type of a board equation
