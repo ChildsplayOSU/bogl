@@ -1,6 +1,7 @@
 language: haskell
 
-sudo: false
+dist: xenial
+os: linux
 
 # Caching so the next build will be fast too.
 cache:
@@ -25,9 +26,10 @@ before_deploy:
   - stack haddock
 
 deploy:
+  strategy: git
   provider: pages
-  skip_cleanup: true
-  github_token: $GITHUB_TOKEN
+  cleanup: false
+  token: $GITHUB_TOKEN
   local_dir: haddock
   on:
     branch: master
