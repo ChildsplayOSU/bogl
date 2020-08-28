@@ -30,9 +30,9 @@ all' _p xs = foldl (\none x -> if _p x then none else Just x) Nothing xs
 -- | Return a list of the covered positions for a board equation
 getCovered :: (Int,Int) -> BoardEq SourcePos -> [(Int,Int)]
 getCovered (mx,my) (PosDef _ xp yp _) = case (xp,yp) of
-                                  (ForAll _,ForAll _) -> [(x,y) | x <- [1..mx], y <- [1..my]] -- ^ (x,y) all spaces
-                                  (ForAll _, Index y) -> [(x,y) | x <- [1..mx]] -- ^ (x,#) row of spaces
-                                  (Index x, ForAll _) -> [(x,y) | y <- [1..my]] -- ^ (#,y) column of spaces
+                                  (ForAll _,ForAll _) -> [(x,y) | x <- [1..mx], y <- [1..my]] -- (x,y) all spaces
+                                  (ForAll _, Index y) -> [(x,y) | x <- [1..mx]] -- (x,#) row of spaces
+                                  (Index x, ForAll _) -> [(x,y) | y <- [1..my]] -- (#,y) column of spaces
                                   (Index x, Index y)  -> [(x,y)]  -- ^ (#,#), single space
 
 

@@ -20,10 +20,12 @@ before_install:
 
 install: stack setup && stack build
 
-script: stack --no-terminal --skip-ghc-check test --coverage
+# regular stack tests must pass, and so must haddock
+script: stack --no-terminal --skip-ghc-check test --coverage && stack haddock
 
+# move generated haddock material into the 'haddock' diectory
 before_deploy:
-  - stack haddock
+  - mkdir -p haddock && cp -r `stack path --dist-dir`/doc/html/Spiel-Lang/* haddock
 
 deploy:
   strategy: git
