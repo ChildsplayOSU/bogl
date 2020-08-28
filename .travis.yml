@@ -21,6 +21,17 @@ install: stack setup && stack build
 
 script: stack --no-terminal --skip-ghc-check test --coverage
 
+before_deploy:
+  - stack haddock
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  local_dir: haddock
+  on:
+    branch: master
+
 # TODO reimplement code coverage, doesn't work currently
 #after_script:
 #- stack install codecov-haskell
