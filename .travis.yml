@@ -30,7 +30,7 @@ before_deploy:
 deploy:
   strategy: git
   provider: pages
-  skip_cleanup: false
+  skip_cleanup: true
   token: $GITHUB_TOKEN
   local_dir: haddock
   on:
