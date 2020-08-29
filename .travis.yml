@@ -27,12 +27,13 @@ script: stack --no-terminal --skip-ghc-check test --coverage && stack haddock
 before_deploy:
   - mkdir -p haddock && cp -r `stack path --dist-dir`/doc/html/Spiel-Lang/* haddock
 
+# deploys haddock changes to gh-pages
+# Does so from the current directory by default, should only add the updated 'haddock' folder
 deploy:
   strategy: git
   provider: pages
   skip_cleanup: true
   token: $GITHUB_TOKEN
-  local_dir: haddock
   on:
     branch: master
 
