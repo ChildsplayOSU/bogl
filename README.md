@@ -8,7 +8,7 @@ Spiel Lang is a domain specific teaching language for teaching young students al
 
 ## Using it Now
 
-[You can check out Spiel Lang for yourself here](http://bogl.engr.oregonstate.edu:5168/).
+[You can check out Spiel Lang for yourself here](https://bogl.engr.oregonstate.edu/).
 
 ## About
 

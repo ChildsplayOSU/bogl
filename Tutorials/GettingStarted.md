@@ -1,6 +1,6 @@
 # 1) Getting Started with Spiel
 
-Getting started with Spiel is straightforward, as you can start coding directly in our [online tool](http://bogl.engr.oregonstate.edu:5168/).
+Getting started with Spiel is straightforward, as you can start coding directly in our [online tool](https://bogl.engr.oregonstate.edu/).
 
 
 Once you have access to the tool you should see the page as follows:

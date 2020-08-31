@@ -129,7 +129,7 @@ play(b) = let x = input in
             if b!(x,y) == False then P1Wins else P2Wins
 ```
 
-Now for playing this you can check your code in [online tool](http://bogl.engr.oregonstate.edu:5168/) to verify everything looks correct. To play, you'll want to first type in `play(gameBoard)`, since that's the board we want to use (and `b` describes the name for any board that was passed into that function). Once you've done this you'll see a message that says you're in input mode. Now you can type in the following:
+Now for playing this you can check your code in [online tool](https://bogl.engr.oregonstate.edu/) to verify everything looks correct. To play, you'll want to first type in `play(gameBoard)`, since that's the board we want to use (and `b` describes the name for any board that was passed into that function). Once you've done this you'll see a message that says you're in input mode. Now you can type in the following:
 ```
 1
 1
