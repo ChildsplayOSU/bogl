@@ -30,10 +30,14 @@ before_deploy:
 # deploys haddock changes to gh-pages
 # Does so from the current directory by default, should only add the updated 'haddock' folder
 deploy:
+  verbose: true
+  local_dir: haddock
   strategy: git
   provider: pages
   skip_cleanup: true
   token: $GITHUB_TOKEN
+  keep_history: true
+  name: Spiel Doc Bot
   on:
     branch: master
 
