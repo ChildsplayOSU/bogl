@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><a name="line-2"></a><span class="hs-comment">{-|
+Module      : API.CORSMiddleware
+Description : CORS Middleware for the Spiel Server API
+Copyright   : (c)
+License     : BSD-3
+
+Based on @https://stackoverflow.com/questions/41399055/haskell-yesod-cors-problems-with-browsers-options-requests-when-doing-post-req
+Enables CORS requests to be made to this server by accepting all origins
+
+-}</span><span>
+</span><a name="line-12"></a><span>
+</span><a name="line-13"></a><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">API.CORSMiddleware</span><span> </span><span class="hs-keyword">where</span><span>
+</span><a name="line-14"></a><span>
+</span><a name="line-15"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Network.Wai</span><span>                       </span><span class="hs-special">(</span><span class="hs-identifier hs-type">Middleware</span><span class="hs-special">)</span><span>
+</span><a name="line-16"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Network.Wai.Middleware.AddHeaders</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">addHeaders</span><span class="hs-special">)</span><span>
+</span><a name="line-17"></a><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Network.Wai.Middleware.Cors</span><span>       </span><span class="hs-special">(</span><span class="hs-identifier hs-type">CorsResourcePolicy</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-identifier hs-var">cors</span><span class="hs-special">)</span><span>
+</span><a name="line-18"></a><span>
+</span><a name="line-19"></a><span class="hs-comment">-- | @x-csrf-token@ allowance.</span><span>
+</span><a name="line-20"></a><span class="hs-comment">-- The following header will be set: @Access-Control-Allow-Headers: x-csrf-token@.</span><span>
+</span><a name="line-21"></a><span class="hs-identifier">allowCsrf</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Middleware</span><span>
+</span><a name="line-22"></a><a name="allowCsrf"><a href="API.CORSMiddleware.html#allowCsrf"><span class="hs-identifier">allowCsrf</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">addHeaders</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="hs-string">&quot;Access-Control-Allow-Headers&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;x-csrf-token,authorization&quot;</span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><a name="line-23"></a><span>
+</span><a name="line-24"></a><span class="hs-comment">-- | CORS middleware configured with 'appCorsResourcePolicy'.</span><span>
+</span><a name="line-25"></a><span class="hs-identifier">corsified</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">Middleware</span><span>
+</span><a name="line-26"></a><a name="corsified"><a href="API.CORSMiddleware.html#corsified"><span class="hs-identifier">corsified</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">cors</span><span> </span><span class="hs-special">(</span><span class="hs-identifier hs-var">const</span><span> </span><span class="hs-operator hs-var">$</span><span> </span><span class="hs-identifier hs-var">Just</span><span> </span><a href="API.CORSMiddleware.html#appCorsResourcePolicy"><span class="hs-identifier hs-var">appCorsResourcePolicy</span></a><span class="hs-special">)</span><span>
+</span><a name="line-27"></a><span>
+</span><a name="line-28"></a><span>
+</span><a name="line-29"></a><span class="hs-comment">--unused for the moment</span><span>
+</span><a name="line-30"></a><span class="hs-comment">--allowAll :: Origin</span><span>
+</span><a name="line-31"></a><span class="hs-comment">--allowAll = &quot;http://localhost:3000&quot;</span><span>
+</span><a name="line-32"></a><span>
+</span><a name="line-33"></a><span class="hs-comment">-- | Cors resource policy to be used with 'corsified' middleware.</span><span>
+</span><a name="line-34"></a><span class="hs-comment">--</span><span>
+</span><a name="line-35"></a><span class="hs-comment">-- This policy will set the following:</span><span>
+</span><a name="line-36"></a><span class="hs-comment">--</span><span>
+</span><a name="line-37"></a><span class="hs-comment">-- * RequestHeaders: @Content-Type@</span><span>
+</span><a name="line-38"></a><span class="hs-comment">-- * MethodsAllowed: @OPTIONS, GET, PUT, POST@</span><span>
+</span><a name="line-39"></a><span class="hs-identifier">appCorsResourcePolicy</span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-identifier hs-type">CorsResourcePolicy</span><span>
+</span><a name="line-40"></a><a name="appCorsResourcePolicy"><a href="API.CORSMiddleware.html#appCorsResourcePolicy"><span class="hs-identifier">appCorsResourcePolicy</span></a></a><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">CorsResourcePolicy</span><span> </span><span class="hs-special">{</span><span>
+</span><a name="line-41"></a><span>    </span><span class="hs-identifier">corsOrigins</span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
+</span><a name="line-42"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">corsMethods</span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-string">&quot;OPTIONS&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;GET&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;POST&quot;</span><span class="hs-special">]</span><span>
+</span><a name="line-43"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">corsRequestHeaders</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-string">&quot;Authorization&quot;</span><span class="hs-special">,</span><span> </span><span class="hs-string">&quot;Content-Type&quot;</span><span class="hs-special">]</span><span>
+</span><a name="line-44"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">corsExposedHeaders</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
+</span><a name="line-45"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">corsMaxAge</span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">Nothing</span><span>
+</span><a name="line-46"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">corsVaryOrigin</span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">True</span><span>
+</span><a name="line-47"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">corsRequireOrigin</span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">False</span><span>
+</span><a name="line-48"></a><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-identifier">corsIgnoreFailures</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier hs-var">True</span><span>
+</span><a name="line-49"></a><span class="hs-special">}</span><span>
+</span><a name="line-50"></a></pre></body></html>
