@@ -23,28 +23,6 @@ install: stack setup && stack build
 # regular stack tests must pass, and so must haddock
 script: stack --no-terminal --skip-ghc-check test --coverage && stack haddock
 
-# move generated haddock material into the 'haddock' diectory
-before_deploy:
-  - mkdir -p haddock && cp -r `stack path --dist-dir`/doc/html/Spiel-Lang/* haddock && ls
-
-# deploys haddock changes to gh-pages
-# Does so from the current directory by default, should only add the updated 'haddock' folder
-deploy:
-  edge: true
-  verbose: true
-  #local_dir: haddock
-  strategy: git
-  provider: pages
-  skip_cleanup: true
-  token: $GITHUB_TOKEN
-  keep_history: true
-  name: Spiel Doc Bot
-  on:
-    branch: master
-
-after_deploy:
-  - ls
-
 # TODO reimplement code coverage, doesn't work currently
 #after_script:
 #- stack install codecov-haskell
