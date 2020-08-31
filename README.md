@@ -23,3 +23,7 @@ Fully equipped programming languages such as Java, C++, or Python are commonly u
 You can get started with our [tutorials here](Tutorials/All.md). This includes a further breakdown of what Spiel is, and help to get started on your first program.
 
 If you want to develop on Spiel locally, please refer to our [installation page](INSTALLATION) for more details.
+
+### Documentation
+
+You can find [Haddock generated documentation here](haddock/index.html).
