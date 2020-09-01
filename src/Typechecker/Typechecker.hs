@@ -105,23 +105,15 @@ exprtype (Ref s) = do
 exprtype (Tuple xs) = do
   xs' <- mapM exprtype xs
   return $ Tup xs'
-exprtype (App n es) = do -- FIXME. Tuple composition is bad.
-  es' <- exprtype es
-  let es'' = case es' of
-        Tup [Tup xs] -> Tup xs
-        x -> x
+exprtype (App n es) = do
+  est <- exprtype es
   _t <- getType n
   case _t of
     (Function (Ft i o)) -> do
-      if es'' == i then
-        return o -- supplied param matches expected input type
-      else
-        do
-          -- otherwise, unify the supplied param w/ the input type
-          u <- unify (es'') i -- oof
-          case u of
-            -- verify the unified result is ultimately the same as the input type
-            x1 -> if x1 == i then return o else mismatch (Plain es'') (Plain i)
+     if est <= i then
+        return o
+     else
+        appmismatch n (Plain i) (Plain est)
     _ -> do
       badapp n es
 exprtype (Binop Get e1 (Annotation _ (Tuple [Annotation _ (I x), Annotation _ (I y)]))) =
