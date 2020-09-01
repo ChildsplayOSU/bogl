@@ -25,7 +25,7 @@ import qualified Data.Set as S
 import Language.Syntax hiding (input)
 import Runtime.Builtins
 
-import Parser.Error
+import Utils.String
 
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]

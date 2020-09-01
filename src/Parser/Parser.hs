@@ -354,10 +354,6 @@ ftype = do
   reservedOp "->"
   r <- xtype
   return $ Ft x r
-  -- [WIP]
-  --case x of
-  --  Tup xs -> return $ Ft (Tup xs) r
-  --  y -> return $ Ft (Tup [y]) r
 
 -- | Types
 typ :: Parser Type
