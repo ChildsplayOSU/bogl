@@ -160,14 +160,15 @@ t :: Btype -> Typechecked Xtype
 t b = return (X b S.empty)
 
 -- | Encoding the different type errors as types should let us do interesting things with them
-data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos}      -- ^ Couldn't match two types in an expression
-               | NotBound {name :: Name, srcPos :: SourcePos}                                              -- ^ Name isn't (yet) bound in the enviroment
-               | SigMismatch {name :: Name, sigType :: Type, actualType :: Type, srcPos :: SourcePos}      -- ^ couldn't match the type of an equation with its signature
-               | Unknown {msg :: String, srcPos :: SourcePos}                                              -- ^ Errors that "shouldn't happen"
-               | BadOp {op :: Op, t1 ::Type, t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos} -- ^ Can't perform a primitive operation
+data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos}                   -- ^ Couldn't match two types in an expression
+               | AppMismatch {name :: Name, t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos}  -- ^ Couldn't match function parameter and argument type
+               | NotBound {name :: Name, srcPos :: SourcePos}                                                           -- ^ Name isn't (yet) bound in the enviroment
+               | SigMismatch {name :: Name, sigType :: Type, actualType :: Type, srcPos :: SourcePos}                   -- ^ couldn't match the type of an equation with its signature
+               | Unknown {msg :: String, srcPos :: SourcePos}                                                           -- ^ Errors that "shouldn't happen"
+               | BadOp {op :: Op, t1 ::Type, t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos}              -- ^ Can't perform a primitive operation
                | OutOfBounds {xpos :: Pos, ypos :: Pos, srcPos :: SourcePos}
-               | BadApp {name :: Name, arg :: (Expr SourcePos), srcPos :: SourcePos}                       -- ^ An attempt to apply a non-function expr as if it were a function
-               | Dereff {name :: Name, typ :: Type, srcPos :: SourcePos}                                   -- ^ An attempt to dereference a function
+               | BadApp {name :: Name, arg :: (Expr SourcePos), srcPos :: SourcePos}                                    -- ^ An attempt to apply a non-function expr as if it were a function
+               | Dereff {name :: Name, typ :: Type, srcPos :: SourcePos}                                                -- ^ An attempt to dereference a function
                | Uninitialized {name :: Name, srcPos :: SourcePos}
                deriving (Eq)
 
@@ -179,6 +180,10 @@ instance ToJSON TypeError where
 -- | Type mismatch error
 mismatch :: Type -> Type -> Typechecked a
 mismatch _t1 _t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) -> throwError $ Mismatch _t1 _t2 e x)
+
+-- | Type mismatch error for function application
+appmismatch :: Name -> Type -> Type -> Typechecked a
+appmismatch n _t1 _t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) -> throwError $ AppMismatch n _t1 _t2 e x)
 
 -- | Not bound type error
 notbound :: Name -> Typechecked a
@@ -225,12 +230,13 @@ errString _p = case sourceName _p of
             where str = "Type error at: " ++ show _p
 
 instance Show TypeError where
-  show (Mismatch _t1 _t2 e _p)  = errString _p ++ "Could not match types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
-  show (NotBound n _p)          = errString _p ++ "You did not define " ++ n
-  show (SigMismatch n sig _t _p)= errString _p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show _t
-  show (Unknown s _p)           = errString _p ++ s
-  show (BadOp o _t1 _t2 e _p)   = errString _p ++ "Cannot '" ++ show o ++ "' types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
-  show (OutOfBounds x y _p)     = errString _p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
-  show (BadApp n e _p)          = errString _p ++ "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function."
-  show (Dereff n _t _p)         = errString _p ++ "Could not dereference the function " ++ n ++ " with type " ++ show _t ++ ". Maybe you forgot to give it arguments."
-  show (Uninitialized n _p)     = errString _p ++ "Incomplete initialization of Board " ++ quote n -- Shows an incomplete board initialization
+  show (Mismatch _t1 _t2 e _p)      = errString _p ++ "Could not match types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
+  show (AppMismatch n _t1 _t2 e _p) = errString _p ++ "The function " ++ n ++ " requires type " ++ show _t1 ++ " but you provided type " ++ show _t2 ++ " in expression:\n\t" ++ show e
+  show (NotBound n _p)              = errString _p ++ "You did not define " ++ n
+  show (SigMismatch n sig _t _p)    = errString _p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show _t
+  show (Unknown s _p)               = errString _p ++ s
+  show (BadOp o _t1 _t2 e _p)       = errString _p ++ "Cannot '" ++ show o ++ "' types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
+  show (OutOfBounds x y _p)         = errString _p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
+  show (BadApp n e _p)              = errString _p ++ "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function."
+  show (Dereff n _t _p)             = errString _p ++ "Could not dereference the function " ++ n ++ " with type " ++ show _t ++ ". Maybe you forgot to give it arguments."
+  show (Uninitialized n _p)         = errString _p ++ "Incomplete initialization of Board " ++ quote n -- Shows an incomplete board initialization

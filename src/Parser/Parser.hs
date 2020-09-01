@@ -7,7 +7,7 @@ License     : BSD-3
 
 module Parser.Parser (
    parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameText,
-   expr, isLeft, parseAll, valdef, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser)
+   expr, isLeft, parseAll, valdef, ftype, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser)
 where
 
 import Parser.Error
@@ -225,7 +225,7 @@ atom' =
   <|>
   B <$> (reserved "False" *> pure False)
   <|>
-  (try $ App <$> identifier <*> (parens (Tuple <$> (commaSep expr))))
+  (try $ App <$> identifier <*> (parens (formArgs <$> (commaSep1 expr))))
   <|>
   S <$> capIdentifier
   <|>
@@ -251,6 +251,10 @@ atom' =
             xs -> Tuple xs
       return $ While c e names exprs')
   <?> "expression"
+      where
+         formArgs :: [Expr a] -> Expr a
+         formArgs [x] = x
+         formArgs x   = Tuple x
 
 -- | Parse parameters
 params :: Name -> Parser [Name]
@@ -349,9 +353,11 @@ ftype = do
   x <- xtype
   reservedOp "->"
   r <- xtype
-  case x of
-    Tup xs -> return $ Ft (Tup xs) r
-    y -> return $ Ft (Tup [y]) r
+  return $ Ft x r
+  -- [WIP]
+  --case x of
+  --  Tup xs -> return $ Ft (Tup xs) r
+  --  y -> return $ Ft (Tup [y]) r
 
 -- | Types
 typ :: Parser Type
