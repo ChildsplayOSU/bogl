@@ -66,12 +66,12 @@ Now, for handling input. Now, for playing a board game, asking for input would b
 
 Our board is only 2x2, but if we wanted to do this for a 20x20 or 100x100 board, you could see how this would take some time! Given that, variables can make our life much easier for describing what to do for any arrangement of these positions. Great, so now that we have an idea of X and Y that will represent our position, how do we write that out?
 
-First, we have a function called `input` in Spiel we can use to read what the user types in. Since we defined the type of input earlier, we know it will be `Int` when we use it. So, conceptually what we want to do is:
+First, we have a function called `input` in BoGL we can use to read what the user types in. Since we defined the type of input earlier, we know it will be `Int` when we use it. So, conceptually what we want to do is:
 ```
 Get Int X from input
 Get Int Y from input
 ```
-But in Spiel to read into a variable we have to use what's called a **let expression**. This is a basic way of describing that if we want a variable to be some value, we want to it to be some value for some purpose, specifically, for some *expression*. An example would be if we wanted to describe `x + 5`, we would write out:
+But in BoGL to read into a variable we have to use what's called a **let expression**. This is a basic way of describing that if we want a variable to be some value, we want to it to be some value for some purpose, specifically, for some *expression*. An example would be if we wanted to describe `x + 5`, we would write out:
 ```
 -- let X be 5 in the following expression 'X + 5'
 -- which will give us 10
@@ -134,6 +134,6 @@ Now for playing this you can check your code in [online tool](https://bogl.engr.
 1
 1
 ```
-So we give 1 to the first input, and 1 again to the second input, making (x,y) equal to (1,1). Finally we should see an output of `P1Wins`, and that's it, you've successfully finished this exercise! If you want to type other things in, be sure to enter `clear` first, as this resets the game you were playing so you can start everything again. If you type something and Spiel doesn't do what you expect, try typing `clear` first to make sure everything is OK.
+So we give 1 to the first input, and 1 again to the second input, making (x,y) equal to (1,1). Finally we should see an output of `P1Wins`, and that's it, you've successfully finished this exercise! If you want to type other things in, be sure to enter `clear` first, as this resets the game you were playing so you can start everything again. If you type something and BoGL doesn't do what you expect, try typing `clear` first to make sure everything is OK.
 
 [Next, describing a game for items that are in a row.](InARow)

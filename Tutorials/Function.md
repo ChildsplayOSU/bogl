@@ -4,7 +4,7 @@
 
 After finishing your last tutorial, you're probably wondering a little bit more about some of the aspects of this language. One of the next things we would like to go over in this tutorial is **Functions**. As we mentioned before, you can think of functions as a way of describing a process or routine that you would do. This is comparable to what you do every morning when you wake up, such as brushing your teeth, eating breakfast, going to school (but maybe not on the weekends...). These are things that you do repeatedly, and pretty much the same way each time. Similarly, you can think of functions as something that is repeated roughly the same way every time you use it.
 
-Keeping with our focus on board games, something that can be described in a function is the idea of taking a turn. Every turn a player does something, and at the end of their turn the next player goes, and this repeats until the game ends. In this tutorial we're going to explore another simple game where we 1 turn happens, and the second player will win. Maybe not so much fun for the first player, but it'll help us grasp a bit more of Spiel.
+Keeping with our focus on board games, something that can be described in a function is the idea of taking a turn. Every turn a player does something, and at the end of their turn the next player goes, and this repeats until the game ends. In this tutorial we're going to explore another simple game where we 1 turn happens, and the second player will win. Maybe not so much fun for the first player, but it'll help us grasp a bit more of BoGL.
 
 First, let's setup a game called OneTurn, which describes what kind of game we're going to setup nicely:
 ```
@@ -36,7 +36,7 @@ For ours we'll write:
 type Player = {P1,P2}
 ```
 
-Finally we're at the function. Like before, we'll want to determine what the *declaration* looks like. Let's say we'll call it `play` like before, but now we have to think about what it will do overall. We know that we have 2 players in our game, and 2 results, and we would like to connect these somehow. If P1 goes first, then we would like P2 to win, and the opposite if P2 goes first. This actually tells us what we would like to write in, specifically for a `Player` we can get a `Result`. We can detail that for our play function in Spiel by writing the following:
+Finally we're at the function. Like before, we'll want to determine what the *declaration* looks like. Let's say we'll call it `play` like before, but now we have to think about what it will do overall. We know that we have 2 players in our game, and 2 results, and we would like to connect these somehow. If P1 goes first, then we would like P2 to win, and the opposite if P2 goes first. This actually tells us what we would like to write in, specifically for a `Player` we can get a `Result`. We can detail that for our play function in BoGL by writing the following:
 ```
 -- play is a function that represents
 -- that this will go from a Player to a Result

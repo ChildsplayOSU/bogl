@@ -1,0 +1,4 @@
+game Ex
+type AB = {A,B}
+b : AB -> AB
+b(x) = A

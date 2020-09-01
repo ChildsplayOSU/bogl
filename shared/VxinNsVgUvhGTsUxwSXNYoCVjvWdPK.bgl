@@ -1,0 +1,7 @@
+game Test
+
+test : Int
+test = 12345
+--
+-- This should auto share super easily, right?
+--

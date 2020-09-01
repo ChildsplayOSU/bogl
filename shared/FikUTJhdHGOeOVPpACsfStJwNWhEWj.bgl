@@ -1,0 +1,4 @@
+game Test
+
+test : Int
+test = 12345

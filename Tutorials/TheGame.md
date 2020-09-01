@@ -16,14 +16,14 @@ Bool may seem unfamiliar at first, at it's an odd name when you think about it. 
 type Board = Array(1,1) of Bool
 ```
 
-Now, if you're thinking ahead, you might wondering how we will be able to read something that will be a **Bool** that we can use on the board. Although we won't be reading anything just yet, Spiel requires us to declare what type of **Input** we will be expecting. In this case, we can simply say it should match what we have on our board, a Bool.
+Now, if you're thinking ahead, you might wondering how we will be able to read something that will be a **Bool** that we can use on the board. Although we won't be reading anything just yet, BoGL requires us to declare what type of **Input** we will be expecting. In this case, we can simply say it should match what we have on our board, a Bool.
 ```
 type Input = Bool
 ```
 
-Now, we've been working with a few types so far, Bool, Int, and Board. These all are ways of allowing us to represent things in Spiel. Int for positive whole numbers, Bool for True and False, and a Board to represent what size of game board we're working with and what we can 'put' on it.
+Now, we've been working with a few types so far, Bool, Int, and Board. These all are ways of allowing us to represent things in BoGL. Int for positive whole numbers, Bool for True and False, and a Board to represent what size of game board we're working with and what we can 'put' on it.
 
-However, we can introduce what we call *type synonyms* as well. These are used to help us describe things we want that can categorized, such as to describe the idea of a **Result** in a game. We know there is such a thing as **Winning** and **Losing**, so is there a way to express this in Spiel without using Bool, Int, or something else? It turns out there is, and we can do just that like this:
+However, we can introduce what we call *type synonyms* as well. These are used to help us describe things we want that can categorized, such as to describe the idea of a **Result** in a game. We know there is such a thing as **Winning** and **Losing**, so is there a way to express this in BoGL without using Bool, Int, or something else? It turns out there is, and we can do just that like this:
 ```
 -- type synonym called Result
 -- describes the notions of winning as 'YouWin' and losing as 'YouLose'
@@ -35,7 +35,7 @@ And there we go! Just like that we've used what are called **Symbols** to expres
 -- that is a tie
 type Result = {YouWin,YouLose,ItsATie}
 ```
-Notice that just like the name of our game, Spiel likes the things we are describing to be all in one word.
+Notice that just like the name of our game, BoGL likes the things we are describing to be all in one word.
 
 With what we have written out so far, we can write a way to play this game. Since playing is an action, we can describe it as a routine or a procedure, i.e. something that we do. In Computer Science, we commonly refer to this as a *function*, which is very much a routine or procedure that does something. For our game, we want to define a function for playing our game, and since this is a simple game we're going to say the result is we win every time.
 

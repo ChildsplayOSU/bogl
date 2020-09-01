@@ -1,6 +1,6 @@
-# Installing Spiel
+# Installing BoGL with Spiel
 
-Spiel is primarily designed to be used from a web interface, but is also capable of being worked on locally. We would recommend this only for developers who are familiar with the command prompt, a unix shell, and potentially a little bit of Haskell.
+Spiel, our application stack for the BoGL teaching language, is primarily designed to be used from a web interface, but is also capable of being worked on locally. We would recommend this only for developers who are familiar with the command prompt, a unix shell, and potentially a little bit of Haskell.
 
 ## Installation Video
 
@@ -20,7 +20,7 @@ In order to build the backend, please utilize the appropriate release script for
 - linux: release_tools/linux/release.sh
 - windows: release_tools/windows/release.sh
 
-Notice that each of these locations contains the last pre-built **spielserver** binary for that platform if you wish to use that instead.
+Notice that each of these locations contains the last pre-built **spielserver** binary for that platform if you wish to use that instead. Spiel was the codename of the development project that ultimately produced BoGL, and so it sticks around in some of the names still (in case you were wondering).
 
 ## Installation from Source
 1. Install [Stack](https://docs.haskellstack.org/en/stable/README/), which is required for building the language and backend itself.
