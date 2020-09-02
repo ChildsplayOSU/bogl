@@ -16,6 +16,8 @@ import Language.Types
 import Data.List
 import GHC.Generics
 
+import Utils.String
+
 -- | Names of games, signatures, etc.
 type Name = String
 
@@ -170,18 +172,19 @@ instance Show (Equation a) where
   show (Feq n pl e) = n ++ show pl ++ " = " ++ show e
 
 instance Show (Expr a) where
-  show (Annotation _ e) = show e -- can refactor
-  show (HE n)           = "?" ++ n
-  show (I i)            = show i
-  show (S s)            = s
-  show (B b)            = show b
-  show (Ref n)          = n
-  show (Tuple e)        = "(" ++ intercalate " , " (map show e) ++ ")"
-  show (App n es)       = n ++ show es
-  show (Binop o e1 e2)  = show e1 ++ show o ++ show e2
-  show (Let n e1 e2)    = "let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
-  show (If e1 e2 e3)    = "if " ++ show e1 ++ " then " ++ show e2 ++ " else " ++ show e3
-  show (While c b _ _)  = "while " ++ show c ++ " do " ++ show b
+  show (Annotation _ e)     = show e -- can refactor
+  show (HE n)               = "?" ++ n
+  show (I i)                = show i
+  show (S s)                = s
+  show (B b)                = show b
+  show (Ref n)              = n
+  show (Tuple e)            = showAsTuple (map show e)
+  show (App n e@(Tuple es)) = n ++ show e
+  show (App n e)            = n ++ parenthesize (show e)
+  show (Binop o e1 e2)      = show e1 ++ show o ++ show e2
+  show (Let n e1 e2)        = "let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
+  show (If e1 e2 e3)        = "if " ++ show e1 ++ " then " ++ show e2 ++ " else " ++ show e3
+  show (While c b _ _)      = "while " ++ show c ++ " do " ++ show b
 
 instance Show (ValDef a) where
   show (Val s e _)  = show s ++ "\n" ++ show e

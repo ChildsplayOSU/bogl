@@ -21,10 +21,6 @@ import qualified Data.Map as M
 
 import Control.Monad.State
 
--- | Produces a Tuple type wrapping a single Xtype
-single :: Xtype -> Xtype
-single x = Tup [x]
-
 -- | List of builtin function signatures
 builtinT :: Xtype -> Xtype -> [(String, Type)]
 builtinT = \inputT pieceT -> [
@@ -34,9 +30,9 @@ builtinT = \inputT pieceT -> [
   ("countCol",   Function (Ft (Tup [pieceT, boardxt]) intxt)),
   ("countRow",   Function (Ft (Tup [pieceT, boardxt]) intxt)),
   ("countDiag",  Function (Ft (Tup [pieceT, boardxt]) intxt)),
-  ("isFull",     Function (Ft (single boardxt) boolxt)),
+  ("isFull",     Function (Ft boardxt boolxt)),
   ("inARow",     Function (Ft (Tup [intxt, pieceT, X Board S.empty]) boolxt)),
-  ("not",        Function (Ft (single boolxt) boolxt)),
+  ("not",        Function (Ft boolxt boolxt)),
   ("or",         Function (Ft (Tup [boolxt, boolxt]) boolxt)),
   ("and",        Function (Ft (Tup [boolxt, boolxt]) boolxt))
            ]

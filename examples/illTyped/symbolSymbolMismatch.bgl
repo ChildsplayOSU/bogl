@@ -1,0 +1,8 @@
+-- Tests that symbols that are not specified in an enumeration can not be provided to a function
+game G
+
+f : {A} -> {A}
+f(a) = a
+
+g : {A}
+g = f(B)

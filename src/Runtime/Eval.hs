@@ -165,10 +165,8 @@ eval (Ref n) = do
 -- evalute a function application
 eval (App n es) = do
   args <- eval es >>= \x -> case x of
-    (Vt [Vt args]) -> return args
     (Vt args)      -> return args
-    -- not what we expected
-    q              -> return [Err $ "Function application did not get the expected arguments from: " ++ (show q)]
+    _              -> return [x]
   f <- lookupName n
   case f of
     Just (Vf params env' e) -> extScope (zip params (args) ++ env') (evalWithLimit (eval e)) -- ++ env?

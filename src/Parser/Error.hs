@@ -10,15 +10,7 @@ Holds some functions for reporting parser errors
 
 module Parser.Error where
 
-import Data.List
-
--- | Double quotes a string
-quote :: String -> String
-quote s = "\"" ++ s ++ "\""
-
--- | Uses a list of strings to produce a single string of the double quoted strings
-quoteMany :: [String] -> String
-quoteMany ss = quote $ intercalate "\", \"" ss
+import Utils.String
 
 -- | Constructs an error message indicating which params were repeated in what context
 errRepeatParam :: [String] -> String -> String

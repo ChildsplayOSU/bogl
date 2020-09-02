@@ -17,7 +17,7 @@ import Utils
 --
 parserTests :: Test
 parserTests = TestList [
-  parseXTypeTests,
+  parseTypeTests,
   parseDeclTests,
   testParseRawPreludeAndGamefile,
   parsePreludeTests,
@@ -44,13 +44,18 @@ parserTests = TestList [
 
 --
 --
--- Parse XType Tests
+-- Parse Type Tests
 --
 --
-parseXTypeTests :: Test
-parseXTypeTests = TestLabel "Parse XType Tests" (TestList [
+parseTypeTests :: Test
+parseTypeTests = TestLabel "Parse Type Tests" (TestList [
   testCheckLeft,
-  testCheckLeft2
+  testCheckLeft2,
+  testFunctionType1,
+  testFunctionType2,
+  testFunctionType3,
+  testFunctionType4,
+  testRejectSingletonTupleType
   ])
 
 
@@ -68,6 +73,34 @@ testCheckLeft2 = TestCase (
   True
   (isLeft $ parseAll xtype "" "(22222)"))
 
+testFunctionType1 :: Test
+testFunctionType1 = TestCase (
+  assertEqual "Function non tuple types"
+  (Right (Ft intxt intxt))
+  (parseAll ftype "" "Int -> Int"))
+
+testFunctionType2 :: Test
+testFunctionType2 = TestCase (
+  assertEqual "Function tuple types"
+  (Right (Ft (Tup [Tup [intxt, intxt], boolxt]) (Tup [intxt, intxt])))
+  (parseAll ftype "" "((Int, Int), Bool) -> (Int, Int)"))
+
+testFunctionType3 :: Test
+testFunctionType3 = TestCase (
+  assertEqual "Function tuple types"
+  (Right (Ft (Tup [boardxt, boardxt]) intxt))
+  (parseAll ftype "" "(Board, Board) -> Int"))
+
+testFunctionType4 :: Test
+testFunctionType4 = TestCase (
+  assertEqual "Function tuple types"
+  (Right (Ft boolxt (Tup [boardxt, boardxt])))
+  (parseAll ftype "" "Bool -> (Board, Board)"))
+
+testRejectSingletonTupleType :: Test
+testRejectSingletonTupleType = TestCase (
+  assertBool "Reject singleton tuple types"
+  (isLeft $ parseAll ftype "" "(Board) -> Int"))
 
 --
 --

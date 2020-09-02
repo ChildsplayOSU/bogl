@@ -1,0 +1,8 @@
+-- Tests that symbols cannot be supplied where an Int is expected
+game G
+
+f : Int -> Int
+f(a) = a
+
+g : Int
+g = f(A)
