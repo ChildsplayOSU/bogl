@@ -32,6 +32,7 @@ typeCheckerTests = TestList
    ,testIncompleteBoardEq
    ,testOneSpaceIncompleteBoardEq
    ,testCompleteBoardEq
+   ,testBoardTypeMismatch
    ]
 
 -- | Represents the rest result for typchecking examples
@@ -201,3 +202,14 @@ testCompleteBoardEq = TestCase (
   (assertBool "Verifies that an complete board equation is valid") $
   allPassTC [testGame [(BVal (Sig "b" (Plain boardxt)) [PosDef "b" (ForAll ("x")) (ForAll ("y")) (I 1)] dummyPos)]]
   )
+
+-- | Test TC on expression for board equation where there should be a type mismatch
+testBoardTypeMismatch :: Test
+testBoardTypeMismatch = TestCase (
+  assertBool "Verifies that a board type with an incorrect expr type reports a mismatch properly" $
+  let beqn = (BVal (Sig "b" (Plain boardxt)) [PosDef "b" (ForAll ("x")) (ForAll ("y")) (B True)] dummyPos) in
+  case tc $ testGame [beqn] of
+    -- failed w/ Mismatch as expected (good)
+    (Tc False _ [(_, Mismatch _ _ _ _)] _) -> True
+    -- anything else, pass or fail, is incorrect
+    _                                      -> False)

@@ -62,7 +62,7 @@ deftype (BVal (Sig n _t) eqs x) = do
 -- | Get the type of a board equation
 beqntype :: BoardEq SourcePos -> Typechecked Type
 beqntype (PosDef _ xp yp _e) = do
-   et <- exprtype _e
+   et <- exprtypeE _e
    pt <- getPiece
    (mx, my) <- getSize
    case (et <= pt, xp <= Index mx && xp > Index 0, yp <= Index my && yp > Index 0) of

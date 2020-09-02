@@ -119,8 +119,7 @@ getSrc :: Typechecked (Expr SourcePos)
 getSrc = do
   e <- source <$> get
   case e of
-    Nothing -> unknown "!" -- TODO FIXME: This seems to popup when you assign an invalid type on a board (I think),
-                           -- either that or an invalid index, one of the 2 (can be checked) @montymxb
+    Nothing -> unknown "Unable to get source expression!"
     Just _e -> return _e
 
 -- | Get a type from the environment
