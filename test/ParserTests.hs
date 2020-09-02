@@ -52,7 +52,10 @@ parseTypeTests = TestLabel "Parse Type Tests" (TestList [
   testCheckLeft,
   testCheckLeft2,
   testFunctionType1,
-  testFunctionType2
+  testFunctionType2,
+  testFunctionType3,
+  testFunctionType4,
+  testRejectSingletonTupleType
   ])
 
 
@@ -81,6 +84,23 @@ testFunctionType2 = TestCase (
   assertEqual "Function tuple types"
   (Right (Ft (Tup [Tup [intxt, intxt], boolxt]) (Tup [intxt, intxt])))
   (parseAll ftype "" "((Int, Int), Bool) -> (Int, Int)"))
+
+testFunctionType3 :: Test
+testFunctionType3 = TestCase (
+  assertEqual "Function tuple types"
+  (Right (Ft (Tup [boardxt, boardxt]) intxt))
+  (parseAll ftype "" "(Board, Board) -> Int"))
+
+testFunctionType4 :: Test
+testFunctionType4 = TestCase (
+  assertEqual "Function tuple types"
+  (Right (Ft boolxt (Tup [boardxt, boardxt])))
+  (parseAll ftype "" "Bool -> (Board, Board)"))
+
+testRejectSingletonTupleType :: Test
+testRejectSingletonTupleType = TestCase (
+  assertBool "Reject singleton tuple types"
+  (isLeft $ parseAll ftype "" "(Board) -> Int"))
 
 --
 --
