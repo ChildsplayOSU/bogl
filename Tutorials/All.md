@@ -5,7 +5,7 @@ Here is a list of the tutorials in the order that we recommend them.
 1. [Getting Started](GettingStarted)
 2. [Intro](Intro)
 3. [The Game](TheGame)
-4. [Your First Function](Function)
+4. [Your Second Function](Function)
 5. [Input](Input)
 6. [In a Row](InARow)
 7. [Board Count](BoardCount)
