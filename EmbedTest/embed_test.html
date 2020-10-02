@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="embed_test.css"/>
+    <script src="embed_test.js"></script>
+  </head>
+
+<p>BoGL Embedded Editor Test</p>
+
+<!--The embedded editor START-->
+<div class="bogl-embed-editor">
+  <div class="bogl"></div>
+  <div class="left bogl-code" contenteditable="true">game Example
+
+  type Board = Array(3,3) of Int
+  type Input = Int
+
+  b : Board
+  b!(x,y) = 1
+
+  f : Int
+  f = let x = input in x</div>
+  <div class="right">
+    <div class="bogl-repl-result"></div>
+    <input class="bogl-repl-run" placeholder=">" type="text"/>
+  </div>
+</div>
+<!--END-->
+
+
+</html>

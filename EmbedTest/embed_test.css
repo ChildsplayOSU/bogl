@@ -1,0 +1,86 @@
+/*
+ * Embedded BoGL Editor CSS
+ */
+.bogl-embed-editor {
+  width: 700px;
+  height: 275px;
+  background: #DC3545;
+  margin: 8px auto;
+  display: block;
+  font-family: Courier-New, monospace;
+  padding: 8px;
+  border-radius: 4px;
+}
+.bogl-embed-editor .bogl {
+  color: #fff;
+}
+.bogl-embed-editor .bogl::before {
+  content: "•λ BoGL";
+}
+.bogl-embed-editor .left:focus {
+  outline-width: 0;
+}
+.bogl-embed-editor .left {
+  display: inline-block;
+  height: 91%;
+  width: 65%;
+  background: #fff;
+  float: left;
+  overflow: scroll;
+  border-radius: 4px;
+  padding: 4px;
+  transition 0.3s;
+}
+.bogl-embed-editor .right {
+  display: inline-block;
+  height: 100%;
+  width: 32%;
+  float: right;
+  overflow: scroll;
+  margin: 0;
+  padding: 0;
+  color: white;
+}
+.bogl-embed-editor .right div {
+  height: 80%;
+  border-radius: 4px;
+  overflow: scroll;
+  padding: 4px;
+}
+.bogl-embed-editor .right input {
+  font-family: Courier-New, monospace;
+  font-size: 15px;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  margin-top: 4px;
+  padding: 4px;
+  width: 95%;
+}
+.bogl-embed-editor .right input:focus {
+  outline-width: 0;
+}
+@media(max-width: 800px) {
+  .bogl-embed-editor {
+    height: auto;
+    width: auto;
+  }
+  .bogl-embed-editor .left {
+    display: block;
+    float: none;
+    width: auto;
+    max-height: 250px;
+  }
+  .bogl-embed-editor .right {
+    display: block;
+    float: none;
+    width: auto;
+    max-height: 250px;
+  }
+  .bogl-embed-editor .right input {
+    width: 90%;
+    display: block;
+  }
+  .bogl-embed-editor .right input:focus {
+    outline-width: 0;
+  }
+}
