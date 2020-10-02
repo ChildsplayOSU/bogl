@@ -2,6 +2,17 @@
  * Embedded BoGL Editor CSS
  */
 
+
+
+
+/* TODO REMOVE THIS DEMO CODE */
+ #hidden {
+   opacity: 0;
+ }
+
+
+
+
 .bogl-embed-editor {
   width: 700px;
   height: 275px;
