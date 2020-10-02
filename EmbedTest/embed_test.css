@@ -1,25 +1,55 @@
 /*
  * Embedded BoGL Editor CSS
  */
+
 .bogl-embed-editor {
   width: 700px;
   height: 275px;
-  background: #DC3545;
+  /*background: #DC3545;*/
+  background-image: linear-gradient(-45deg, #DC3545, rgb(215, 63, 9), #ffc107);
   margin: 8px auto;
   display: block;
   font-family: Courier-New, monospace;
   padding: 8px;
   border-radius: 4px;
+  transition: 0.3s !important;
+  font-size: 18px;
 }
+
+.bogl-embed-editor a {
+  color: #fff;
+}
+
+@keyframes haskell-show {
+  0% {background: linear-gradient(-45deg, #DC3545, rgb(215, 63, 9), #ffc107); opacity: 1.0;}
+  50% {opacity: 0.5;}
+  100% {background: linear-gradient(-45deg, rgb(69,58,98), rgb(94,80,134), rgb(143,78,139)); opacity: 1.0}
+}
+
+.haskell {
+  animation-name: haskell-show;
+  animation-duration: 0.333s;
+  background-image: linear-gradient(-45deg, rgb(69,58,98), rgb(94,80,134), rgb(143,78,139));
+}
+
 .bogl-embed-editor .bogl {
   color: #fff;
 }
+
+.haskell .bogl::before {
+  font-family: "Source Sans Pro", Helvetica, Arial, sans-serif;
+  content: "•λ Haskell" !important;
+}
+
 .bogl-embed-editor .bogl::before {
+  font-family: "Source Sans Pro", Helvetica, Arial, sans-serif;
   content: "•λ BoGL";
 }
+
 .bogl-embed-editor .left:focus {
   outline-width: 0;
 }
+
 .bogl-embed-editor .left {
   display: inline-block;
   height: 91%;
@@ -30,7 +60,13 @@
   border-radius: 4px;
   padding: 4px;
   transition 0.3s;
+  opacity: 0.8;
 }
+
+.haskell .left {
+  opacity: 0.8;
+}
+
 .bogl-embed-editor .right {
   display: inline-block;
   height: 100%;
@@ -41,12 +77,14 @@
   padding: 0;
   color: white;
 }
+
 .bogl-embed-editor .right div {
   height: 80%;
   border-radius: 4px;
   overflow: scroll;
   padding: 4px;
 }
+
 .bogl-embed-editor .right input {
   font-family: Courier-New, monospace;
   font-size: 15px;
@@ -55,32 +93,40 @@
   margin-top: 4px;
   padding: 4px;
   width: 95%;
+  opacity: 0.8;
 }
+
 .bogl-embed-editor .right input:focus {
   outline-width: 0;
 }
+
 @media(max-width: 800px) {
   .bogl-embed-editor {
     height: auto;
     width: auto;
   }
+
   .bogl-embed-editor .left {
     display: block;
     float: none;
     width: auto;
     max-height: 250px;
   }
+
   .bogl-embed-editor .right {
     display: block;
     float: none;
     width: auto;
     max-height: 250px;
   }
+
   .bogl-embed-editor .right input {
     width: 90%;
     display: block;
   }
+
   .bogl-embed-editor .right input:focus {
     outline-width: 0;
   }
+
 }

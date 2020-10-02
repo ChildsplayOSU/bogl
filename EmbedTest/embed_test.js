@@ -203,6 +203,13 @@
       return " 🤖 BoGL Says: Ok, skipping input. ";
   }
 
+  function updateResults(resultElm, content) {
+    resultElm.innerHTML += "> " + content + "<br/><br/>";
+    // force scroll to new results, if any
+    resultElm.scrollTop = resultElm.scrollHeight;
+    resultElm.parentElement.scrollTop = resultElm.parentElement.scrollHeight;
+  }
+
 
   window.onload = (function() {
     let lastCmd = "";
@@ -239,6 +246,30 @@
           return;
         }
 
+        // trim whitespace
+        cmd = cmd.replace(/^\s+/, '').replace(/\s+$/, '');
+
+        // speak haskell and colors change (this can be removed if it's annoying...)
+        if(cmd.match(/haskell/i)) {
+          boglCode[x].parentElement.className+= " haskell";
+          updateResults(results[x], "The language that BoGL was inspired and built from, <a href=\"https://www.haskell.org/\" target=\"_blank\">https://haskell.org/</a>");
+          return;
+
+        } else if(cmd.match(/bogl/i)) {
+          boglCode[x].parentElement.className= "bogl-embed-editor";
+          updateResults(results[x], "BoGL");
+          return;
+
+        } else if(cmd.match(/help/i)) {
+          updateResults(results[x], "Help<br/><br/>\
+          This is a tiny version of the BoGL editor.<br/><br/>\
+          - <a href=\"https://bogl.engr.oregonstate.edu/\" target=\"_blank\">Full BoGL Editor</a><br/>\
+          - <a href=\"https://the-code-in-sheep-s-clothing.github.io/Spiel-Lang/\" target=\"_blank\">Website</a><br/>\
+          - <a href=\"https://the-code-in-sheep-s-clothing.github.io/Spiel-Lang/Tutorials/All.md\" target=\"_blank\">Tutorials</a>");
+          return;
+
+        }
+
         if (inputState) {
             // put it into 'input' instead
             input(cmd);
@@ -265,7 +296,7 @@
         }
 
         if(cmd == "clear") {
-          results[x].innerHTML += "> " + cmd + "<br/><br/>" + clear() + "<br/><br/>";
+          updateResults(results[x], cmd + "<br/><br/>" + clear());
           return;
 
         }
@@ -291,11 +322,7 @@
           return res.json();
 
         }).then(function(resp) {
-          results[x].innerHTML += "> " + cmd + "<br/><br/>" + parse_response(resp) + "<br/><br/>";
-
-          // force scroll to new results, if any
-          results[x].scrollTop = results[x].scrollHeight;
-          results[x].parentElement.scrollTop = results[x].parentElement.scrollHeight;
+          updateResults(results[x], cmd + "<br/><br/>" + parse_response(resp));
 
         }).catch((error) => {
           if((error instanceof SyntaxError || (error.name && error.name === "SyntaxError")) && respStatus === 504) {
