@@ -154,6 +154,12 @@ unify (X y z) (X w k)
   | w <= y = return $ X y (z `S.union` k)
 unify a b = mismatch (Plain a) (Plain b)
 
+-- | Check if t1 has type t2 with subsumption (i.e. by subtyping)
+hasType :: Xtype -> Xtype -> Typechecked Xtype
+hasType (Tup xs) (Tup ys)
+  | length xs == length ys = Tup <$> zipWithM hasType xs ys
+hasType t1 t2 = if t1 <= t2 then return t2 else mismatch (Plain t1) (Plain t2)
+
 -- | Returns a typechecked base type
 t :: Btype -> Typechecked Xtype
 t b = return (X b S.empty)

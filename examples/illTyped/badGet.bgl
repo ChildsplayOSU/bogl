@@ -1,0 +1,13 @@
+game G
+
+type T = {A}
+
+a : T
+a = A
+
+b : Board
+b!(x, y) = 1
+
+-- only a board should be allowed on the left side of !
+err : Int
+err = a ! (1,1)

@@ -120,16 +120,16 @@ exprtype (Binop Get e1 (Annotation _ (Tuple [Annotation _ (I x), Annotation _ (I
    exprtype (Binop Get e1 (Tuple [I x, I y]))
 exprtype (Binop Get e1 (Tuple [(I x), (I y)])) = do
   _t1 <- exprtype e1
-  _   <- unify _t1 (X Board S.empty)
   inB <- inBounds (x, y)
+  hasType _t1 boardxt
   if inB
-   then getPiece
-   else outofbounds (Index x) (Index y)
+     then getPiece
+     else outofbounds (Index x) (Index y)
 exprtype (Binop Get e1 e2) = do
   _t1 <- exprtype e1
   _t2 <- exprtype e2
-  _   <- unify _t1 (X Board S.empty)
-  _   <- unify _t2 (Tup [X Itype S.empty, X Itype S.empty])
+  hasType _t1 (X Board S.empty)
+  hasType _t2 (Tup [intxt, intxt])
   getPiece
 exprtype (Binop o e1 e2) = do
   _t1 <- exprtype e1
@@ -144,10 +144,9 @@ exprtype (If e1 e2 e3) = do
   _t1 <- exprtype e1
   _t2 <- exprtype e2
   t3 <- exprtype e3
-  b <- unify _t1 (X Booltype S.empty)
-  case b of
-    (X Booltype _) -> unify _t2 t3
-    _              -> unknown "Could not unify the condition for 'if' as a Boolean"
+  if _t1 == boolxt
+   then unify _t2 t3
+   else unknown $ "The condition for 'if' must be of type " ++ show (Plain boolxt)
 exprtype (HE n) = return (Hole n)
 exprtype (While c b _ _e) = do
   et <- exprtype _e

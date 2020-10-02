@@ -1,0 +1,10 @@
+game G
+
+type T = {A}
+
+a : T
+a = A
+
+-- only bool should be allowed in the condition
+err : Int
+err = if a then 1 else 2
