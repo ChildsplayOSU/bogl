@@ -17,7 +17,7 @@ We will start out by creating our game.
 
 `game WhoGoesFirst`
 
-Next we will capture the coin toss result. For this we are going to create a variable type that allows for storing the result of a coin toss.
+Next we will capture the coin toss result. For this we are going to create a type that allows us to describe the result of a coin toss.
 
 ![toss result variable type diagram](../imgs/types-tossresult-diagram.jpg)
 
@@ -26,7 +26,7 @@ There are currently no defined types for a coin toss result (as there are for in
 The pieces of information we need to create our own type are: 
 
 * The name we want to call our type
-* The possible values that a variable of our type can hold
+* The possible values of our type
 
 To define a type, we must first use the keyword `type` in our program, followed by the desired name for our type. It is required by the language that the first letter of this name is capitalized. We will then define what the possible values are for this type using the `=` operator, followed then by a list of the possible values, seperated by commas, and contained within `{}` brackets. These values will also be given desired names (with their first letters capitalized). It will end up looking like this:
 
@@ -36,7 +36,7 @@ type TossResult = {Heads, Tails}
 
 ![analysis of declaring a type](../imgs/types-code-analysis.jpg)
 
-Think of a variable as a box, and the variable's type as what is allowed to be put inside the box. Below are a few more examples of user defined types that do not pertain to coin results, just to nail down the concept of defining types!
+Think of a type as a classification. We, as the programmer, must specify what information is allowed to be classified as our type. Below are a few more examples of user defined types that do not pertain to coin results, just to nail down the concept of defining types!
 
  ```
  -- board game themed types
@@ -53,4 +53,4 @@ Think of a variable as a box, and the variable's type as what is allowed to be p
  ```
 
 
-[Next, we'll show you how the program can utilize the TossResult type we created](TheGame).
+[Next, we'll show you how the program can utilize the TossResult type we created to capture user input!](TheGame)
