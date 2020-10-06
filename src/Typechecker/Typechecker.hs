@@ -22,6 +22,8 @@ import Typechecker.Monad
 import Text.Parsec.Pos
 import qualified Data.Set as S
 
+import Error.Error
+
 -- | return Nothing or the first element of a list which doen't satisfy a predicate
 all' :: Foldable t => (a -> Bool) -> t a -> Maybe a
 all' _p xs = foldl (\none x -> if _p x then none else Just x) Nothing xs

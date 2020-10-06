@@ -20,7 +20,7 @@ import Runtime.Values
 import Runtime.Eval
 import Parser.Parser
 import Runtime.Monad
-import Typechecker.Monad (Error)
+import Error.Error
 
 -- | Representation of a request to read a BoGL file
 data SpielRead = SpielRead {

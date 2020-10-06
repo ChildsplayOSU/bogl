@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-} -- why isn't this on by default :(
 
 {-|
 Module      : Typechecker.Monad
@@ -13,7 +12,6 @@ module Typechecker.Monad where
 import Control.Monad.State
 import Control.Monad.Identity
 import Control.Monad.Except
-import Data.Aeson hiding (Error)
 import Control.Monad.Reader
 import Text.Parsec.Pos
 
@@ -26,6 +24,9 @@ import Language.Syntax hiding (input)
 import Runtime.Builtins
 
 import Utils.String
+
+import Error.Error
+import Error.TypeError
 
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]
@@ -114,8 +115,7 @@ setPos e = modify (\stat -> stat{pos = e})
 getPos :: Typechecked SourcePos
 getPos = pos <$> get
 
--- | Get the source line
---getSrc :: Typechecked (Expr SourcePos)
+-- | Get the source expression
 getSrc :: Typechecked (Expr ())
 getSrc = do
   e <- source <$> get
@@ -165,59 +165,9 @@ hasType t1 t2 = if t1 <= t2 then return t2 else mismatch (Plain t1) (Plain t2)
 t :: Btype -> Typechecked Xtype
 t b = return (X b S.empty)
 
-data Error = Error {
-                     err  :: Err
-                   , eid  :: Int
-                   , epos :: SourcePos
-                   }
-   deriving (Eq)
-
-data Err = TE TypeError -- | PE ParseError | RE RuntimeError
-   deriving (Eq)
-
-instance Show Err where
-   show (TE t) = show t
-
-instance Show Error where
-   show (Error (TE e) i p) = errCode ++ "TE" ++ show i ++ "\n" ++ errString p ++ show e 
-      where
-         errCode = "Error Code "
-
-cterr :: TypeError -> SourcePos -> Error
-cterr e = Error (TE e) (assign e)
-   where 
-      assign (Mismatch _ _ _)      = 0
-      assign (AppMismatch _ _ _ _) = 1
-      assign (NotBound _)          = 2
-      assign (SigMismatch _ _ _)   = 3    
-      assign (Unknown _ )          = 4
-      assign (BadOp _ _ _ _)       = 5
-      assign (OutOfBounds _ _)     = 6
-      assign (BadApp _ _)          = 7
-      assign (Dereff _ _)          = 8
-      assign (Uninitialized _)     = 9
-
--- | Encoding the different type errors as types should let us do interesting things with them
-data TypeError = Mismatch      {t1 :: Type,  t2 :: Type, e :: Expr ()}
-               | AppMismatch   {name :: Name, t1 :: Type,  t2 :: Type, e :: Expr ()}
-               | NotBound      {name :: Name}
-               | SigMismatch   {name :: Name, sigType :: Type, actualType :: Type}
-               | Unknown       {msg :: String}
-               | BadOp         {op :: Op, t1 ::Type, t2 :: Type, e :: Expr ()}
-               | OutOfBounds   {xpos :: Pos, ypos :: Pos}
-               | BadApp        {name :: Name, arg :: Expr ()}
-               | Dereff        {name :: Name, typ :: Type}
-               | Uninitialized {name :: Name}
-               deriving (Eq)
-
---instance ToJSON TypeError where
---  toJSON te = let src = srcPos te in object ["message" .= (show te), "line" .= sourceLine src, "col" .= sourceColumn src]
-
-instance ToJSON Error where
-   toJSON e@(Error _ _ p) = object ["message" .= show e, "line" .= sourceLine p, "col" .= sourceColumn p]
-
 -- smart constructors for type errors
 
+-- | Gets the source expression and its position from the 'Typechecked' monad
 getInfo = ((,) <$> getSrc <*> getPos)
 
 -- | Type mismatch error
@@ -264,23 +214,3 @@ dereff n _t = getPos >>= \x -> throwError $ cterr (Dereff n _t) x
 extensions :: Xtype -> Typechecked (S.Set Name)
 extensions (X _ xs) = return xs
 extensions _        = unknown "No extension for type!" -- no extension for this
-
--- | Produce a human readable error string from a source position
-errString :: SourcePos -> String
-errString _p = "Type error in " ++ str
-   where 
-      str = case sourceName _p of
-               "" -> "the interpreter input " ++ show _p ++ "\n"
-               _  -> show _p ++ "\n"
-
-instance Show TypeError where
-  show (Mismatch _t1 _t2 e)      = "Could not match types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
-  show (AppMismatch n _t1 _t2 e) = "The function " ++ n ++ " requires type " ++ show _t1 ++ " but you provided type " ++ show _t2 ++ " in expression:\n\t" ++ show e
-  show (NotBound n)              = "You did not define " ++ n
-  show (SigMismatch n sig _t)    = "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show _t
-  show (Unknown s)               = s
-  show (BadOp o _t1 _t2 e)       = "Cannot '" ++ show o ++ "' types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
-  show (OutOfBounds x y)         = "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
-  show (BadApp n e)              = "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function."
-  show (Dereff n _t)             = "Could not dereference the function " ++ n ++ " with type " ++ show _t ++ ". Maybe you forgot to give it arguments."
-  show (Uninitialized n)         = "Incomplete initialization of Board " ++ quote n
