@@ -19,10 +19,12 @@ data Error = Error {
                    }
    deriving (Eq)
 
+-- Note: the error code functionality works, but only for type errors
+-- the code below can be uncommented when it is introduced holistically
 instance Show Error where
-   show (Error (TE e) i p) = ec ++ "TE" ++ show i ++ "\n" ++ "Type error in " ++ name ++ show e
+   show (Error (TE e) i p) = {-ec ++ "TE" ++ show i ++ "\n" ++-} "Type error in " ++ name ++ show e
       where
-         ec = "Error Code "
+         -- ec = "Error Code "
          name = case sourceName p of
                   "" -> "the interpreter input " ++ show p ++ "\n"
                   _  -> show p ++ "\n"
