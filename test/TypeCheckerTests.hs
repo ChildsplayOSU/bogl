@@ -26,15 +26,16 @@ import Text.Parsec.Pos
 typeCheckerTests :: Test
 typeCheckerTests = TestList
    [
-    testSmallLiteralBoardEq
-   ,testLargeLiteralBoardEq
-   ,testOutOfBoundsLiteralGet
-   ,testBadBinopCompare
-   ,testBadBinop
-   ,testIncompleteBoardEq
-   ,testOneSpaceIncompleteBoardEq
-   ,testCompleteBoardEq
-   ,testBoardTypeMismatch
+     testSmallLiteralBoardEq
+   , testLargeLiteralBoardEq
+   , testOutOfBoundsLiteralGet
+   , testBadBinopCompare
+   , testBadBinop
+   , testIncompleteBoardEq
+   , testOneSpaceIncompleteBoardEq
+   , testCompleteBoardEq
+   , testBoardTypeMismatch
+   , testFeqMismatch
    ]
 
 -- | Represents the rest result for typchecking examples
@@ -203,6 +204,15 @@ testCompleteBoardEq :: Test
 testCompleteBoardEq = TestCase (
   (assertBool "Verifies that an complete board equation is valid") $
   allPassTC [testGame [(BVal (Sig "b" (Plain boardxt)) [PosDef "b" (ForAll ("x")) (ForAll ("y")) (I 1)] dummyPos)]]
+  )
+
+testFeqMismatch :: Test
+testFeqMismatch = TestCase (
+  (assertBool "Verifies that a function equation is not allowed for a value equation signature") $
+  let eqn = (Val (Sig "b" (Plain boardxt)) (Feq "b" (Pars ["x", "y"]) (I 1)) dummyPos) in
+  case tc $ testGame [eqn] of
+    (Tc False _ [(_, Error (TE (SigBadFeq _ _ _)) _ _)] _) -> True
+    _                                      -> False
   )
 
 -- | Test TC on expression for board equation where there should be a type mismatch

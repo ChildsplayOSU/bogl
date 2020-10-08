@@ -43,7 +43,7 @@ getCovered (mx,my) (PosDef _ xp yp _) = case (xp,yp) of
 deftype :: (ValDef SourcePos) -> Typechecked Type
 deftype (Val (Sig n _t) eqn x) = do
   setPos x
-  eqt <- localEnv ((n, _t):) (eqntype _t eqn)
+  eqt <- localEnv ((n, _t):) (eqntype n _t eqn)
   if eqt <= _t
     then return _t
     else sigmismatch n _t eqt
@@ -73,9 +73,9 @@ beqntype (PosDef _ xp yp _e) = do
       _                  -> outofbounds xp yp
 
 -- | Get the type of an equation
-eqntype :: Type -> (Equation SourcePos) -> Typechecked Type
-eqntype _ (Veq _ _e) = exprtypeE _e >>= (return . Plain)
-eqntype (Function (Ft inputs _)) (Feq _ (Pars params) _e) = do
+eqntype :: Name -> Type -> (Equation SourcePos) -> Typechecked Type
+eqntype _ _ (Veq _ _e) = exprtypeE _e >>= (return . Plain)
+eqntype _ (Function (Ft inputs _)) (Feq _ (Pars params) _e) = do
   case inputs of
     (Tup inputs') -> do
       e' <- localEnv ((++) (zip params (map Plain inputs'))) (exprtypeE _e)
@@ -83,8 +83,7 @@ eqntype (Function (Ft inputs _)) (Feq _ (Pars params) _e) = do
     (input') -> do
       e' <- localEnv ((++) (zip params (pure (Plain input')))) (exprtypeE _e)
       return $ Function (Ft inputs e')
-  where
-eqntype _ _ = unknown "Environment corrupted." -- this should never happen?
+eqntype n t f = sigbadfeq n t $ (clearAnnEq f)
 
 -- Synthesize the type of an expression
 exprtypeE :: (Expr SourcePos) -> Typechecked Xtype -- TODO do this with mapStateT stack thing

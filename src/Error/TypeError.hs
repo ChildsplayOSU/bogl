@@ -13,6 +13,7 @@ data TypeError = Mismatch      {t1 :: Type,  t2 :: Type, e :: Expr ()}
                | AppMismatch   {name :: String, t1 :: Type,  t2 :: Type, e :: Expr ()}
                | NotBound      {name :: String}
                | SigMismatch   {name :: String, sigType :: Type, actualType :: Type}
+               | SigBadFeq     {name :: String, sigType :: Type, feq :: Equation ()}
                | Unknown       {msg :: String}
                | BadOp         {op :: Op, t1 :: Type, t2 :: Type, e :: Expr ()}
                | OutOfBounds   {xpos :: Pos, ypos :: Pos}
@@ -26,6 +27,7 @@ instance Show TypeError where
   show (AppMismatch n _t1 _t2 e) = "The function " ++ n ++ " requires type " ++ show _t1 ++ " but you provided type " ++ show _t2 ++ " in expression:\n\t" ++ show e
   show (NotBound n)              = "You did not define " ++ n
   show (SigMismatch n sig _t)    = "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show _t
+  show (SigBadFeq n sig f)    = quote (n ++ " : " ++ show sig) ++ " cannot be defined with the function equation\n\t" ++ show f
   show (Unknown s)               = s
   show (BadOp o _t1 _t2 e)       = "Cannot '" ++ show o ++ "' types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
   show (OutOfBounds x y)         = "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
