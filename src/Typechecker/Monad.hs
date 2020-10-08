@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-} -- why isn't this on by default :(
 
 {-|
 Module      : Typechecker.Monad
@@ -13,7 +12,6 @@ module Typechecker.Monad where
 import Control.Monad.State
 import Control.Monad.Identity
 import Control.Monad.Except
-import Data.Aeson
 import Control.Monad.Reader
 import Text.Parsec.Pos
 
@@ -26,6 +24,9 @@ import Language.Syntax hiding (input)
 import Runtime.Builtins
 
 import Utils.String
+
+import Error.Error
+import Error.TypeError
 
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]
@@ -54,16 +55,16 @@ data Stat = Stat {
             }
 
 -- | Typechecking monad
-type Typechecked a = (StateT Stat (ReaderT Env (ExceptT TypeError Identity))) a
+type Typechecked a = (StateT Stat (ReaderT Env (ExceptT Error Identity))) a
 
 
 -- | Run a computation inside of the typechecking monad
-typecheck :: Env -> Typechecked a -> Either TypeError (a, Stat)
+typecheck :: Env -> Typechecked a -> Either Error (a, Stat)
 typecheck e a = runIdentity . runExceptT . (flip runReaderT e) $
                 (runStateT a (Stat [] Nothing (newPos "" 0 0)))
 
 -- | Typecheck type holes
-typeHoles :: Env -> Typechecked a -> Either TypeError (a, TypeEnv)
+typeHoles :: Env -> Typechecked a -> Either Error (a, TypeEnv)
 typeHoles e a = case typecheck e a of
   Left err -> Left err
   Right (x, stat) -> Right (x, holes stat)
@@ -114,13 +115,13 @@ setPos e = modify (\stat -> stat{pos = e})
 getPos :: Typechecked SourcePos
 getPos = pos <$> get
 
--- | Get the source line
-getSrc :: Typechecked (Expr SourcePos)
+-- | Get the source expression
+getSrc :: Typechecked (Expr ())
 getSrc = do
   e <- source <$> get
   case e of
     Nothing -> unknown "Unable to get source expression!"
-    Just _e -> return _e
+    Just _e -> return $ clearAnn _e
 
 -- | Get a type from the environment
 getType :: Name -> Typechecked Type
@@ -164,84 +165,52 @@ hasType t1 t2 = if t1 <= t2 then return t2 else mismatch (Plain t1) (Plain t2)
 t :: Btype -> Typechecked Xtype
 t b = return (X b S.empty)
 
--- | Encoding the different type errors as types should let us do interesting things with them
-data TypeError = Mismatch {t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos}                   -- ^ Couldn't match two types in an expression
-               | AppMismatch {name :: Name, t1 :: Type,  t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos}  -- ^ Couldn't match function parameter and argument type
-               | NotBound {name :: Name, srcPos :: SourcePos}                                                           -- ^ Name isn't (yet) bound in the enviroment
-               | SigMismatch {name :: Name, sigType :: Type, actualType :: Type, srcPos :: SourcePos}                   -- ^ couldn't match the type of an equation with its signature
-               | Unknown {msg :: String, srcPos :: SourcePos}                                                           -- ^ Errors that "shouldn't happen"
-               | BadOp {op :: Op, t1 ::Type, t2 :: Type, srcPos2 :: (Expr SourcePos), srcPos :: SourcePos}              -- ^ Can't perform a primitive operation
-               | OutOfBounds {xpos :: Pos, ypos :: Pos, srcPos :: SourcePos}
-               | BadApp {name :: Name, arg :: (Expr SourcePos), srcPos :: SourcePos}                                    -- ^ An attempt to apply a non-function expr as if it were a function
-               | Dereff {name :: Name, typ :: Type, srcPos :: SourcePos}                                                -- ^ An attempt to dereference a function
-               | Uninitialized {name :: Name, srcPos :: SourcePos}
-               deriving (Eq)
-
-instance ToJSON TypeError where
-  toJSON te = let src = srcPos te in object ["message" .= (show te), "line" .= sourceLine src, "col" .= sourceColumn src]
-
 -- smart constructors for type errors
+
+-- | Gets the source expression and its position from the 'Typechecked' monad
+getInfo = ((,) <$> getSrc <*> getPos)
 
 -- | Type mismatch error
 mismatch :: Type -> Type -> Typechecked a
-mismatch _t1 _t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) -> throwError $ Mismatch _t1 _t2 e x)
+mismatch _t1 _t2 = getInfo >>= (\(e, x) -> throwError $ cterr (Mismatch _t1 _t2 e) x)
 
 -- | Type mismatch error for function application
 appmismatch :: Name -> Type -> Type -> Typechecked a
-appmismatch n _t1 _t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) -> throwError $ AppMismatch n _t1 _t2 e x)
+appmismatch n _t1 _t2 = getInfo >>= (\(e, x) -> throwError $ cterr (AppMismatch n _t1 _t2 e) x)
 
 -- | Not bound type error
 notbound :: Name -> Typechecked a
-notbound n  = getPos >>= \_p -> throwError $ NotBound n _p
+notbound n  = getPos >>= \x -> throwError $ cterr (NotBound n) x
 
 -- | Signature mismatch type error
 sigmismatch :: Name -> Type -> Type -> Typechecked a
-sigmismatch n _t1 _t2= getPos >>= \_p -> throwError $ SigMismatch n _t1 _t2 _p
+sigmismatch n _t1 _t2= getPos >>= \x -> throwError $ cterr (SigMismatch n _t1 _t2) x
 
 -- | Unknown type error
 unknown :: String -> Typechecked a
-unknown s = getPos >>= (\x -> throwError $ Unknown s x)
+unknown s = getPos >>= \x -> throwError $ cterr (Unknown s) x
 
 -- | Bad Op type error
 badop :: Op -> Type -> Type -> Typechecked a
-badop o _t1 _t2 = ((,) <$> getSrc <*> getPos) >>= (\(e, x) ->  throwError $ BadOp o _t1 _t2 e x)
+badop o _t1 _t2 = getInfo >>= (\(e, x) -> throwError $ cterr (BadOp o _t1 _t2 e) x)
 
 -- | Out of Bounds type error
 outofbounds :: Pos -> Pos -> Typechecked a
-outofbounds _p sz = getPos >>= \x -> throwError $ OutOfBounds _p sz x
+outofbounds _p sz = getPos >>= \x -> throwError $ cterr (OutOfBounds _p sz) x
 
 -- | Uninitialized board type error
 uninitialized :: Name -> Typechecked a
-uninitialized n = getPos >>= \x -> throwError $ Uninitialized n x
+uninitialized n = getPos >>= \x -> throwError $ cterr (Uninitialized n) x
 
 -- | Bad function application type error
 badapp :: Name -> Expr SourcePos -> Typechecked a
-badapp n e = getPos >>= \_p -> throwError $ BadApp n e _p
+badapp n e = getPos >>= \x -> throwError $ cterr (BadApp n (clearAnn e)) x
 
 -- | Cannot dereference function type error
 dereff :: Name -> Type -> Typechecked a
-dereff n _t = getPos >>= \_p -> throwError $ Dereff n _t _p
+dereff n _t = getPos >>= \x -> throwError $ cterr (Dereff n _t) x
 
 -- | Retrieve the extensions from an Xtype
 extensions :: Xtype -> Typechecked (S.Set Name)
 extensions (X _ xs) = return xs
 extensions _        = unknown "No extension for type!" -- no extension for this
-
--- | Produce a human readable error string from a source position
-errString :: SourcePos -> String
-errString _p = case sourceName _p of
-               "" -> str ++ " in the Interpreter expression" ++ "\n"
-               _  -> str ++ "\n"
-            where str = "Type error at: " ++ show _p
-
-instance Show TypeError where
-  show (Mismatch _t1 _t2 e _p)      = errString _p ++ "Could not match types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
-  show (AppMismatch n _t1 _t2 e _p) = errString _p ++ "The function " ++ n ++ " requires type " ++ show _t1 ++ " but you provided type " ++ show _t2 ++ " in expression:\n\t" ++ show e
-  show (NotBound n _p)              = errString _p ++ "You did not define " ++ n
-  show (SigMismatch n sig _t _p)    = errString _p ++ "Signature for definition " ++ quote (n ++ " : " ++ show sig) ++ "\ndoes not match actual type " ++ show _t
-  show (Unknown s _p)               = errString _p ++ s
-  show (BadOp o _t1 _t2 e _p)       = errString _p ++ "Cannot '" ++ show o ++ "' types " ++ show _t1 ++ " and " ++ show _t2 ++ " in expression:\n\t" ++ show e
-  show (OutOfBounds x y _p)         = errString _p ++ "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, this is not a valid space. "
-  show (BadApp n e _p)              = errString _p ++ "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function."
-  show (Dereff n _t _p)             = errString _p ++ "Could not dereference the function " ++ n ++ " with type " ++ show _t ++ ". Maybe you forgot to give it arguments."
-  show (Uninitialized n _p)         = errString _p ++ "Incomplete initialization of Board " ++ quote n -- Shows an incomplete board initialization

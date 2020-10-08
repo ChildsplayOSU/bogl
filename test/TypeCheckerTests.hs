@@ -10,12 +10,14 @@ import Language.Types
 import Data.Either
 import Utils
 import Typechecker.Typechecker
+import Error.TypeError
+import Error.Error
 import Language.Syntax
 import Typechecker.Monad
 import System.Directory
 import System.FilePath
 
-import Text.Parsec
+import Text.Parsec hiding (Error)
 import Text.Parsec.Pos
 
 --
@@ -210,6 +212,6 @@ testBoardTypeMismatch = TestCase (
   let beqn = (BVal (Sig "b" (Plain boardxt)) [PosDef "b" (ForAll ("x")) (ForAll ("y")) (B True)] dummyPos) in
   case tc $ testGame [beqn] of
     -- failed w/ Mismatch as expected (good)
-    (Tc False _ [(_, Mismatch _ _ _ _)] _) -> True
+    (Tc False _ [(_, Error (TE (Mismatch _ _ _)) _ _)] _) -> True
     -- anything else, pass or fail, is incorrect
     _                                      -> False)
