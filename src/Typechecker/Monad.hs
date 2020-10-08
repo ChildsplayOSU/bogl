@@ -186,6 +186,10 @@ notbound n  = getPos >>= \x -> throwError $ cterr (NotBound n) x
 sigmismatch :: Name -> Type -> Type -> Typechecked a
 sigmismatch n _t1 _t2= getPos >>= \x -> throwError $ cterr (SigMismatch n _t1 _t2) x
 
+-- | Signature mismatch type error
+sigbadfeq :: Name -> Type -> Equation () -> Typechecked a
+sigbadfeq n _t1 f = getPos >>= \x -> throwError $ cterr (SigBadFeq n _t1 f) x
+
 -- | Unknown type error
 unknown :: String -> Typechecked a
 unknown s = getPos >>= \x -> throwError $ cterr (Unknown s) x

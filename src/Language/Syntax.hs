@@ -155,6 +155,10 @@ deAnnotate x = x
 clearAnn :: Expr a -> Expr ()
 clearAnn = (() <$)
 
+-- | Clear the annotation from an equation
+clearAnnEq :: Equation a -> Equation ()
+clearAnnEq = (() <$)
+
 -- | Get the identifier from a ValDef
 ident :: (ValDef a) -> Name
 ident (Val (Sig n _) _ _)  = n

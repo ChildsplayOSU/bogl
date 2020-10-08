@@ -379,10 +379,11 @@ valdef :: Parser (ValDef SourcePos)
 valdef = do
   (Sig n t) <- sig
   b <- getCtype
-  case b of
-    Just (Plain (X Board set))
-      | S.null set -> (BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition
-    _ -> (Val (Sig n t)) <$> (equation) <*> getPosition
+  let val = (Val (Sig n t)) <$> (equation) <*> getPosition in
+     case b of
+        Just (Plain (X Board set))
+           | S.null set -> ((BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition) <|> val
+        _ -> val
 
 -- | Parse a typesyn or a valdef
 decl :: Parser (Maybe (ValDef SourcePos))

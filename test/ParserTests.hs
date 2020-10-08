@@ -111,6 +111,7 @@ parseDeclTests :: Test
 parseDeclTests = TestLabel "Parse Declaration Tests" (TestList [
   testRejectBadExprAfterSuccessefulParse,
   testParseShortDecl,
+  testParseBoardVal,
   testParseMod,
   testParseTypeSynAndDecl,
   testNoRepeatedParamNames,
@@ -141,6 +142,14 @@ testParseShortDecl = TestCase (
   assertEqual("Testing parsing of a short declaration")
   True
   (isRight $ parseAll valdef "" "hello : Int\nhello = 24")
+  )
+
+-- | Tests parsing a board value equation
+testParseBoardVal :: Test
+testParseBoardVal = TestCase (
+  assertEqual("Parsing a board value equation")
+  True
+  (isRight $ parseAll valdef "" "b2 : Board\nb2 = b1")
   )
 
 -- | Tests that infix mod '%' can be parsed correctly
