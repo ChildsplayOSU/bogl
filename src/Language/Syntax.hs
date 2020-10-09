@@ -195,7 +195,7 @@ instance Show (ValDef a) where
   show (BVal s e _) = show s ++ "\n" ++ show e
 
 instance Show Parlist where
-  show (Pars xs) = "(" ++ intercalate (" , ") (xs) ++ ")"
+  show (Pars xs) = showAsTuple xs
 
 instance Show Signature where
   show (Sig n t) = n ++ " : " ++ show t
