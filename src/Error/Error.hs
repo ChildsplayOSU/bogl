@@ -19,13 +19,11 @@ data Error = Error {
                    }
    deriving (Eq)
 
--- Note: the error code functionality works, but only for type errors
--- the code below can be uncommented when it is introduced holistically
+-- Note: the error code functionality works, but only for type errors so they are not displayed
 instance Show Error where
-   show (Error (TE e) i p) = {-ec ++ "TE" ++ show i ++ "\n" ++-} "Type error in " ++ name ++ show e
+   show (Error (TE e) _ p) = "Type error in " ++ srcname ++ show e
       where
-         -- ec = "Error Code "
-         name = case sourceName p of
+         srcname = case sourceName p of
                   "" -> "the interpreter input " ++ show p ++ "\n"
                   _  -> show p ++ "\n"
 
@@ -45,15 +43,17 @@ instance Show Err where
 
 -- | Smart constructor for a type error that assigns an id
 cterr :: TypeError -> SourcePos -> Error
-cterr e = Error (TE e) (assign e)
+cterr terr = Error (TE terr) (assign terr)
    where
-      assign (Mismatch _ _ _)      = 0
-      assign (AppMismatch _ _ _ _) = 1
-      assign (NotBound _)          = 2
-      assign (SigMismatch _ _ _)   = 3
-      assign (Unknown _ )          = 4
-      assign (BadOp _ _ _ _)       = 5
-      assign (OutOfBounds _ _)     = 6
-      assign (BadApp _ _)          = 7
-      assign (Dereff _ _)          = 8
-      assign (Uninitialized _)     = 9
+      assign te = case te of
+                    (Mismatch _ _ _)      -> 0
+                    (AppMismatch _ _ _ _) -> 1
+                    (NotBound _)          -> 2
+                    (SigMismatch _ _ _)   -> 3
+                    (Unknown _ )          -> 4
+                    (BadOp _ _ _ _)       -> 5
+                    (OutOfBounds _ _)     -> 6
+                    (BadApp _ _)          -> 7
+                    (Dereff _ _)          -> 8
+                    (Uninitialized _)     -> 10
+                    (SigBadFeq _ _ _)     -> 11

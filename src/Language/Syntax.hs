@@ -183,7 +183,7 @@ instance Show (Expr a) where
   show (B b)                = show b
   show (Ref n)              = n
   show (Tuple e)            = showAsTuple (map show e)
-  show (App n e@(Tuple es)) = n ++ show e
+  show (App n e@(Tuple _))  = n ++ show e
   show (App n e)            = n ++ parenthesize (show e)
   show (Binop o e1 e2)      = show e1 ++ show o ++ show e2
   show (Let n e1 e2)        = "let " ++ n ++ " = " ++ show e1 ++ " in " ++ show e2
@@ -195,7 +195,7 @@ instance Show (ValDef a) where
   show (BVal s e _) = show s ++ "\n" ++ show e
 
 instance Show Parlist where
-  show (Pars xs) = "(" ++ intercalate (" , ") (xs) ++ ")"
+  show (Pars xs) = showAsTuple xs
 
 instance Show Signature where
   show (Sig n t) = n ++ " : " ++ show t

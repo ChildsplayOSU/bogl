@@ -23,8 +23,6 @@ import qualified Data.Set as S
 import Language.Syntax hiding (input)
 import Runtime.Builtins
 
-import Utils.String
-
 import Error.Error
 import Error.TypeError
 
@@ -66,7 +64,7 @@ typecheck e a = runIdentity . runExceptT . (flip runReaderT e) $
 -- | Typecheck type holes
 typeHoles :: Env -> Typechecked a -> Either Error (a, TypeEnv)
 typeHoles e a = case typecheck e a of
-  Left err -> Left err
+  Left terr -> Left terr
   Right (x, stat) -> Right (x, holes stat)
 
 -- | Add some types to the environment
@@ -159,7 +157,7 @@ unify a b = mismatch (Plain a) (Plain b)
 hasType :: Xtype -> Xtype -> Typechecked Xtype
 hasType (Tup xs) (Tup ys)
   | length xs == length ys = Tup <$> zipWithM hasType xs ys
-hasType t1 t2 = if t1 <= t2 then return t2 else mismatch (Plain t1) (Plain t2)
+hasType ta tb = if ta <= tb then return tb else mismatch (Plain ta) (Plain tb)
 
 -- | Returns a typechecked base type
 t :: Btype -> Typechecked Xtype
@@ -168,6 +166,7 @@ t b = return (X b S.empty)
 -- smart constructors for type errors
 
 -- | Gets the source expression and its position from the 'Typechecked' monad
+getInfo :: Typechecked (Expr (), SourcePos)
 getInfo = ((,) <$> getSrc <*> getPos)
 
 -- | Type mismatch error
