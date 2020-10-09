@@ -12,7 +12,6 @@ import Language.Syntax hiding (input)
 import Language.Types
 
 import Control.Monad.State
-import Control.Monad.Except
 import Control.Monad.Writer
 
 import Data.Either
@@ -83,7 +82,7 @@ eqntype _ (Function (Ft inputs _)) (Feq _ (Pars params) _e) = do
     (input') -> do
       e' <- localEnv ((++) (zip params (pure (Plain input')))) (exprtypeE _e)
       return $ Function (Ft inputs e')
-eqntype n t f = sigbadfeq n t $ (clearAnnEq f)
+eqntype n et f = sigbadfeq n et $ (clearAnnEq f)
 
 -- Synthesize the type of an expression
 exprtypeE :: (Expr SourcePos) -> Typechecked Xtype -- TODO do this with mapStateT stack thing

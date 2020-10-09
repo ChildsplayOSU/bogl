@@ -194,8 +194,9 @@ commaSep1 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
 commaSep1 = P.commaSep1 lexer
 
 -- | 0 or more comma separated values
-commaSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
-commaSep = P.commaSep lexer
+-- unused
+--commaSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
+--commaSep = P.commaSep lexer
 
 -- | Reserved ops
 reservedOp :: String -> ParsecT String u Identity ()
