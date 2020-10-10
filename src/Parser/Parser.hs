@@ -273,7 +273,7 @@ params n = do
 equation :: String -> Parser (Equation SourcePos)
 equation eqname = do
   eqname2 <- identifier
-  guard (eqname == eqname2) <?> ("'" ++ eqname ++ "' but got " ++ eqname2 ++ "'")
+  guard (eqname == eqname2) <?> ("'" ++ eqname ++ "' but got '" ++ eqname2 ++ "'")
   (var_equation eqname) <|> (func_equation eqname)
 
 -- | Variable Equations
