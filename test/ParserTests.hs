@@ -32,7 +32,8 @@ parserTests = TestList [
   testNestedExprInWhileOkay,
   testMisnamedDefIsParseError1,
   testMisnamedDefIsParseError2,
-  testMisnamedDefIsParseError3
+  testMisnamedDefIsParseError3,
+  testMisnamedDefWithArgsIsParseError
   ]
 
 --
@@ -571,20 +572,27 @@ testNestedExprInWhileOkay = TestCase (
 -- | Tests that a longer equation name is caught
 testMisnamedDefIsParseError1 :: Test
 testMisnamedDefIsParseError1 = TestCase (
-  assertEqual "Test that a misnamed definition triggers a parse error"
+  assertEqual "Test that a misnamed val definition triggers a parse error"
   False
   (isRight $ parseAll (many decl) "" "b:Int\nb2=2"))
 
 -- | Tests that a shorter equation name is caught
 testMisnamedDefIsParseError2 :: Test
 testMisnamedDefIsParseError2 = TestCase (
-  assertEqual "Test that a misnamed definition triggers a parse error"
+  assertEqual "Test that a misnamed val definition triggers a parse error"
   False
   (isRight $ parseAll (many decl) "" "b2:Int\nb=2"))
 
 -- | Tests that a mispelled equation name is caught
 testMisnamedDefIsParseError3 :: Test
 testMisnamedDefIsParseError3 = TestCase (
-  assertEqual "Test that a misnamed definition triggers a parse error"
+  assertEqual "Test that a misnamed val definition triggers a parse error"
   False
   (isRight $ parseAll (many decl) "" "t:Int\na=2"))
+
+-- | Tests that a mispelled equation name is caught
+testMisnamedDefWithArgsIsParseError :: Test
+testMisnamedDefWithArgsIsParseError = TestCase (
+  assertEqual "Test that a misnamed func definition triggers a parse error"
+  False
+  (isRight $ parseAll (many decl) "" "t:Int -> Int\na(x)=x+1"))
