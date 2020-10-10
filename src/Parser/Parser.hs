@@ -267,18 +267,30 @@ params n = do
       else
          let repeats = parameters \\ paramSet in unexpected $ errRepeatParam repeats n
 
--- | Equations
-equation :: Parser (Equation SourcePos)
-equation =
-  (try $ (Veq <$> identifier <*> (reservedOp "=" *> expr)))
-  <|>
-  (try $ do
-    _name <- identifier
-    _params <- params _name
-    putWhileNames (_name, _params)
-    reservedOp "="
-    e <- expr
-    return $ Feq _name (Pars _params) e)
+-- | Equations,
+-- reads the line's identifier, and verifies it matches the prior declaration name
+-- before proceeding
+equation :: String -> Parser (Equation SourcePos)
+equation eqname = do
+  eqname2 <- identifier
+  guard (eqname == eqname2) <?> ("'" ++ eqname ++ "' but got " ++ eqname2 ++ "'")
+  (var_equation eqname) <|> (func_equation eqname)
+
+-- | Variable Equations
+var_equation :: String -> Parser (Equation SourcePos)
+var_equation eqname = (try $ do
+  reservedOp "="
+  e <- expr
+  return $ Veq eqname e)
+
+-- | Function Equations
+func_equation :: String -> Parser (Equation SourcePos)
+func_equation eqname = (try $ do
+  _params <- params eqname
+  putWhileNames (eqname, _params)
+  reservedOp "="
+  e <- expr
+  return $ Feq eqname (Pars _params) e)
 
 -- | Parse a position
 position :: Parser Pos
@@ -380,7 +392,7 @@ valdef :: Parser (ValDef SourcePos)
 valdef = do
   (Sig n t) <- sig
   b <- getCtype
-  let val = (Val (Sig n t)) <$> (equation) <*> getPosition in
+  let val = (Val (Sig n t)) <$> (equation n) <*> getPosition in
      case b of
         Just (Plain (X Board set))
            | S.null set -> ((BVal (Sig n t)) <$> many1 (boardeqn n) <*> getPosition) <|> val
