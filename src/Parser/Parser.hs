@@ -272,20 +272,19 @@ params n = do
 -- before proceeding
 equation :: String -> Parser (Equation SourcePos)
 equation eqname = do
-  eqname2 <- identifier
-  guard (eqname == eqname2) <?> ("'" ++ eqname ++ "' but got '" ++ eqname2 ++ "'")
-  (var_equation eqname) <|> (func_equation eqname)
+  lexeme $ string eqname
+  (varEquation eqname) <|> (funcEquation eqname)
 
 -- | Variable Equations
-var_equation :: String -> Parser (Equation SourcePos)
-var_equation eqname = (try $ do
+varEquation :: String -> Parser (Equation SourcePos)
+varEquation eqname = (try $ do
   reservedOp "="
   e <- expr
   return $ Veq eqname e)
 
 -- | Function Equations
-func_equation :: String -> Parser (Equation SourcePos)
-func_equation eqname = (try $ do
+funcEquation :: String -> Parser (Equation SourcePos)
+funcEquation eqname = (try $ do
   _params <- params eqname
   putWhileNames (eqname, _params)
   reservedOp "="
