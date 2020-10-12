@@ -29,7 +29,11 @@ parserTests = TestList [
   testOptionalBoardInputTests,
   testTypeSynCannotBeItsOwnValue,
   testIdentifiersMustBeLower,
-  testNestedExprInWhileOkay
+  testNestedExprInWhileOkay,
+  testMisnamedDefIsParseError1,
+  testMisnamedDefIsParseError2,
+  testMisnamedDefIsParseError3,
+  testMisnamedDefWithArgsIsParseError
   ]
 
 --
@@ -183,7 +187,7 @@ testNoRepeatedParamNames :: Test
 testNoRepeatedParamNames = TestCase $
   assertEqual "Test parse error on repeated params"
   True
-  (isLeft $ parseLine' equation ("foo(a,a) = a + a"))
+  (isLeft $ parseLine' (equation "foo") ("foo(a,a) = a + a"))
 
 
 -- | Tests parsing a board decl w/ repeated params
@@ -564,3 +568,31 @@ testNestedExprInWhileOkay = TestCase (
   assertEqual "Test that unparenthesized nested expressions are allowed in while"
   True
   (isRight $ parseAll expr "" "while x < 10 do x + 1"))
+
+-- | Tests that a longer equation name is caught
+testMisnamedDefIsParseError1 :: Test
+testMisnamedDefIsParseError1 = TestCase (
+  assertEqual "Test that a misnamed val definition triggers a parse error"
+  False
+  (isRight $ parseAll (many decl) "" "b:Int\nb2=2"))
+
+-- | Tests that a shorter equation name is caught
+testMisnamedDefIsParseError2 :: Test
+testMisnamedDefIsParseError2 = TestCase (
+  assertEqual "Test that a misnamed val definition triggers a parse error"
+  False
+  (isRight $ parseAll (many decl) "" "b2:Int\nb=2"))
+
+-- | Tests that a mispelled equation name is caught
+testMisnamedDefIsParseError3 :: Test
+testMisnamedDefIsParseError3 = TestCase (
+  assertEqual "Test that a misnamed val definition triggers a parse error"
+  False
+  (isRight $ parseAll (many decl) "" "t:Int\na=2"))
+
+-- | Tests that a mispelled equation name is caught
+testMisnamedDefWithArgsIsParseError :: Test
+testMisnamedDefWithArgsIsParseError = TestCase (
+  assertEqual "Test that a misnamed func definition triggers a parse error"
+  False
+  (isRight $ parseAll (many decl) "" "t:Int -> Int\na(x)=x+1"))
