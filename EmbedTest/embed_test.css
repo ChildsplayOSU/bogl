@@ -1,17 +1,8 @@
 /*
  * Embedded BoGL Editor CSS
+ * Written by Benjamin Wilson Friedman
+ * Oct. 5th, 2020
  */
-
-
-
-
-/* TODO REMOVE THIS DEMO CODE */
- #hidden {
-   opacity: 0;
- }
-
-
-
 
 .bogl-embed-editor {
   width: 700px;
