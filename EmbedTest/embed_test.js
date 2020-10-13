@@ -218,6 +218,7 @@
     // TODO DEMONSTRATIONAL CODE FOR TODAY!
     // REMOVE ONCE DONE!
     //
+    /*
     document.getElementsByTagName("html")[0].onkeypress = function(e) {
       if(e.keyCode != 13) {
         return;
@@ -226,6 +227,7 @@
       let hidden = document.getElementById("hidden");
       hidden.style.opacity = 1;
     }
+    */
 
 
 
