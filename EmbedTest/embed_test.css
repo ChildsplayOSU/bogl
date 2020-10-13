@@ -16,6 +16,7 @@
 .bogl-embed-editor {
   width: 700px;
   height: 275px;
+  color: #000;
   /*background: #DC3545;*/
   background-image: linear-gradient(-45deg, #DC3545, rgb(215, 63, 9), #ffc107);
   margin: 8px auto;
@@ -25,6 +26,12 @@
   border-radius: 4px;
   transition: 0.3s !important;
   font-size: 18px;
+  line-height: 1.2;
+}
+
+.bogl-repl-run {
+  /* used to ensure the placeholder and text show up properly in the prompt */
+  color: #000;
 }
 
 .bogl-embed-editor a {
