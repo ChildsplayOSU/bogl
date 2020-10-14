@@ -44,12 +44,12 @@ Think of a type as a classification. We, as the programmer, must specify what in
  type PlayerColor = {Blue, Red, Green, Yellow}
  type DiceResult = {One, Two, Three, Four, Five, Six}
  type ChessPiece = {Pawn, Bishop, Knight, Rook, Queen, King}
+ type ClueCharacter = {MissScarlett, ColonelMustard, MrsWhite, ReverendGreen, MrsPeacock, ProfessorPlum}
  
  -- non board game themed types
  type ClassicIceCreamFlavor = {Vanilla, Chocolate, Strawberry}
  type WaterValveState = {Open, Closed}
- type StateOfMatter = {Solid, Liquid, Gas, Plasma}
- type VertebrateAnimal = {Mammal, Reptile, Amphibian, Bird, Fish} 
+ type StateOfMatter = {Solid, Liquid, Gas, Plasma} 
  ```
 
 
