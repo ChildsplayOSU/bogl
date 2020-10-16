@@ -178,6 +178,6 @@ OnlyPlayer	Empty	Empty
  🤖 BoGL Says: Done reading input.
 
 ```
-After we see `Done reading input.` we're all done, and our game has finished! Try out your own example to make sure it works as expected, and if it does then congratulations! The next step would be getting this working for two players, but that's something we will cover in our last tutorial coming up.
+After we see `Done reading input.` we're all done, and our game has finished! Try out your own example to make sure it works as expected, and if it does then congratulations!
 
-[Next, Counting Pieces of Board](BoardCount).
+If you've gotten this far you're at the end of our tutorials! We hope that these exercises have been enlightening, and that you feel a bit better about what a programming language is about. The idea of BoGL is to give you an easy way to get started with programming. From here on out you may continue with BoGL, or you may try out a new language, but a lot of the concepts and ideas you've learned here will hopefully be helpful going forward!
