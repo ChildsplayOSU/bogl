@@ -69,10 +69,11 @@ instance FromJSON Val where
 
 -- | Representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
-    prelude :: String,
-    file   :: String,
-    input :: String,
-    buffer :: [Val]
+    prelude     :: String,
+    file        :: String,
+    input       :: String,
+    buffer      :: [Val],
+    programName :: String
   } deriving (Eq, Show, Generic)
 
 
