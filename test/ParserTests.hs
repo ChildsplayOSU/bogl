@@ -287,7 +287,7 @@ testParseRawPreludeAndGamefile = TestCase $
   assertEqual "Test unable to parse raw prelude and gamefile text"
   True
   (case parsePreludeFromText rawPrelude of
-    Right valdefs -> isRight $ parseGameFromText rawGamecode valdefs
+    Right valdefs -> isRight $ parseGameFromText rawGamecode "Program" valdefs
     Left _        -> False
   )
 
@@ -457,7 +457,7 @@ testProperTypeSharing = TestCase (
   assertEqual "Tests that types are properly shared amongst a prelude & gamefile"
   True
   (case parsePreludeFromText "type Prelude_Type={A,B}" of
-    Right valdefs -> isRight $ parseGameFromText (sg ++ "f:Prelude_Type\nf=A") valdefs
+    Right valdefs -> isRight $ parseGameFromText (sg ++ "f:Prelude_Type\nf=A") "Program" valdefs
     Left _        -> False))
 
 

@@ -27,13 +27,13 @@ import Runtime.Monad
 -- utilizes parsePreludeAndGameText to parse the code directly,
 -- without reading it from a file first
 _runCodeWithCommands :: SpielCommand -> IO SpielResponses
-_runCodeWithCommands sc@(SpielCommand _prelude gameFile _ _) =
-  (_handleParsed sc $ parsePreludeAndGameText _prelude gameFile)
+_runCodeWithCommands sc@(SpielCommand _prelude gameFile _ _ filename) =
+  (_handleParsed sc $ parsePreludeAndGameText _prelude gameFile filename)
 
 
 -- | Handles result of parsing a prelude and game
 _handleParsed :: SpielCommand -> IO (Either ParseError (Game SourcePos)) -> IO SpielResponses
-_handleParsed (SpielCommand _ gameFile inpt buf) parsed = do
+_handleParsed (SpielCommand _ gameFile inpt buf _) parsed = do
   pparsed <- parsed
   case pparsed of
     Right game -> do

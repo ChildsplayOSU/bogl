@@ -486,13 +486,13 @@ parsePreludeFromText content = parseFromText prelude "Prelude" content
 
 -- | Parse a game from text and the result of a previous parse (e.g. the prelude)
 -- Such as in the case of the function above 'Parser.Parser.parsePreludeFromtext'
-parseGameFromText :: String -> ([Maybe (ValDef SourcePos)], ParState) -> ParseResult
-parseGameFromText prog pr = parseWithState (snd pr) (parseGame (catMaybes (fst pr))) "Code" prog
+parseGameFromText :: String -> String -> ([Maybe (ValDef SourcePos)], ParState) -> ParseResult
+parseGameFromText prog fileName pr = parseWithState (snd pr) (parseGame (catMaybes (fst pr))) fileName prog
 
 -- | Parse a prelude and game from text directly, without a file
-parsePreludeAndGameText :: String -> String -> IO ParseResult
-parsePreludeAndGameText preludeContent gameFileContent = do
+parsePreludeAndGameText :: String -> String -> String -> IO ParseResult
+parsePreludeAndGameText preludeContent gameFileContent fileName = do
   prel <- return (parsePreludeFromText preludeContent)
   case prel of
-    Right r -> return (parseGameFromText gameFileContent r)
+    Right r -> return (parseGameFromText gameFileContent fileName r)
     Left err              -> return $ Left err
