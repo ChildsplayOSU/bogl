@@ -109,6 +109,10 @@
   outline-width: 0;
 }
 
+.bogl-exercise .right div {
+  height: 80%;
+}
+
 @media(max-width: 800px) {
   .bogl-embed-editor {
     height: auto;
@@ -138,4 +142,60 @@
     outline-width: 0;
   }
 
+}
+
+.exercise-response {
+  padding: 8px;
+  border-radius: 4px;
+  display: block;
+  margin: 4px 0;
+  height: 20px;
+}
+
+.correct {
+  background: #fff;
+  color: #0a0;
+}
+
+.incorrect {
+  background: #fff;
+  color: #a00;
+}
+
+.bogl-exercise-check {
+  transition: 0.3s;
+}
+
+.bogl-exercise-check:hover {
+  cursor: pointer;
+  box-shadow: 0 0 5px #000 inset;
+}
+
+/* Checking items */
+.bogl-check-pass {
+  background-color: #0f0;
+}
+
+.bogl-check-pass div .bogl-exercise-check {
+  border-color: #0f0;
+  color: #090;
+}
+
+.bogl-check-failure {
+  background-color: #f00;
+}
+
+.bogl-check-failure div .bogl-exercise-check {
+  border-color: #f00;
+  color: #900;
+}
+
+.exercise {
+  font-family: "Source Sans Pro", Helvetica, Arial, sans-serif;
+  background: #fff;
+  opacity: 0.8;
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  margin-top: 4px;
 }

@@ -9,7 +9,7 @@
 
 <div style="height: 20vh"></div>
 
-<!--The embedded editor START-->
+<!--The embedded editor START, BoGL Mini-Editor -->
 <div class="bogl-embed-editor">
   <div class="bogl"></div>
   <div class="left bogl-code" contenteditable="true">game Example
@@ -29,6 +29,21 @@
 </div>
 <!--END-->
 
+<!--Embedded Exercise. BOGL-Exercise -->
+Given the following program, write in a definition for 'double' that doubles a number.
+<div class="bogl-embed-editor bogl-exercise">
+  <div class="bogl"></div>
+  <div class="left bogl-exercise-code" contenteditable="true">
+    game Example
+
+    double : Int -> Int
+    double(x) = 0
+  </div>
+  <div class="right">
+    <div class="bogl-exercise-result"></div>
+    <input class="bogl-exercise-check" type="button" value="Check" run="double(4)" expected="8"/>
+  </div>
+</div>
 
 
 <!--

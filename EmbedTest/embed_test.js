@@ -1,3 +1,4 @@
+"use strict";
 //
 // Embedded BoGL Editor JS
 //
@@ -67,7 +68,6 @@
   function exitInputHandling() {
     setCommandInput([]);
     setInputState(false);
-    command = "";
   }
 
   // Used to parse response from back-end server
@@ -210,154 +210,270 @@
     resultElm.parentElement.scrollTop = resultElm.parentElement.scrollHeight;
   }
 
+  function updatePlainResult(resultElm,content) {
+    resultElm.innerHTML += content + "<br/><br/>";
+    // force scroll to new results, if any
+    resultElm.scrollTop = resultElm.scrollHeight;
+    resultElm.parentElement.scrollTop = resultElm.parentElement.scrollHeight;
+  }
+
+  // retrieves the raw code from an element
+  function getRawCode(elm) {
+    let code = elm.innerHTML;
+    // replace <br> with linebreaks
+    code = code.replaceAll(/<div><br><\/div>/gi, '\n');
+    // replace <div> and </div> with nothing!
+    code = code.replaceAll(/(?:<div>)|(?:<\/div>)/gi, '\n');
+    // cleanup leftover <br> tags
+    code = code.replaceAll(/<br>/gi, '\n');
+    // replae &gt; and &lt; w/ > & < respectively
+    code = code.replaceAll(/&gt;/gi, '>');
+    code = code.replaceAll(/&lt;/gi, '<');
+    return code;
+  }
+
+  // Runs bogl code on the server, returns the result as JSON
+  function runBOGL(name,code,cmd,commandInput,elm,callback) {
+    let respStatus = 0;
+
+    fetch(
+        "https://bogl.engr.oregonstate.edu/api_1/runCode"
+        ,{
+            method: "POST",
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Allow': '*'
+            },
+            body: JSON.stringify({
+                file    : code,
+                prelude : "", // no prelude for these examples...
+                input   : cmd,
+                buffer  : commandInput,
+                programName: name
+            })
+    }).then(function(res) {
+      respStatus = res.status;
+      return res.json();
+
+    }).then(function(resp) {
+      updateResults(elm, cmd + "<br/><br/>" + parse_response(resp));
+      callback({
+        response: resp,
+        status: respStatus
+      });
+
+    }).catch((error) => {
+      if((error instanceof SyntaxError || (error.name && error.name === "SyntaxError")) && respStatus === 504) {
+        // gateway timeout
+        updateResults(elm, " 🤖 BoGL Says: Unable to finish running your program, or not currently online. Double check your code, or check back later! ");
+
+      } else if((error instanceof SyntaxError || (error.name && error.name === "SyntaxError"))) {
+        // bad parse error
+        updateResults(elm, " 🤖 BoGL Says: Your program was unable to be understood. Please double check it and try again! ");
+
+      } else if((error instanceof TypeError || (error.name && error.name === "TypeError")) && respStatus === 0) {
+        // likely JS disabled
+        updateResults(elm, " 🤖 BoGL Says: Unable to execute your program. Make sure that Javascript is enabled and try again! ");
+
+      } else if((error instanceof TypeError || (error.name && error.name === "TypeError"))) {
+        // something else?
+        updateResults(elm, " 🤖 BoGL Says: Unable to execute your program, please double check your code and try again. ");
+
+      } else {
+        // general error
+        updateResults(elm, " 🤖 BoGL Says: An error occurred: " + error + " ");
+
+      }
+    });
+  }
+
+  // apply a function over an array
+  const fapply = f => ls => {
+    for(let x = 0; x < ls.length; x++) {
+      f(ls[x])
+    }
+  }
+
+  const map = f => ls => {
+    for(let x = 0; x < ls.length; x++) {
+      ls[x] = f(ls[x])
+    }
+    return ls;
+  }
+
+  // wrappers for get
+  const getByClass = n => document.getElementsByClassName(n);
+  const getById = n => document.getElementById(n);
+
+  // onkeydown
+  const onKeyDown = f => e => e.addEventListener("keydown", f);
+  const onClick = f => e => e.addEventListener("click", f);
+
+  // repeats 'f' 'x' times into an array...repeat (5) (3) == [5,5,5]
+  const repeat = f => x => [...Array(x)].map(x => f);
+
+  /*
+   * Runs the repl with an input element, a result element, bogl code element, and an event
+   * Also takes in a 'lastCmd', which is effectively state from the last input. While input
+   * is being processed, this will repeatedly take the value of the expression that started input,
+   * until 'input' mode is cleared or finished.
+   */
+  const runREPL = lastCmd => inputx => resultx => codeElm => e => {
+
+    if(e.keyCode != 13) {
+      return;
+    }
+
+    // prevent bubble
+    e.preventDefault();
+
+    let code = getRawCode(codeElm);
+
+    console.info(code);
+
+    // store command
+    let cmd = inputx.value;
+    // clear input val
+    inputx.value = "";
+
+    if(cmd.replaceAll(/\s/gi, '') === "") {
+      // nothing to run
+      return;
+    }
+
+    // trim whitespace
+    cmd = cmd.replace(/^\s+/, '').replace(/\s+$/, '');
+
+    // speak haskell and colors change (this can be removed if it's annoying...)
+    if(cmd.match(/haskell/i)) {
+      codeElm.parentElement.className+= " haskell";
+      updateResults(resultx, "The language that BoGL was inspired and built from, <a href=\"https://www.haskell.org/\" target=\"_blank\">https://haskell.org/</a>");
+      return;
+
+    } else if(cmd.match(/bogl/i)) {
+      codeElm.parentElement.className= "bogl-embed-editor";
+      updateResults(resultx, "BoGL");
+      return;
+
+    } else if(cmd.match(/help/i)) {
+      updateResults(resultx, "Help<br/><br/>\
+      This is a tiny version of the BoGL editor.<br/><br/>\
+      - <a href=\"https://bogl.engr.oregonstate.edu/\" target=\"_blank\">Full BoGL Editor</a><br/>\
+      - <a href=\"https://the-code-in-sheep-s-clothing.github.io/Spiel-Lang/\" target=\"_blank\">Website</a><br/>\
+      - <a href=\"https://the-code-in-sheep-s-clothing.github.io/Spiel-Lang/Tutorials/All.md\" target=\"_blank\">Tutorials</a>");
+      return;
+
+    }
+
+    if (inputState) {
+        // put it into 'input' instead
+        input(cmd);
+        cmd = lastCmd;
+
+    } else {
+      lastCmd = cmd;
+
+    }
+
+    // check to ':t ' to request an expression result type
+    let regex = /^:t\s+/;
+    if(cmd.match(regex)) {
+      // pull off the prefaced type instruction, but note that we would like to report a type once done
+      cmd = cmd.replace(regex,'');
+      setReportType(true);
+      reportType = true;
+
+    } else {
+      // do not report type
+      setReportType(false);
+      reportType = false;
+
+    }
+
+    if(cmd == "clear") {
+      updateResults(resultx, cmd + "<br/><br/>" + clear());
+      return;
+
+    }
+
+    runBOGL("Program",code,cmd,commandInput,resultx, (data) => {
+      // ran successfully
+    });
+  }
+
+
+  // Verify an exercise
+  const verifyExercise = codeElm => check => result => e => {
+    // prevent bubble
+    e.preventDefault();
+
+    // extract run & expected commands
+    let cmd = check.getAttribute("run");
+    let expected = check.getAttribute("expected");
+
+    let code = getRawCode(codeElm);
+
+    // run the result
+    runBOGL("Exercise",code,cmd,commandInput,result, (data) => {
+      // extract the value
+      let actual = parse_response(data.response);
+      if(actual == expected) {
+        codeElm.parentElement.className = "bogl-embed-editor bogl-exercise bogl-check-pass";
+        check.value = "Passed";
+        updatePlainResult(result, " <span class='exercise-response correct'>✅️ Correct<span>");
+
+      } else {
+        codeElm.parentElement.className = "bogl-embed-editor bogl-exercise bogl-check-failure";
+        check.value = "Re-Check";
+        if(data.response[data.response.length-1].tag == 'SpielValue') {
+          updateResults(result, "Expected:<br/>"+expected+"<br/>but got<br/>"+actual);
+        }
+        updatePlainResult(result, " <span class='exercise-response incorrect'>❌️ Try Again.</span>");
+
+      }
+    });
+
+  }
+
+
   window.onload = (function() {
 
-    let lastCmd = "";
-    let boglCode= document.getElementsByClassName("bogl-code");
+    // retrieve and cleanup bogl code items
+    const codeElms = getByClass("bogl-code");
+    fapply (y => y.innerHTML = y.innerHTML.replaceAll(/\n/gi, '<br/>')) (codeElms);
 
-    // clean up all code with proper html linebreaks
-    for(let x = 0; x < boglCode.length; x++) {
-      boglCode[x].innerHTML = boglCode[x].innerHTML.replaceAll(/\n/gi, '<br/>');
+    // get result elements
+    const results = getByClass("bogl-repl-result");
+    // get input elements
+    const inputs = getByClass("bogl-repl-run");
+
+    // create array of 'last' commands to retain
+    let lastCmd = repeat ("") (results.length)
+
+    // map the keydown event for each REPL
+    for(let x = 0; x < results.length; x++) {
+      onKeyDown(runREPL (lastCmd[x]) (inputs[x]) (results[x]) (codeElms[x])) (inputs[x]);
     }
 
-    let results = document.getElementsByClassName("bogl-repl-result");
-    let inputs  = document.getElementsByClassName("bogl-repl-run");
-    for(let x = 0; x < inputs.length; x++) {
-      inputs[x].addEventListener("keydown", (function(e) {
-        if(e.keyCode != 13) {
-          return;
-        }
 
-        // prevent buble
-        e.preventDefault();
 
-        let code = boglCode[x].innerHTML;
-        // replace <br> with linebreaks
-        code = code.replaceAll(/<div><br><\/div>/gi, '\n');
-        // replace <div> and </div> with nothing!
-        code = code.replaceAll(/(?:<div>)|(?:<\/div>)/gi, '\n');
-        // cleanup leftover <br> tags
-        code = code.replaceAll(/<br>/gi, '\n');
+    // interactive exercises
+    const exerciseCodeElms = getByClass("bogl-exercise-code");
+    // clean bogl code
+    fapply (y => y.innerHTML = y.innerHTML.replaceAll(/\n/gi, '<br/>')) (exerciseCodeElms);
 
-        let respStatus = 0;
+    // retrieve exercise items
+    const exerciseResults = getByClass("bogl-exercise-result");
+    const exerciseChecks = getByClass("bogl-exercise-check");
 
-        let cmd = inputs[x].value;
-        inputs[x].value = "";
-
-        if(cmd.replaceAll(/\s/gi, '') === "") {
-          // nothing to run
-          return;
-        }
-
-        // trim whitespace
-        cmd = cmd.replace(/^\s+/, '').replace(/\s+$/, '');
-
-        // speak haskell and colors change (this can be removed if it's annoying...)
-        if(cmd.match(/haskell/i)) {
-          boglCode[x].parentElement.className+= " haskell";
-          updateResults(results[x], "The language that BoGL was inspired and built from, <a href=\"https://www.haskell.org/\" target=\"_blank\">https://haskell.org/</a>");
-          return;
-
-        } else if(cmd.match(/bogl/i)) {
-          boglCode[x].parentElement.className= "bogl-embed-editor";
-          updateResults(results[x], "BoGL");
-          return;
-
-        } else if(cmd.match(/help/i)) {
-          updateResults(results[x], "Help<br/><br/>\
-          This is a tiny version of the BoGL editor.<br/><br/>\
-          - <a href=\"https://bogl.engr.oregonstate.edu/\" target=\"_blank\">Full BoGL Editor</a><br/>\
-          - <a href=\"https://the-code-in-sheep-s-clothing.github.io/Spiel-Lang/\" target=\"_blank\">Website</a><br/>\
-          - <a href=\"https://the-code-in-sheep-s-clothing.github.io/Spiel-Lang/Tutorials/All.md\" target=\"_blank\">Tutorials</a>");
-          return;
-
-        }
-
-        if (inputState) {
-            // put it into 'input' instead
-            input(cmd);
-            cmd = lastCmd;
-
-        } else {
-          lastCmd = cmd;
-
-        }
-
-        // check to ':t ' to request an expression result type
-        let regex = /^:t\s+/;
-        if(cmd.match(regex)) {
-          // pull off the prefaced type instruction, but note that we would like to report a type once done
-          cmd = cmd.replace(regex,'');
-          setReportType(true);
-          reportType = true;
-
-        } else {
-          // do not report type
-          setReportType(false);
-          reportType = false;
-
-        }
-
-        if(cmd == "clear") {
-          updateResults(results[x], cmd + "<br/><br/>" + clear());
-          return;
-
-        }
-
-        fetch(
-            //"http://localhost:3000/api_1/runCode"
-            "https://bogl.engr.oregonstate.edu/api_1/runCode"
-            ,{
-                method: "POST",
-                headers: {
-                  'Accept': 'application/json',
-                  'Content-Type': 'application/json',
-                  'Allow': '*'
-                },
-                body: JSON.stringify({
-                    file    : code,
-                    prelude : "",
-                    input   : cmd,
-                    buffer  : commandInput
-                })
-        }).then(function(res) {
-          respStatus = res.status;
-          return res.json();
-
-        }).then(function(resp) {
-          updateResults(results[x], cmd + "<br/><br/>" + parse_response(resp));
-
-        }).catch((error) => {
-          if((error instanceof SyntaxError || (error.name && error.name === "SyntaxError")) && respStatus === 504) {
-            // gateway timeout
-            //console.dir(error);
-            print(" 🤖 BoGL Says: Unable to finish running your program, or not currently online. Double check your code, or check back later! ");
-
-          } else if((error instanceof SyntaxError || (error.name && error.name === "SyntaxError"))) {
-            // bad parse error
-            //console.dir(error);
-            print(" 🤖 BoGL Says: Your program was unable to be understood. Please double check it and try again! ");
-
-          } else if((error instanceof TypeError || (error.name && error.name === "TypeError")) && respStatus === 0) {
-            // likely JS disabled
-            //console.dir(error);
-            print(" 🤖 BoGL Says: Unable to execute your program. Make sure that Javascript is enabled and try again! ");
-
-          } else if((error instanceof TypeError || (error.name && error.name === "TypeError"))) {
-            // something else?
-            //console.dir(error);
-            print(" 🤖 BoGL Says: Unable to execute your program, please double check your code and try again. ");
-
-          } else {
-            // general error
-            //console.dir(error);
-            print(" 🤖 BoGL Says: An error occurred: " + error + " ");
-
-          }
-        });
-
-      }));
+    // set on click listeners for exercises
+    for(let x = 0; x < exerciseResults.length; x++) {
+      onClick(verifyExercise (exerciseCodeElms[x]) (exerciseChecks[x]) (exerciseResults[x])) (exerciseChecks[x]);
     }
+
   });
+
+  console.info("> 🤖 BoGL Embedded Editor Version 0.1.0");
 
 })();
