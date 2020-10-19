@@ -1,7 +1,0 @@
-game TestGame
-
-type Board = Array(1,1) of Int
-type Input = Int
-
-f : Int
-f = 32
