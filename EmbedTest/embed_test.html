@@ -10,6 +10,7 @@
 <div style="height: 20vh"></div>
 
 <!--The embedded editor START, BoGL Mini-Editor -->
+<!--
 <div class="bogl-embed-editor">
   <div class="bogl"></div>
   <div class="left bogl-code" contenteditable="true">game Example
@@ -27,10 +28,13 @@
     <input class="bogl-repl-run" placeholder=">" type="text"/>
   </div>
 </div>
+-->
 <!--END-->
 
 <!--Embedded Exercise. BOGL-Exercise -->
-Given the following program, write in a definition for 'double' that doubles a number.
+<div style="width:800px;margin: 8px auto;">
+
+<p style="text-align:center">Given the following program, write in a definition for 'double' that doubles a number.</p>
 <div class="bogl-embed-editor bogl-exercise">
   <div class="bogl"></div>
   <div class="left bogl-exercise-code" contenteditable="true">
@@ -45,6 +49,25 @@ Given the following program, write in a definition for 'double' that doubles a n
   </div>
 </div>
 
+
+<p style="text-align:center">Given the following program, write in a board that has 1s on edges, and zero in the middle.</p>
+<div class="bogl-embed-editor bogl-exercise">
+  <div class="bogl"></div>
+  <div class="left bogl-exercise-code" contenteditable="true">
+    game Example
+
+    type Board = Array(3,3) of Int
+
+    b : Board
+    b!(x,y) = 1
+  </div>
+  <div class="right">
+    <div class="bogl-exercise-result"></div>
+    <input class="bogl-exercise-check" type="button" value="Check" run="b" expected="1 1 1<br/>1 0 1<br/>1 1 1<br/>"/>
+  </div>
+</div>
+
+</div>
 
 <!--
 <div id="hidden" class="bogl-embed-editor">

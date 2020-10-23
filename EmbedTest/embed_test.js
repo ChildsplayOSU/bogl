@@ -403,6 +403,17 @@
   }
 
 
+  const compareResults = a => b => {
+    a = a.replaceAll(/\s+/gi,' ')
+    //a = a.replaceAll(/<br\/>/, '\n')
+
+    b = b.replaceAll(/\s+/gi, ' ')
+    //b = b.replaceAll(/<br\/>/, '\n')
+
+    return a == b
+  }
+
+
   // Verify an exercise
   const verifyExercise = codeElm => check => result => e => {
     // prevent bubble
@@ -418,7 +429,7 @@
     runBOGL("Exercise",code,cmd,commandInput,result, (data) => {
       // extract the value
       let actual = parse_response(data.response);
-      if(actual == expected) {
+      if(compareResults(actual)(expected)) {
         codeElm.parentElement.className = "bogl-embed-editor bogl-exercise bogl-check-pass";
         check.value = "Passed";
         updatePlainResult(result, " <span class='exercise-response correct'>✅️ Correct<span>");
@@ -427,6 +438,8 @@
         codeElm.parentElement.className = "bogl-embed-editor bogl-exercise bogl-check-failure";
         check.value = "Re-Check";
         if(data.response[data.response.length-1].tag == 'SpielValue') {
+          console.info(expected)
+          console.info(actual)
           updateResults(result, "Expected:<br/>"+expected+"<br/>but got<br/>"+actual);
         }
         updatePlainResult(result, " <span class='exercise-response incorrect'>❌️ Try Again.</span>");
