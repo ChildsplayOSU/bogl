@@ -31,7 +31,8 @@ evalTests = TestList [
   testEvalLetRef,
   testEvalNextNotPresent,
   testEvalLimit,
-  testNegativeBoardAccess]
+  testNegativeBoardAccess,
+  testBadPlace]
 
 testEvalEquiv :: Test
 testEvalEquiv = TestCase (
@@ -162,3 +163,14 @@ evalTicTacToe = do
             buf        = (moves, [], 0)
             moves      = map Vt (map (\_p -> [Vi (fst _p), Vi (snd _p)]) coords)
             coords     = [(1, 1), (2, 1), (2, 2), (3, 1), (3, 3)]
+
+
+-- | Test that place function is not allowed to place outside the board
+testBadPlace :: Test
+testBadPlace = TestCase (
+  assertEqual "Tests that the 'place' function won't crash when out of bounds"
+  True
+  (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
+   let _board  = Vboard barray in
+   let evalTT = runEval (Env [("b",_board)] (1,1)) ([], [], 1) in
+   isRightErr (evalTT (eval (App "place" (Tuple [(I 1),(Ref "b"),(Tuple [(I 1),(I 2)])]))))))

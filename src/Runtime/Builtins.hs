@@ -41,10 +41,22 @@ builtinT = \inputT pieceT -> [
 --   We only want the latest version of each unique board, so filter out its predecessor.
 place :: [Val] -> Eval Val
 place = \[v, Vboard arr, Vt [Vi x, Vi y]] -> do
-   let b = Vboard $ arr // [((x,y), v)]
-   (tape, boards, iters) <- get
-   put (tape, filter (/= Vboard arr) boards ++ [b], iters)
-   return b
+   -- retrieve the bounds for this array
+   let (_,(x',y')) = bounds arr
+   -- verify our request to place is on the board
+   case x <= x' && y <= y' && x > 0 && y > 0 of
+     -- valid, place and return the resulting board
+     True   -> do
+                 let b = Vboard $ arr // [((x,y), v)]
+                 (tape, boards, iters) <- get
+                 put (tape, filter (/= Vboard arr) boards ++ [b], iters)
+                 return b
+     -- invalid, return a runtime error
+     False  -> return (Err $ p1 ++ p2) where
+                p1 = "Could not access (" ++ show x ++ "," ++ show y ++ ") on the board, " ++
+                  "this is not a valid space. "
+                p2 = if x' == y' && x' == 1 then "The board only has one space at (1,1)."
+                                         else "The board size is ("++ show x' ++ "," ++ show y' ++")."
 
 -- | Verifies the parameters are of the expected number & type from their respective lambdas
 -- A final case reports a Runtime error in case anything slips by,

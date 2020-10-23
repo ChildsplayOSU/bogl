@@ -202,7 +202,7 @@ testOneSpaceIncompleteBoardEq = TestCase (
 -- test TC on complete board
 testCompleteBoardEq :: Test
 testCompleteBoardEq = TestCase (
-  (assertBool "Verifies that an complete board equation is valid") $
+  (assertBool "Verifies that a complete board equation is valid") $
   allPassTC [testGame [(BVal (Sig "b" (Plain boardxt)) [PosDef "b" (ForAll ("x")) (ForAll ("y")) (I 1)] dummyPos)]]
   )
 
