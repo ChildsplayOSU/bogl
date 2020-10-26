@@ -213,10 +213,9 @@ checkInputTypeMatch e buf = if length buf == 0
    comp (X Itype _) _ = False
    comp (X Top s) (Vs name) = S.member name s
    comp (X Top _) _ = False
-   comp (Tup (x:[])) (Vt (z:[])) = (comp x z)
-   comp (Tup (_:[])) (Vt (_:_)) = False
-   comp (Tup (_:_)) (Vt (_:[])) = False
+   comp (Tup []) (Vt []) = True
    comp (Tup (x:xs)) (Vt (z:zs)) = (comp x z) && (comp (Tup xs) (Vt zs))
+   comp (Tup _) (Vt _) = False
    comp (Tup _) _ = False
    comp _ _ = True -- allow input for not supported yet types comparison
 
