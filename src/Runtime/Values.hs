@@ -83,6 +83,12 @@ instance Show Val where
   show (Deferred)     = "Deferred"
 
 showValType :: Val -> String
-showValType (Vi _) = "Int"
-showValType (Vb _) = "Bool"
-showValType v      = show v
+showValType (Vi _)  = "Int"
+showValType (Vb _)  = "Bool"
+showValType (Vt xs) = "(" ++ (showValTypeList xs) ++ ")"
+showValType v       = show v
+
+showValTypeList :: [Val] -> String
+showValTypeList []     = ""
+showValTypeList (x:[]) = (showValType x)
+showValTypeList (x:xs) = (showValType x) ++ "," ++ (showValTypeList xs)
