@@ -41,10 +41,10 @@ _handleParsed (SpielCommand _ gameFile inpt buf _) parsed = do
     Right game -> do
       let checked = tc game
       if success checked
-              then case checkInputTypeMatch (e checked) buf of
-                InputTcOk           -> return $ [SpielTypes (rtypes checked), (serverRepl game gameFile inpt (buf, [], 1))]
-                InputTcMismatch x v -> return $ SpielTypes (rtypes checked) : [SpielTypeError (cterr (InputMismatch x v) $ initialPos "")]
-              else return $ SpielTypes (rtypes checked) : map (SpielTypeError . snd) (errors checked)
+        then case checkInputTypeMatch (e checked) buf of
+          InputTcOk           -> return $ [SpielTypes (rtypes checked), (serverRepl game gameFile inpt (buf, [], 1))]
+          InputTcMismatch x v -> return $ SpielTypes (rtypes checked) : [SpielTypeError (cterr (InputMismatch x v) $ initialPos "")]
+        else return $ SpielTypes (rtypes checked) : map (SpielTypeError . snd) (errors checked)
     Left _err -> do
       let position = errorPos _err
           l = sourceLine position
