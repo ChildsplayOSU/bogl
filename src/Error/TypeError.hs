@@ -7,6 +7,7 @@ module Error.TypeError where
 import Language.Syntax
 import Language.Types
 import Utils.String
+import Runtime.Values
 
 -- | Categories of type errors; see show instance for more detail about the error
 -- Note: any new constructors need to have a corresponding case in cterr (in Error.hs)
@@ -21,6 +22,7 @@ data TypeError = Mismatch      {t1 :: Type,  t2 :: Type, expr :: Expr ()}
                | Dereff        {name :: String, typ :: Type}
                | Uninitialized {name :: String}
                | SigBadFeq     {name :: String, sigType :: Type, feq :: Equation ()}
+               | InputMismatch {x_type :: Xtype, val :: Val}
                deriving (Eq)
 
 instance Show TypeError where
@@ -34,4 +36,5 @@ instance Show TypeError where
   show (BadApp n e)              = "Could not apply " ++ n ++ " to " ++ show e ++ "; it is not a function."
   show (Dereff n _t)             = "Could not dereference the function " ++ n ++ " with type " ++ show _t ++ ". Maybe you forgot to give it arguments."
   show (Uninitialized n)         = "Incomplete initialization of Board " ++ quote n
-  show (SigBadFeq n sig f)    = quote (n ++ " : " ++ show sig) ++ " cannot be defined with the function equation\n\t" ++ show f
+  show (SigBadFeq n sig f)       = quote (n ++ " : " ++ show sig) ++ " cannot be defined with the function equation\n\t" ++ show f
+  show (InputMismatch x v)       = "Input mismatch: get " ++ showValType v ++ ", expected " ++ show x

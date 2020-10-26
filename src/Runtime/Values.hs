@@ -81,3 +81,8 @@ instance Show Val where
   show (Pv _ e)       = show e
   show (Err s)        = "ERR: " ++ s
   show (Deferred)     = "Deferred"
+
+showValType :: Val -> String
+showValType (Vi _) = "Int"
+showValType (Vb _) = "Bool"
+showValType v      = show v

@@ -5,9 +5,10 @@ Copyright   : (c)
 License     : BSD-3
 -}
 
-module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), showTCError) where
+module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), InputTcResult(..), checkInputTypeMatch, showTCError) where
 
 import Runtime.Builtins
+import Runtime.Values
 import Language.Syntax hiding (input)
 import Language.Types
 
@@ -182,9 +183,42 @@ data TcResult =
   rtypes :: [(Name, Type)]  -- ^ List of (name,type) pairs
      }
 
+-- | Input Typechecker Result
+data InputTcResult = InputTcOk {}
+  | InputTcMismatch {
+  x_type :: Xtype,  -- ^ Xtype
+  val    :: Val  -- ^ Val
+     }
+
+
 -- | Produces an error corresponding to a typechecker error
 showTCError :: (ValDef SourcePos, Error) -> String
 showTCError (_p, _e) = (show _e) ++ "\n" ++ show _p
+
+-- | Typecheck a input and produce a inputtypechecker result
+checkInputTypeMatch :: Env -> [Val] -> InputTcResult
+checkInputTypeMatch e buf = if length buf == 0
+  then InputTcOk
+  else
+    let envInputType = input e in
+    let bufVal = last buf in
+      if comp envInputType bufVal
+        then InputTcOk
+        else InputTcMismatch envInputType bufVal
+  where
+   comp :: Xtype -> Val -> Bool
+   comp (X Booltype _) (Vb _ ) = True
+   comp (X Booltype _) _ = False
+   comp (X Itype _) (Vi _ ) = True
+   comp (X Itype _) _ = False
+   comp (X Top s) (Vs name) = S.member name s
+   comp (X Top _) _ = False
+   comp (Tup (x:[])) (Vt (z:[])) = (comp x z)
+   comp (Tup (_:[])) (Vt (_:_)) = False
+   comp (Tup (_:_)) (Vt (_:[])) = False
+   comp (Tup (x:xs)) (Vt (z:zs)) = (comp x z) && (comp (Tup xs) (Vt zs))
+   comp (Tup _) _ = False
+   comp _ _ = True -- allow input for not supported yet types comparison
 
 -- | Typecheck a game and produce a typechecker result
 tc :: (Game SourcePos) -> TcResult

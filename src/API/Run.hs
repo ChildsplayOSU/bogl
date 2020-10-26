@@ -22,6 +22,8 @@ import Typechecker.Typechecker
 import Runtime.Eval
 import Runtime.Values
 import Runtime.Monad
+import Error.TypeError
+import Error.Error
 
 -- | Runs BoGL code from raw text with the given commands
 -- utilizes parsePreludeAndGameText to parse the code directly,
@@ -39,8 +41,10 @@ _handleParsed (SpielCommand _ gameFile inpt buf _) parsed = do
     Right game -> do
       let checked = tc game
       if success checked
-        then return $ [SpielTypes (rtypes checked), (serverRepl game gameFile inpt (buf, [], 1))]
-        else return $ SpielTypes (rtypes checked) : map (SpielTypeError . snd) (errors checked)
+              then case checkInputTypeMatch (e checked) buf of
+                InputTcOk           -> return $ [SpielTypes (rtypes checked), (serverRepl game gameFile inpt (buf, [], 1))]
+                InputTcMismatch x v -> return $ SpielTypes (rtypes checked) : [SpielTypeError (cterr (InputMismatch x v) $ initialPos "")]
+              else return $ SpielTypes (rtypes checked) : map (SpielTypeError . snd) (errors checked)
     Left _err -> do
       let position = errorPos _err
           l = sourceLine position

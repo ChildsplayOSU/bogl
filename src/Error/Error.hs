@@ -57,3 +57,4 @@ cterr terr = Error (TE terr) (assign terr)
                     (Dereff _ _)          -> 8
                     (Uninitialized _)     -> 10
                     (SigBadFeq _ _ _)     -> 11
+                    (InputMismatch _ _)   -> 12
