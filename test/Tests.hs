@@ -17,7 +17,10 @@ main =  do
   tcResult    <- typeCheckAllExamples  -- Custom test: tc all examples, return Pass | (Fail #failures #errors)
   falsePos    <- typeCheckIll
   (tttR, msg) <- evalTicTacToe
-  let failed = or [(errors result) > 0, (failures result) > 0, not $ parsePassed parseResult, not $ tcPassed tcResult, falsePos > 0, not tttR]
+  whileR <- evalWhile
+  let badWhiles = filter (not . \(b, eq, v) -> b) whileR
+  let failed = or [(errors result) > 0, (failures result) > 0, not $ parsePassed parseResult, not $ tcPassed tcResult, falsePos > 0, not tttR, (not . null) badWhiles]
   putStrLn ("\n\n" ++ show tcResult ++ "\n\n" ++ show parseResult ++ "\n") -- print example TC/Parse results for verification
   putStrLn $ "Evaluating tic tac toe led to: " ++ msg
+  if (not . null) badWhiles then putStrLn ("Bad while cases: \n" ++ (show badWhiles)) else return ()
   if failed then exitFailure else exitSuccess

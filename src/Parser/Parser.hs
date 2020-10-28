@@ -236,16 +236,25 @@ atom' =
   <|>
   Tuple <$> parens (commaSep1 expr)
   <|>
-  Let <$> (reserved "let" *> identifier) <*> (reservedOp "=" *> expr) <*> (reserved "in" *> expr)
+  (do
+      reserved "let"
+      var <- identifier
+      reservedOp "="
+      outer <- expr
+      reserved "in"
+      putWhileNames ("", [var])
+      inner <- expr
+      return $ Let var outer inner
+  )
   <|>
   If <$> (reserved "if" *> expr) <*> (reserved "then" *> expr) <*> (reserved "else" *> expr)
   <|>
   (do
       reserved "while"
+      (_, names) <- getWhileNames
       c <- expr
       reserved "do"
       e <- expr
-      (_, names) <- getWhileNames
       let exprs = map Ref names
       let exprs' = case exprs of
             [x] -> x
