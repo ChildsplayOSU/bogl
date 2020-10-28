@@ -36,14 +36,14 @@ import Data.Functor.Identity(Identity)
 data ParState =
    PS {
        ctype      :: Maybe Type,       -- ^ type of current object being parsed
-       whileNames :: (Name, [Name]),   -- ^ arguments to the last-parsed function, needed for While
+       whileNames :: [Name],           -- ^ context from last-parsed function or let expression
        ids        :: [Name],           -- ^ identifiers
        syn        :: [(Name, Xtype)]   -- ^ type synonyms
       }
 
 -- | A parse context with builtins
 startState :: ParState
-startState = PS Nothing ("", []) (map fst builtins ++ map fst builtinRefs) []
+startState = PS Nothing [] (map fst builtins ++ map fst builtinRefs) []
 
 -- | Parser type
 type Parser = Parsec String (ParState)
@@ -74,11 +74,11 @@ addid n = do
   putState (PS c w (n:ids') x)
 
 -- | Get the names necessary to build 'While'
-getWhileNames :: Parser (Name, [Name])
+getWhileNames :: Parser [Name]
 getWhileNames = whileNames <$> getState
 
 -- | Put the names
-putWhileNames :: (Name, [Name]) -> Parser ()
+putWhileNames :: [Name] -> Parser ()
 putWhileNames n = do
   PS c _ ids' x <- getState
   putState (PS c n ids' x)
@@ -242,7 +242,7 @@ atom' =
       reservedOp "="
       outer <- expr
       reserved "in"
-      putWhileNames ("", [var])
+      putWhileNames [var]
       inner <- expr
       return $ Let var outer inner
   )
@@ -251,7 +251,7 @@ atom' =
   <|>
   (do
       reserved "while"
-      (_, names) <- getWhileNames
+      names <- getWhileNames
       c <- expr
       reserved "do"
       e <- expr
@@ -295,7 +295,7 @@ varEquation eqname = (try $ do
 funcEquation :: String -> Parser (Equation SourcePos)
 funcEquation eqname = (try $ do
   _params <- params eqname
-  putWhileNames (eqname, _params)
+  putWhileNames _params
   reservedOp "="
   e <- expr
   return $ Feq eqname (Pars _params) e)
