@@ -28,3 +28,115 @@ incr(x) = x + 1
 
 whileTest : Int -> Int
 whileTest(x) = while lessThanTen(x) do incr(x)
+
+false : Bool
+false = let b = True in while b do False
+
+-- a while loop that gets its local, mutable context from a function
+toTenF : Int -> Int
+toTenF(x) = while x < 10 do x + 1
+
+-- a while loop that gets its local, mutable context from a let expression
+toTenV : Int
+toTenV = let x = 1 in while x < 10 do x + 1
+
+ten1 : Int
+ten1 = toTenV
+
+ten2 : Int
+ten2 = toTenF(1)
+
+-- what if we mix the two?
+-- we get an infinite loop, if we aren't careful
+-- the let expression context shadows the function context when parsing the while loop's local context
+mixed : Int -> Int
+mixed(x) = let a = 1 in while x < 10 do x + 1
+
+-- here we use x as the step size
+mixedWell : Int -> Int
+mixedWell(x) = let a = 1 in (while a < 10 do a + x)
+
+ten3 : Int
+ten3 = mixedWell(1)
+
+-- a use case for mixing the two is illustrated below:
+-- this example is commented out because there is a type error (note: the error message is wrong)
+-- a while loop like this has to have type FunctionInput -> FunctionInput
+--badCounter : (Int, Int) -> Int
+--badCounter(count, step) = while count < 10 do count + step
+
+-- this works, but it is a bit cumbersome to use the result (we have to extract the first element of the tuple)
+betterCounter : (Int, Int) -> (Int, Int)
+betterCounter(count, step) = while count < 10 do (count + step, step)
+
+tenOne : (Int, Int)
+tenOne = betterCounter(1,1)
+
+-- we can get around this by using a let-context
+counter : (Int, Int) -> Int
+counter(start, step) = let x = start in while x < 10 do x + step
+
+ten4 : Int
+ten4 = counter(1, 1)
+
+-- what if we use two loops?
+-- the left loop starts with x = 1
+-- the right loop also starts with x = 1
+-- result: 30 (not 20!)
+twoLoops : Int
+twoLoops = let x = 1 in (while x < 10 do x + 1) + (while x < 10 do x + 19)
+
+thirty : Int
+thirty = twoLoops
+
+-- here we thread the result of the first loop to the second and the result is 20
+twoLoops2 : Int -> Int
+twoLoops2(x) = let y = (while x < 10 do x + 1) in y + (while y < 10 do y + 1)
+
+twenty : Int
+twenty = twoLoops2(1)
+
+-- what if we use x outside the loop?
+-- the loop has no effect on the outer x
+-- result: 11 (not 20!)
+out : Int
+out = let x = 1 in (while x < 10 do x + 1) + x
+
+eleven : Int
+eleven = out
+
+-- how about nested let expressions?
+-- let a = 10 has no effect on the do-expression
+n : Int
+n = let x = 1 in while let a = 10 in x < 5 do x + 1
+
+five : Int
+five = n
+
+-- this will never terminate!
+-- a let variable is only mutable in a while loop that shares its scope
+-- and even in that case, the mutable variable is actually different from the let variable (see out)
+-- x is the only mutable variable and it is stuck at i + 1 = 2
+n2 : Int
+n2 = let x = 1 in while x < 10 do let i = 1 in i + 1
+
+-- this fixes the above problem. x is mutable in the outer loop, i is mutable in the inner loop
+-- x = i = 15
+n3 : Int
+n3 = let x = 1 in while x < 10 do let i = 1 in while i < 15 do i + 1
+
+fifteen : Int
+fifteen = n3
+
+-- another infinite loop!
+-- x is not mutable in the inner loop
+n4 : Int
+n4 = let x = 1 in while x < 10 do let i = 1 in while x < 15 do x + 1
+
+-- a final example
+-- what is the value of f(1)?
+f : Int -> Int
+f(x) = (while x < 10 do 2 * x) + (let x = 3 in while x < 10 do 2 * x) + x
+
+twentyNine : Int
+twentyNine = f(1)

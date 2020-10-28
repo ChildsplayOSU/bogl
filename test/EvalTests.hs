@@ -1,4 +1,4 @@
-module EvalTests(evalTests, evalTicTacToe) where
+module EvalTests (evalTests, evalTicTacToe, evalWhile) where
 --
 -- EvalTests.hs
 --
@@ -151,19 +151,34 @@ testNegativeBoardAccess = TestCase (
 --   This is reflected as the output Vs "X"
 evalTicTacToe :: IO (Bool, String)
 evalTicTacToe = do
-   res <- parseGameFile $ examplesPath ++ "TicTacToe.bgl"
-   case res of
-      (Left _) -> return (False, "TicTacToe parse error")
-      (Right (Game _ (BoardDef (szx, szy) _) _ vs)) -> return val
-         where
-            val        = case evalResult of
-                           (Right (_, r)) -> (r == Vs "X", show r)
-                           e              -> (False, show e)
-            evalResult = runWithBuffer (bindings_ (szx, szy) vs) buf (Ref "result")
-            buf        = (moves, [], 0)
-            moves      = map Vt (map (\_p -> [Vi (fst _p), Vi (snd _p)]) coords)
-            coords     = [(1, 1), (2, 1), (2, 2), (3, 1), (3, 3)]
+   [(b, _, r)] <- evalFile (examplesPath ++ "TicTacToe.bgl") [("result", Vs "X")] buf
+   return (b, r)
+   where
+      buf        = (moves, [], 0)
+      moves      = map Vt (map (\_p -> [Vi (fst _p), Vi (snd _p)]) coords)
+      coords     = [(1, 1), (2, 1), (2, 2), (3, 1), (3, 3)]
 
+-- | Evaluates many different expressions that contain while loops
+evalWhile :: IO [(Bool, String, String)]
+evalWhile = evalFile (examplesPath ++ "While.bgl") vs ([], [], 0)
+   where
+      vs = [("false", Vb False), ("ten1", Vi 10), ("ten2", Vi 10), ("ten3", Vi 10),
+            ("tenOne", Vt [Vi 10, Vi 1]), ("ten4", Vi 10), ("thirty", Vi 30), ("twenty", Vi 20),
+            ("eleven", Vi 11), ("five", Vi 5), ("fifteen", Vi 15), ("twentyNine", Vi 29)]
+
+-- | Takes a file name, buffer, [(veq names, expected values)]
+--   parses the file, evaluates the veqs and returns the result and some information
+evalFile :: String -> [(String, Val)] -> Buffer -> IO [(Bool, String, String)]
+evalFile fn l buf = do
+   res <- parseGameFile fn
+   case res of
+      (Left _) -> return [(False, fn ++ " parse error", "")]
+      (Right (Game _ (BoardDef (szx, szy) _) _ vs)) -> return $ map check l
+         where
+            check (eqName, expected) = case run (Ref eqName) of
+                           (Right (_, actual)) -> (expected == actual, eqName, show actual)
+                           e              -> (False, eqName, show e)
+            run = runWithBuffer (bindings_ (szx, szy) vs) buf
 
 -- | Test that place function is not allowed to place outside the board
 testBadPlace :: Test
