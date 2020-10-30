@@ -22,7 +22,9 @@ There's a handy way we can do, and we do so right in the type of our board game 
 ```
 -- a 5x5 board where each space is occupied
 -- by a value of type Player `and` Empty
-type Board = Array(3,3) of Player & {Empty}
+type Player= {OnlyPlayer}
+type Space = Player & {Empty}
+type Board = Array(3,3) of Space
 ```
 This is much like what we wrote before, but what's up with the `Player & {Empty}` thing? Well, let's break it down.
 
@@ -139,8 +141,9 @@ Collectivelly, our resulting program should look something like this, but again 
 
 game InARow
 
-
-type Board = Array(3,3) of Player & {Empty}
+type Player= {OnlyPlayer}
+type Space = Player & {Empty}
+type Board = Array(3,3) of Space
 type Input = (Int,Int)
 
 board : Board
