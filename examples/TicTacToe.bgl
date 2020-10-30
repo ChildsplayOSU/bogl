@@ -8,6 +8,8 @@ type Position = (Int,Int)
 type Board = Array (3,3) of {X, O, Empty}
 type Input = Position
 
+type Result = Player & {Tie}
+
 -- Game setup
 --
 initialBoard : Board
@@ -20,7 +22,7 @@ next(p) = if p == X then O else X
 goFirst : Player
 goFirst = X
 
-outcome : (Player, Board) -> Player & {Tie}
+outcome : (Player, Board) -> Result
 outcome(p, b) = if inARow(3,X,b) then X else
                 if inARow(3,O,b) then O else Tie
 
@@ -45,9 +47,9 @@ tryMove(p,b) = let pos = input in
 loop : (Player,Board) -> (Player ,Board)
 loop(p,b) = while not(gameOver(b)) do tryMove(p,b)
 
-play : (Player,Board) -> Player & {Tie}
+play : (Player,Board) -> Result
 play(a,b) = outcome(loop(a,b))
 
-result : Player & {Tie}
+result : Result
 result = play(goFirst, initialBoard)
 

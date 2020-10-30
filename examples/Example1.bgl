@@ -3,6 +3,9 @@ game Example1
 type Board = Array(1,1) of Int
 type Input = Int
 
+type MaybeInt = Int & {Nothing}
+type OptionInt = Int & {Option1, Option2}
+
 succ : Int -> Int
 succ(x) = x + 1
 
@@ -15,11 +18,11 @@ addPlusOne(x,y) = succ(add(x,y))
 example :  Int
 example = addPlusOne(3,2)
 
-safeDivide : (Int, Int) -> Int & {Nothing}
+safeDivide : (Int, Int) -> MaybeInt
 safeDivide (x, y) = if y == 0 then Nothing else x / y
 
 isTen : Int -> Bool
 isTen(x) = x == 10
 
-notTypeError3 : Int -> Int & {Option1, Option2}
+notTypeError3 : Int -> OptionInt
 notTypeError3(x) = if x == 0 then Option1 else if x == 1 then Option2 else x

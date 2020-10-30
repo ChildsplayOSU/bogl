@@ -8,6 +8,8 @@ type Position = (Int, Int)
 type Board = Array (6,7) of {A, B, Empty}
 type Input = Int
 
+type Result = Player & {Tie}
+
 -- grabs a position from a triple
 grabPos : (Board, Int, Int) -> Position
 grabPos(b,column,row) = (column, row)
@@ -30,7 +32,6 @@ initialBoard!(x,y)= Empty
 goFirst : Player
 goFirst = A
 
--- built in next() is defined only for X and O
 nextAB : Player -> Player
 nextAB(p) = if p == A then B else A
 
@@ -42,7 +43,7 @@ fourInARow(b) = or(inARow(4,A,b),inARow(4,B,b))
 gameOver : Board -> Bool
 gameOver(b) = or(fourInARow(b),isFull(b))
 
-outcome : (Player, Board) -> Player & {Tie}
+outcome : (Player, Board) -> Result
 outcome(p,b) = if inARow(4,A,b) then A else
                if inARow(4,B,b) then B else Tie
 
@@ -61,5 +62,5 @@ tryMove(p,b) = let pos = col2pos(b, input) in
 loop : (Player, Board) -> (Player, Board)
 loop(p,b) = while not(gameOver(b)) do tryMove(p,b)
 
-play : (Player, Board) -> Player & {Tie}
+play : (Player, Board) -> Result
 play(a,b) = outcome(loop(a,b))
