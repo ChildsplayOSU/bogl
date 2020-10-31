@@ -81,7 +81,7 @@ extScope env = local (modifyEval (env++))
 -- | Lookup a name in the environment FIXME
 lookupName :: Name -> Eval (Maybe Val)
 lookupName n = do
-  env <- (evalEnv <$> ask)
+  env <- getEnv
   case lookup n env of
     Just v -> (return . Just) v
     Nothing -> return Nothing

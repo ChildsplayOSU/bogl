@@ -20,6 +20,7 @@ import Control.Monad.State
 
 import Text.Parsec.Pos
 
+
 -- | Produce all of the bindings from a list of value definitions.
 --   This is done sequentially. Errors are reported as they're found.
 bindings :: (Int, Int) -> [ValDef a] -> Writer [Exception] Env
@@ -151,37 +152,42 @@ eval (S s) = return $ Vs s
 eval (Tuple es) = mapM eval es >>= (return . Vt)
 -- evaluate a Ref
 eval (Ref n) = do
-  e <- lookupName n
+  -- verify builtinRefs first, otherwise we risk forcibly evaluating the entire env
+  -- for a non-existant ref (the case for 'input')
   let b = lookup n builtinRefs
-  case (e, b) of
-        (Just v, _) -> case v of
-          -- Pending Value, need to eval this to get the actual value
-          (Pv _ e') -> evalWithLimit $ eval e'
-          -- normal value, return as is
-          _         -> return $ v
-        (_, Just v) -> v
-        _ -> return $ Err $ "Variable " ++ n ++ " undefined"
+  case b of
+    (Just v) -> v -- builtin to reference
+    _        -> do
+                -- possible non builtin ref to lookup
+                e <- lookupName n
+                case e of
+                  -- valid reference
+                  (Just v) -> case v of
+                    -- Pending Value, need to eval this to get the actual value
+                    (Pv _ e') -> evalWithLimit $ eval e'
+                    -- normal value, return as is
+                    _         -> return $ v
+                  -- invalid reference
+                  _ -> return $ Err $ "Variable " ++ n ++ " undefined"
 
 -- evalute a function application
 eval (App n es) = do
   args <- eval es >>= \x -> case x of
     (Vt args)      -> return args
     _              -> return [x]
-  f <- lookupName n
-  case f of
-    Just (Vf params env' e) -> extScope (zip params (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
-    Just (Pv env' e) -> extScope (zip [] (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
-    Nothing -> case lookup n builtins of
-      Just f2 -> do
-        (f2 (args))
-      Nothing -> do
-        return $ Err $ "Couldn't find " ++ n ++ " in the environment!"
-    -- incorrect kind of value was looked up from the environment
-    _ -> return $ Err $ n ++ " was not correct when looking it up in the environment!"
-  -- TODO REMOVED WARNING
-  --where
-    --vals ((Vt xs):ys) = xs ++ (vals ys)
-    --vals (x:xs) = x : vals xs
+  -- previously, 'lookupName' was hit first, and this caused the entire env
+  -- to be evaluated before the builtins were checked. Verifying the builtins first,
+  -- which are finite, prevents this
+  case lookup n builtins of
+    Just f2 -> do
+      f2 args
+    Nothing -> do
+      f <- lookupName n
+      case f of
+        Just (Vf params env' e) -> extScope (zip params (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
+        Just (Pv env' e)        -> extScope (zip [] (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
+        Nothing                 -> return $ Err $ "Couldn't find " ++ n ++ " in the environment!"
+        _                       -> return $ Err $ n ++ " was not correct when looking it up in the environment!"
 
 -- evaluate a Let expression
 eval (Let n e1 e2) = do
