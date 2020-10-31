@@ -18,7 +18,7 @@ main =  do
   falsePos    <- typeCheckIll
   (tttR, msg) <- evalTicTacToe
   whileR <- evalWhile
-  let badWhiles = filter (not . \(b, eq, v) -> b) whileR
+  let badWhiles = filter (not . \(b, _, _) -> b) whileR
   let failed = or [(errors result) > 0, (failures result) > 0, not $ parsePassed parseResult, not $ tcPassed tcResult, falsePos > 0, not tttR, (not . null) badWhiles]
   putStrLn ("\n\n" ++ show tcResult ++ "\n\n" ++ show parseResult ++ "\n") -- print example TC/Parse results for verification
   putStrLn $ "Evaluating tic tac toe led to: " ++ msg

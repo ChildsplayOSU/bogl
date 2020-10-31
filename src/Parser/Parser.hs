@@ -64,7 +64,7 @@ lookupSyn :: Name -> Parser Xtype
 lookupSyn n = do
   t <- (lookup <$> (pure n) <*> (syn <$> getState))
   case t of
-    Nothing -> fail $ "Type " ++ n ++ " not found!"
+    Nothing -> fail $ "Type " ++ n ++ " not declared!"
     Just t' -> return t'
 
 -- | Add an id to list of used ids
@@ -345,6 +345,10 @@ enum :: Parser (S.Set Name)
 enum = reservedOp "{" *>
          (S.fromList <$> (commaSep1 (notAlreadyInUse capIdentifier))) <* reservedOp "}"
 
+-- | Parse a type name if it has been defined
+typeName :: Parser Xtype
+typeName = capIdentifier >>= lookupSyn
+
 -- | Extended types: types after the first are restricted to symbols
 xtype :: Parser Xtype
 xtype = (try $ do
@@ -360,7 +364,7 @@ xtype = (try $ do
 -- | Parse just a type, before it is possibly extended
 xtype' :: Parser Xtype
 xtype' =
-  (try $ capIdentifier >>= lookupSyn)
+  (try typeName)
   <|>
   (try $ X <$> (pure Top) <*> enum) -- Plain enum
   <|>
@@ -368,27 +372,42 @@ xtype' =
   <|>
   (try $ Tup <$> parens (lexeme ((:) <$> (xtype <* comma) <*> (commaSep1 xtype))))
 
+-- | Parse an xtype, but only if it is one of the base types or it has been declared
+--   and named (with the type keyword)
+namedType :: Parser Xtype
+namedType =
+   (try $ notExtended typeName)
+   <|>
+   (try $ Tup <$> parens (lexeme ((:) <$> (namedType <* comma) <*> (commaSep1 namedType))))
+   <|>
+   (try $ notExtended $ X <$> btype <*> pure S.empty)
+   <?>
+   "a base type or previously-declared type"
+      where
+         notExtended :: Parser a -> Parser a
+         notExtended n = n <* (notFollowedBy (string "&"))
+
 -- | Function types
 ftype :: Parser Ftype
 ftype = do
-  x <- xtype
+  x <- namedType
   reservedOp "->"
-  r <- xtype
+  r <- namedType
   return $ Ft x r
 
--- | Types
+-- | Types that appear in signatures
 typ :: Parser Type
 typ =
   (try $ (do
+            _p <- namedType <* notFollowedBy (reservedOp "->")
+            putType (Plain _p)
+            return (Plain _p)))
+  <|>
+  (do
       f <- ftype
       putType (Function f)
       return (Function f)
-  ))
-  <|>
-  (try $ (do
-            _p <- xtype
-            putType (Plain _p)
-            return (Plain _p)))
+  )
 
 -- | Value signatures
 sig :: Parser Signature

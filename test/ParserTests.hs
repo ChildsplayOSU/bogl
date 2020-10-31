@@ -113,6 +113,8 @@ testRejectSingletonTupleType = TestCase (
 --
 parseDeclTests :: Test
 parseDeclTests = TestLabel "Parse Declaration Tests" (TestList [
+  testRejectSignatureDecl1,
+  testRejectSignatureDecl2,
   testRejectBadExprAfterSuccessefulParse,
   testParseShortDecl,
   testParseBoardVal,
@@ -125,6 +127,20 @@ parseDeclTests = TestLabel "Parse Declaration Tests" (TestList [
   testLowerCaseTypeNamesDisallowed_inGame
   ])
 
+
+testRejectSignatureDecl1 :: Test
+testRejectSignatureDecl1 = TestCase (
+  assertEqual("Rejecting a type declaration in a type signature")
+  True
+  (isLeft $ parseAll valdef "" "a : Int & {Nothing} \na = 1")
+  )
+
+testRejectSignatureDecl2 :: Test
+testRejectSignatureDecl2 = TestCase (
+  assertEqual("Rejecting a type declaration in a type signature")
+  True
+  (isLeft $ parseAll valdef "" "f : {A} -> Int \nf(a) = 1")
+  )
 
 testRejectBadExprAfterSuccessefulParse :: Test
 testRejectBadExprAfterSuccessefulParse = TestCase (
