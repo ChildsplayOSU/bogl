@@ -64,7 +64,7 @@ lookupSyn :: Name -> Parser Xtype
 lookupSyn n = do
   t <- (lookup <$> (pure n) <*> (syn <$> getState))
   case t of
-    Nothing -> fail $ "Type " ++ n ++ " not found!"
+    Nothing -> fail $ "Type " ++ n ++ " not declared!"
     Just t' -> return t'
 
 -- | Add an id to list of used ids
@@ -380,9 +380,9 @@ namedType =
    <|>
    (try $ Tup <$> parens (lexeme ((:) <$> (namedType <* comma) <*> (commaSep1 namedType))))
    <|>
-   (notExtended $ X <$> btype <*> pure S.empty)
+   (try $ notExtended $ X <$> btype <*> pure S.empty)
    <?>
-   "a pre-existing or previously-declared type"
+   "a base type or previously-declared type"
       where
          notExtended :: Parser a -> Parser a
          notExtended n = n <* (notFollowedBy (string "&"))
