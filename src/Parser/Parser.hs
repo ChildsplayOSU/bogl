@@ -345,6 +345,22 @@ enum :: Parser (S.Set Name)
 enum = reservedOp "{" *>
          (S.fromList <$> (commaSep1 (notAlreadyInUse capIdentifier))) <* reservedOp "}"
 
+-- | An enum or the type name of an enum
+--   in the future, this will be an enum or any type name
+--   the type checker should catch the error if it is not an enum
+--   that currently would require a substantial change that will be better to implemenent when the
+--   new type system is implemented
+enumName :: Parser (S.Set Name)
+enumName =
+   enum
+   <|>
+      (do
+         maybeE <- typeName
+         case maybeE of          -- todo: move this to the type checker
+            X Top e -> return e
+            _ -> fail "the right side of & must either be an {Enumeration} or the name of one"
+      )
+
 -- | Parse a type name if it has been defined
 typeName :: Parser Xtype
 typeName = capIdentifier >>= lookupSyn
@@ -354,12 +370,12 @@ xtype :: Parser Xtype
 xtype = (try $ do
   x1 <- xtype'
   reservedOp "&"
-  enum' <- enum
+  enum' <- enumName
   case x1 of
     (X b xs) -> return (X b (S.union xs enum'))
     a -> return a)
   <|>
-      xtype'
+      try (xtype' <* (notFollowedBy (string "&")))
 
 -- | Parse just a type, before it is possibly extended
 xtype' :: Parser Xtype

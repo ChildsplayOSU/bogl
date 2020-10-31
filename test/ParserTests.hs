@@ -27,7 +27,11 @@ parserTests = TestList [
   testUnderscoresInTypes,
   testProperTypeSharing,
   testOptionalBoardInputTests,
+  testTypeExtSyn1,
+  testTypeExtSyn2,
   testTypeSynCannotBeItsOwnValue,
+  testTypeExtLimitation1, -- todo: remove when this becomes a type error
+  testTypeExtLimitation2, -- todo: remove when this becomes a type error
   testIdentifiersMustBeLower,
   testNestedExprInWhileOkay,
   testMisnamedDefIsParseError1,
@@ -570,6 +574,31 @@ testTypeSynCannotBeItsOwnValue = TestCase (
   assertEqual "Test that a type syn cannot be listed as one of it's own symbols"
   False
   (isRight $ parseAll (parseGame []) "" "game E\ntype AB={AB}"))
+
+testTypeExtSyn1 :: Test
+testTypeExtSyn1 = TestCase (
+  assertEqual "Test that a type can be extended by an etype synonym"
+  True
+  (isRight $ parseAll (parseGame []) "" "game E\ntype T1 = {A}\ntype T2 = Int & T1"))
+
+testTypeExtSyn2 :: Test
+testTypeExtSyn2 = TestCase (
+  assertEqual "Test that a type can be extended by an etype synonym"
+  True
+  (isRight $ parseAll (parseGame []) "" "game E\ntype T1 = {A}\ntype T2 = T1 & {B}"))
+
+-- todo: remove the testTypeExtLimitation tests when it is moved to the type checker
+testTypeExtLimitation1 :: Test
+testTypeExtLimitation1 = TestCase (
+  assertEqual "Test that a type cannot be extended by a non etype"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype T1 = Int & {A}\ntype T2 = Int & T1"))
+
+testTypeExtLimitation2 :: Test
+testTypeExtLimitation2 = TestCase (
+  assertEqual "Test that a type cannot be extended by a non etype"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype T1 = Board\ntype T2 = Int & T1"))
 
 -- | Tests that identifiers must starst with a lowercase alpha char
 testIdentifiersMustBeLower :: Test
