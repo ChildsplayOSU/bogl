@@ -11,6 +11,15 @@ import qualified Data.Set as S
 import Data.Either
 import Text.Parsec
 import Utils
+import Utils.String
+
+-- | Checks that all parse results satisfy a predicate
+checkAllParse :: Foldable t => (Either ParseError a -> Bool) -> Parser a -> t String -> Bool
+checkAllParse prd pr = all (prd . parseAll pr "")
+
+-- | Checks that all parse results are failures
+checkAllParseFail :: Foldable t => Parser a -> t String -> Bool
+checkAllParseFail = checkAllParse isLeft
 
 --
 -- exported tests for the Parser
@@ -34,10 +43,12 @@ parserTests = TestList [
   testTypeExtLimitation2, -- todo: remove when this becomes a type error
   testIdentifiersMustBeLower,
   testNestedExprInWhileOkay,
+  testRejectReservedNameSymbol,
   testMisnamedDefIsParseError1,
   testMisnamedDefIsParseError2,
   testMisnamedDefIsParseError3,
-  testMisnamedDefWithArgsIsParseError
+  testMisnamedDefWithArgsIsParseError,
+  testCasings -- casing test group
   ]
 
 --
@@ -419,7 +430,8 @@ parseGameNameTests :: Test
 parseGameNameTests = TestLabel "Parse Game Name Tests" (TestList [
   testLowercaseGameNameBad,
   testUppercaseGameNameGood,
-  testUnderscoreInGameNameGood
+  testUnderscoreInGameNameGood,
+  testRejectReservedGameName
   ])
 
 
@@ -449,6 +461,15 @@ testUnderscoreInGameNameGood = TestCase (
   (isRight $ parseAll (parseGame []) "" "game Ex_Ex_Ex_Ex\ntype Board=Array(1,1) of Int\ntype Input=Int")
   )
 
+-- | Tests that board game names that are reserved words are not allowed
+testRejectReservedGameName :: Test
+testRejectReservedGameName = TestCase (
+  assertEqual "Rejects game names that are reserved words"
+  True
+  $ checkAllParseFail (parseGame []) gs
+  )
+  where
+     gs = map ("game " ++) reservedNames
 
 -- | Dividing by zero turns up a Right Err, as long as this doesn't crash due to an exception it is likely that it worked
 testDivByZeroBad :: Test
@@ -614,6 +635,14 @@ testNestedExprInWhileOkay = TestCase (
   True
   (isRight $ parseAll expr "" "while x < 10 do x + 1"))
 
+-- | Tests that reserved names are not valid symbols
+testRejectReservedNameSymbol :: Test
+testRejectReservedNameSymbol = TestCase (
+  assertEqual "Rejects symbols that are reserved words"
+  True
+  $ checkAllParseFail enum $ map (surrounds "{" "}") reservedNames
+  )
+
 -- | Tests that a longer equation name is caught
 testMisnamedDefIsParseError1 :: Test
 testMisnamedDefIsParseError1 = TestCase (
@@ -641,3 +670,34 @@ testMisnamedDefWithArgsIsParseError = TestCase (
   assertEqual "Test that a misnamed func definition triggers a parse error"
   False
   (isRight $ parseAll (many decl) "" "t:Int -> Int\na(x)=x+1"))
+
+--
+-- Casing tests
+--
+testCasings :: Test
+testCasings = TestLabel "Casing Tests" (TestList [
+  testUppercaseParamsFail,
+  testUppercaseFunctionApplicationFails,
+  testUppercaseLetNameFails
+  ])
+
+-- | Tests that uppercase params fail to parse
+testUppercaseParamsFail :: Test
+testUppercaseParamsFail = TestCase (
+  assertEqual "Tests that uppercase params fail to parse"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype T={X,O}\nf:T -> Bool\nf(X)=if X==O then True else False"))
+
+-- | Tests that uppercase params fail to parse
+testUppercaseFunctionApplicationFails :: Test
+testUppercaseFunctionApplicationFails = TestCase (
+  assertEqual "Tests that uppercase function application fails to parse"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype T={X,O}\nf:T\nf=X(True)"))
+
+-- | Tests that uppercase params fail to parse
+testUppercaseLetNameFails :: Test
+testUppercaseLetNameFails = TestCase (
+  assertEqual "Tests that uppercase let params fail to parse"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype T={X,O}\nf:Int\nf=let X=5 in 5"))

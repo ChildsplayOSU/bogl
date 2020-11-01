@@ -6,7 +6,7 @@ module Utils.String where
 
 import Data.List
 
--- | Prepend l to r and append b
+-- | Prepend l to b and and append r
 surrounds :: [a] -> [a] -> [a] -> [a]
 surrounds l r b = l ++ b ++ r
 
