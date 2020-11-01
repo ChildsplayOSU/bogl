@@ -11,6 +11,15 @@ import qualified Data.Set as S
 import Data.Either
 import Text.Parsec
 import Utils
+import Utils.String
+
+-- | Checks that all parse results satisfy a predicate
+checkAllParse :: Foldable t => (Either ParseError a -> Bool) -> Parser a -> t String -> Bool
+checkAllParse prd pr = all (prd . parseAll pr "")
+
+-- | Checks that all parse results are failures
+checkAllParseFail :: Foldable t => Parser a -> t String -> Bool
+checkAllParseFail = checkAllParse isLeft
 
 --
 -- exported tests for the Parser
@@ -34,6 +43,7 @@ parserTests = TestList [
   testTypeExtLimitation2, -- todo: remove when this becomes a type error
   testIdentifiersMustBeLower,
   testNestedExprInWhileOkay,
+  testRejectReservedNameSymbol,
   testMisnamedDefIsParseError1,
   testMisnamedDefIsParseError2,
   testMisnamedDefIsParseError3,
@@ -420,7 +430,8 @@ parseGameNameTests :: Test
 parseGameNameTests = TestLabel "Parse Game Name Tests" (TestList [
   testLowercaseGameNameBad,
   testUppercaseGameNameGood,
-  testUnderscoreInGameNameGood
+  testUnderscoreInGameNameGood,
+  testRejectReservedGameName
   ])
 
 
@@ -450,6 +461,15 @@ testUnderscoreInGameNameGood = TestCase (
   (isRight $ parseAll (parseGame []) "" "game Ex_Ex_Ex_Ex\ntype Board=Array(1,1) of Int\ntype Input=Int")
   )
 
+-- | Tests that board game names that are reserved words are not allowed
+testRejectReservedGameName :: Test
+testRejectReservedGameName = TestCase (
+  assertEqual "Rejects game names that are reserved words"
+  True
+  $ checkAllParseFail (parseGame []) gs
+  )
+  where
+     gs = map ("game " ++) reservedNames
 
 -- | Dividing by zero turns up a Right Err, as long as this doesn't crash due to an exception it is likely that it worked
 testDivByZeroBad :: Test
@@ -614,6 +634,14 @@ testNestedExprInWhileOkay = TestCase (
   assertEqual "Test that unparenthesized nested expressions are allowed in while"
   True
   (isRight $ parseAll expr "" "while x < 10 do x + 1"))
+
+-- | Tests that reserved names are not valid symbols
+testRejectReservedNameSymbol :: Test
+testRejectReservedNameSymbol = TestCase (
+  assertEqual "Rejects symbols that are reserved words"
+  True
+  $ checkAllParseFail enum $ map (surrounds "{" "}") reservedNames
+  )
 
 -- | Tests that a longer equation name is caught
 testMisnamedDefIsParseError1 :: Test

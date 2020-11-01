@@ -7,7 +7,7 @@ License     : BSD-3
 
 module Parser.Parser (
    parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameText,
-   expr, isLeft, parseAll, valdef, ftype, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser)
+   expr, isLeft, parseAll, valdef, ftype, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser, lexer, reservedNames, enum)
 where
 
 import Parser.Error
@@ -99,7 +99,11 @@ types = ["Bool", "Int", "AnySymbol", "Input", "Board"]
 
 -- | The lexer, using the reserved keywords and operation names
 lexer :: P.GenTokenParser String u Data.Functor.Identity.Identity
-lexer = P.makeTokenParser (haskellStyle
+lexer = P.makeTokenParser boglDef
+
+-- | The lexical definitions of bogl
+boglDef :: GenLanguageDef String u Identity
+boglDef = (haskellStyle
    {P.reservedNames  =
                         ["True", "False",
                          "let", "in", "if", "then", "else",
@@ -123,6 +127,10 @@ operators = [
              [op ">=" (Binop Geq) AssocLeft],
              [op ">" (Binop Greater) AssocLeft]
             ]
+
+-- | The list of reserved names
+reservedNames :: [String]
+reservedNames = P.reservedNames boglDef
 
 -- | Parser for the 'Expr' datatype
 expr :: Parser (Expr SourcePos)
@@ -154,6 +162,10 @@ parens = P.parens lexer
 identifier :: ParsecT String u Identity String
 identifier = P.identifier lexer
 
+-- | Lowercase identifier recognizer
+lowerIdentifier :: ParsecT String u Identity String
+lowerIdentifier = lookAhead lower *> identifier
+
 -- | Whitespace recognizer
 whiteSpace :: ParsecT String u Identity ()
 whiteSpace = P.whiteSpace lexer
@@ -176,18 +188,13 @@ notAlreadyInUse x = do
     then unexpected $ "redefinition of " ++ parsed
     else return parsed
 
--- | Valid character set that can be used to describe a game (after the first lead character)
-gameIdentifierChars :: [Char]
-gameIdentifierChars = ['a'..'z']++['A'..'Z']++['0'..'9']++"_"
-
--- | Identifies a valid game name, also used for types
--- nearly identical to 'capIdentifier', just includes underscores
+-- | Identifies a valid game name
 gameIdentifier :: ParsecT String u Identity [Char]
-gameIdentifier = lexeme ((:) <$> upper <*> (many (oneOf gameIdentifierChars)))
+gameIdentifier = capIdentifier
 
 -- | Starting uppercase letter identifier
 capIdentifier :: ParsecT String u Identity [Char]
-capIdentifier = gameIdentifier
+capIdentifier = lookAhead upper *> identifier
 
 -- | Comma separated values, 1 or more
 commaSep1 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
@@ -218,7 +225,7 @@ atom =
 -- | Atomic expressions
 atom' :: Parser (Expr SourcePos)
 atom' =
-  HE <$> ((char '?') *> identifier)
+  HE <$> ((char '?') *> lowerIdentifier)
   <|>
   I <$> int
   <|>
@@ -226,11 +233,11 @@ atom' =
   <|>
   B <$> (reserved "False" *> pure False)
   <|>
-  (try $ App <$> (lookAhead lower *> identifier) <*> (parens (formArgs <$> (commaSep1 expr))))
+  (try $ App <$> lowerIdentifier <*> (parens (formArgs <$> (commaSep1 expr))))
   <|>
   S <$> capIdentifier
   <|>
-  Ref <$> identifier
+  Ref <$> lowerIdentifier
   <|>
   (try $ parens (expr <* notFollowedBy comma))
   <|>
@@ -238,7 +245,7 @@ atom' =
   <|>
   (do
       reserved "let"
-      var <- lookAhead lower *> identifier
+      var <- lowerIdentifier
       reservedOp "="
       outer <- expr
       reserved "in"
@@ -269,7 +276,7 @@ atom' =
 -- | Parse parameters
 params :: Name -> Parser [Name]
 params n = do
-   parameters <- parens $ commaSep1 $ lookAhead lower *> identifier
+   parameters <- parens $ commaSep1 $ lowerIdentifier
    let paramSet = nub parameters
    if paramSet == parameters
       then return parameters
@@ -305,7 +312,7 @@ position :: Parser Pos
 position =
    Index <$> int
    <|>
-   ForAll <$> identifier
+   ForAll <$> lowerIdentifier
 
 -- | Board equations
 boardeqn :: String -> Parser (BoardEq SourcePos)
@@ -427,8 +434,7 @@ typ =
 
 -- | Value signatures
 sig :: Parser Signature
-sig =
-  lookAhead lower *> (Sig <$> new identifier <*> (reservedOp ":" *> typ))
+sig = Sig <$> new lowerIdentifier <*> (reservedOp ":" *> typ)
 
 -- | Value definitions
 valdef :: Parser (ValDef SourcePos)
@@ -476,7 +482,7 @@ input =
 -- | Type Synonym Definition, but returns nothing
 typesyn :: Parser ()
 typesyn = (try $ (((,) <$>
-  (reserved "type" *> lookAhead upper *> new identifier) <*>
+  (reserved "type" *> new capIdentifier) <*>
   (reservedOp "=" *> xtype)) >>= addSyn))
 
 -- | Prelude definition
