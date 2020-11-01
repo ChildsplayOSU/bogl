@@ -226,7 +226,7 @@ atom' =
   <|>
   B <$> (reserved "False" *> pure False)
   <|>
-  (try $ App <$> identifier <*> (parens (formArgs <$> (commaSep1 expr))))
+  (try $ App <$> (lookAhead lower *> identifier) <*> (parens (formArgs <$> (commaSep1 expr))))
   <|>
   S <$> capIdentifier
   <|>
@@ -238,7 +238,7 @@ atom' =
   <|>
   (do
       reserved "let"
-      var <- identifier
+      var <- lookAhead lower *> identifier
       reservedOp "="
       outer <- expr
       reserved "in"
@@ -269,7 +269,7 @@ atom' =
 -- | Parse parameters
 params :: Name -> Parser [Name]
 params n = do
-   parameters <- parens $ commaSep1 identifier
+   parameters <- parens $ commaSep1 $ lookAhead lower *> identifier
    let paramSet = nub parameters
    if paramSet == parameters
       then return parameters

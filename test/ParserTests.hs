@@ -37,7 +37,8 @@ parserTests = TestList [
   testMisnamedDefIsParseError1,
   testMisnamedDefIsParseError2,
   testMisnamedDefIsParseError3,
-  testMisnamedDefWithArgsIsParseError
+  testMisnamedDefWithArgsIsParseError,
+  testCasings -- casing test group
   ]
 
 --
@@ -641,3 +642,34 @@ testMisnamedDefWithArgsIsParseError = TestCase (
   assertEqual "Test that a misnamed func definition triggers a parse error"
   False
   (isRight $ parseAll (many decl) "" "t:Int -> Int\na(x)=x+1"))
+
+--
+-- Casing tests
+--
+testCasings :: Test
+testCasings = TestLabel "Casing Tests" (TestList [
+  testUppercaseParamsFail,
+  testUppercaseFunctionApplicationFails,
+  testUppercaseLetNameFails
+  ])
+
+-- | Tests that uppercase params fail to parse
+testUppercaseParamsFail :: Test
+testUppercaseParamsFail = TestCase (
+  assertEqual "Tests that uppercase params fail to parse"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype T={X,O}\nf:T -> Bool\nf(X)=if X==O then True else False"))
+
+-- | Tests that uppercase params fail to parse
+testUppercaseFunctionApplicationFails :: Test
+testUppercaseFunctionApplicationFails = TestCase (
+  assertEqual "Tests that uppercase function application fails to parse"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype T={X,O}\nf:T\nf=X(True)"))
+
+-- | Tests that uppercase params fail to parse
+testUppercaseLetNameFails :: Test
+testUppercaseLetNameFails = TestCase (
+  assertEqual "Tests that uppercase let params fail to parse"
+  False
+  (isRight $ parseAll (parseGame []) "" "game E\ntype T={X,O}\nf:Int\nf=let X=5 in 5"))
