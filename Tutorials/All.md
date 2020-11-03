@@ -1,9 +1,7 @@
 # Tutorials
 
---------------
 ### New Tutorial Location
-These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
---------------
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is [https://bogl.engr.oregonstate.edu/tutorials/](https://bogl.engr.oregonstate.edu/tutorials/).
 
 Here is a list of the tutorials in the order that we recommend them.
 
