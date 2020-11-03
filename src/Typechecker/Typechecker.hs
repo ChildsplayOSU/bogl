@@ -1,11 +1,12 @@
 {-|
+
 Module      : Typechecker.Typechecker
 Description : Implementation of the BoGL typechecker
 Copyright   : (c)
 License     : BSD-3
 -}
 
-module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), showTCError) where
+module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), showTCError, exprHasInputType) where
 
 import Runtime.Builtins
 import Language.Syntax hiding (input)
@@ -176,10 +177,10 @@ runTypeCheck (BoardDef sz _t) (InputDef i) vs = foldM (\env v -> case typecheck 
 -- | Typechecker Result
 data TcResult =
   Tc {
-  success :: Bool,  -- ^ Success result
-  e :: Env,         -- ^ Env associated with the result
-  errors :: [(ValDef SourcePos, Error)],  -- ^ Typechecker errors
-  rtypes :: [(Name, Type)]  -- ^ List of (name,type) pairs
+       success :: Bool,                       -- ^ Success result
+       e :: Env,                              -- ^ Env associated with the result
+       errors :: [(ValDef SourcePos, Error)], -- ^ Typechecker errors
+       rtypes :: [(Name, Type)]               -- ^ List of (name,type) pairs
      }
 
 -- | Produces an error corresponding to a typechecker error
@@ -192,9 +193,20 @@ tc g = case tc' g of
   (_e, ls) -> let l = lefts ls in
     Tc (length l == 0) _e l (rights ls ++ types _e)
 
--- | Typecheck a game, and produce a tuple of an environment, with a list of errors and/or successfully typechecked names
+-- | Typecheck a game, and produce (environment, result of typechecking)
 tc' :: (Game SourcePos) -> (Env, [Either (ValDef SourcePos, Error) (Name, Type)])
 tc' (Game _ b i v) = runWriter (runTypeCheck b i v)
+
+-- | Check if a given 'Expr' is a subtype of Input
+exprHasInputType :: Env -> (Expr SourcePos) -> Either Error ((), TypeEnv)
+exprHasInputType tcenv = typeHoles tcenv . isInputType
+
+-- | Check if a given 'Expr' is a subtype of Input
+isInputType :: (Expr SourcePos) -> Typechecked ()
+isInputType ie = do
+   et <- exprtypeE ie
+   it <- getInput
+   if et <= it then return () else inputmismatch $ Plain et
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
 tcexpr :: Env -> (Expr SourcePos) -> Either Error (Xtype, TypeEnv)

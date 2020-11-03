@@ -94,6 +94,9 @@ boardt = Plain boardxt
 boardxt :: Xtype
 boardxt = bnestx Board
 
+inputxt :: Xtype
+inputxt = bnestx Input
+
 -- | Nest a Btype as a Type
 p :: Btype -> Type
 p b = Plain $ X b S.empty

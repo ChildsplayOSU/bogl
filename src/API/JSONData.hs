@@ -22,6 +22,8 @@ import Parser.Parser
 import Runtime.Monad
 import Error.Error
 
+import Text.Parsec (errorPos, sourceLine, sourceColumn, ParseError)
+
 -- | Representation of a request to read a BoGL file
 data SpielRead = SpielRead {
   path :: String
@@ -61,6 +63,7 @@ instance FromJSON Val where
     t <- v .: "input"
     case parseLine t of
       Right x -> case runWithBuffer (emptyEnv (0,0)) ([], [], 1) x of
+        Right (_, (Err s)) -> fail $ "failed to evaluate: " ++ s
         Right (_, v') -> return v'
         Left _ -> fail "failed to parse..." -- FIXME
       Left _ -> fail "failed to parse..."
@@ -124,6 +127,14 @@ data SpielResponse =
   -- | String
   Log String
   deriving(Eq, Generic)
+
+-- | Smart constructor for a SpielParseError
+spielParseError :: String -> ParseError -> SpielResponse
+spielParseError fn er = SpielParseError l c fn (show er)
+   where
+      pos = errorPos er
+      l   = sourceLine pos
+      c   = sourceColumn pos
 
 instance ToJSON SpielResponse where
 

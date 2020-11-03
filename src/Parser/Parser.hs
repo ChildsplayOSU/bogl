@@ -217,7 +217,7 @@ comma :: ParsecT String u Identity String
 comma = P.comma lexer
 
 -- | A parser for a literal expression
-literal :: Parser (Expr ())
+literal :: Parser (Expr SourcePos)
 literal =
   I <$> int
   <|>
