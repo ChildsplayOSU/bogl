@@ -6,8 +6,8 @@ License     : BSD-3
 -}
 
 module Parser.Parser (
-   parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameText,
-   expr, isLeft, parseAll, valdef, ftype, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser, lexer, reservedNames, enum)
+   parseLine, parseFromText, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameText,
+   expr, isLeft, parseAll, valdef, ftype, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser, lexer, reservedNames, enum, literal)
 where
 
 import Parser.Error
@@ -201,9 +201,8 @@ commaSep1 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
 commaSep1 = P.commaSep1 lexer
 
 -- | 0 or more comma separated values
--- unused
---commaSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
---commaSep = P.commaSep lexer
+commaSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
+commaSep = P.commaSep lexer
 
 -- | Reserved ops
 reservedOp :: String -> ParsecT String u Identity ()
@@ -216,6 +215,19 @@ reservedOp = P.reservedOp lexer
 -- | Comma separator
 comma :: ParsecT String u Identity String
 comma = P.comma lexer
+
+-- | A parser for a literal expression
+literal :: Parser (Expr ())
+literal =
+  I <$> int
+  <|>
+  B <$> (reserved "True" *> pure True)
+  <|>
+  B <$> (reserved "False" *> pure False)
+  <|>
+  S <$> capIdentifier
+  <|>
+  Tuple <$> parens ((:) <$> (lexeme literal <* lexeme comma) <*> commaSep literal)
 
 -- | Atomic expression, under an annotation
 atom :: Parser (Expr SourcePos)
