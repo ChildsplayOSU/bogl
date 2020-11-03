@@ -1,5 +1,10 @@
 # 6) In a Row
 
+--------------
+### New Tutorial Location
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
+--------------
+
 [Previous Tutorial, Input](Input).
 
 In this tutorial we'll talk about how to describe something closer to an actual board game. In this case, we'll talk about how to write up something that is similar to Tic Tac Toe, except with just one player.

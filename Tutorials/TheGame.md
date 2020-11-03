@@ -1,5 +1,10 @@
 # 3) The (Simple) Game
 
+--------------
+### New Tutorial Location
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
+--------------
+
 [Previous Tutorial, Intro](Intro)
 
 In this tutorial, we will walk through how to create a basic game that end as soon as it starts, called 'The Game'. This will demonstrate that we can describe a game even if it doesn't do very much. If you haven't already, we would highly recommend you go over the tutorials before this one, so you will be familiar with some of the concepts we'll be using.

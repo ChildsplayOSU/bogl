@@ -1,5 +1,10 @@
 # Reference Sheet for BoGL
 
+--------------
+### New Tutorial Location
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
+--------------
+
 ## What it is and how to Speak it.
 
 BoGL is a domain specific teaching language, i.e. it's a simplified programming language with an emphasis on teaching students the basics of computer science.

@@ -1,5 +1,10 @@
 # 2) Understanding Types
 
+--------------
+### New Tutorial Location
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
+--------------
+
 [Previous Tutorial](GettingStarted)
 
 Jack and Rosa want to play a board game. They decide that who gets to go first should be determined by the result of a coin toss.
@@ -23,7 +28,7 @@ Next we will capture the coin toss result. For this we are going to create a typ
 
 
 There are currently no defined types for a coin toss result (as there are for integers and booleans), so we will make one ourselves!
-The pieces of information we need to create our own type are: 
+The pieces of information we need to create our own type are:
 
 * The name we want to call our type
 * The possible values of our type
@@ -45,11 +50,11 @@ Think of a type as a classification. We, as the programmer, must specify what in
  type DiceResult = {One, Two, Three, Four, Five, Six}
  type ChessPiece = {Pawn, Bishop, Knight, Rook, Queen, King}
  type ClueCharacter = {MissScarlett, ColonelMustard, MrsWhite, ReverendGreen, MrsPeacock, ProfessorPlum}
- 
+
  -- non board game themed types
  type ClassicIceCreamFlavor = {Vanilla, Chocolate, Strawberry}
  type WaterValveState = {Open, Closed}
- type StateOfMatter = {Solid, Liquid, Gas, Plasma} 
+ type StateOfMatter = {Solid, Liquid, Gas, Plasma}
  ```
 
 

@@ -1,5 +1,10 @@
 # 1) Getting Started with BoGL
 
+--------------
+### New Tutorial Location
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
+--------------
+
 Getting started with BoGL is straightforward, as you can start coding directly in our [online tool](https://bogl.engr.oregonstate.edu/).
 
 

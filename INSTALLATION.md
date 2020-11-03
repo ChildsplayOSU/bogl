@@ -1,5 +1,10 @@
 # Installing BoGL with Spiel
 
+--------------
+### New Tutorial Location
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
+--------------
+
 Spiel, our application stack for the BoGL teaching language, is primarily designed to be used from a web interface, but is also capable of being worked on locally. We would recommend this only for developers who are familiar with the command prompt, a unix shell, and potentially a little bit of Haskell.
 
 ## Installation Video

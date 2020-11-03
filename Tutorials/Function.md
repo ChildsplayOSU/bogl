@@ -1,5 +1,10 @@
 # 4) Your Second Function
 
+--------------
+### New Tutorial Location
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
+--------------
+
 [Previous Tutorial, The Game](TheGame)
 
 After finishing your last tutorial, you're probably wondering a little bit more about some of the aspects of this language. One of the next things we would like to go over in this tutorial is **Functions**. As we mentioned before, you can think of functions as a way of describing a process or routine that you would do. This is comparable to what you do every morning when you wake up, such as brushing your teeth, eating breakfast, going to school (but maybe not on the weekends...). These are things that you do repeatedly, and pretty much the same way each time. Similarly, you can think of functions as something that is repeated roughly the same way every time you use it.

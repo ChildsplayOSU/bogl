@@ -1,5 +1,10 @@
 # 2) Intro
 
+--------------
+### New Tutorial Location
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
+--------------
+
 [Previous Tutorial, Getting Started](GettingStarted)
 
 To write your first BoGL Program. We're going to give you a few components to work with, we call these bits the **syntax**, or elements of the language. Much like the structure of this sentence that you're reading now, BoGL has a certain way of talking about things (board games that is).

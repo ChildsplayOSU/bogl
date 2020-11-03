@@ -1,5 +1,10 @@
 # 5) Input
 
+--------------
+### New Tutorial Location
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
+--------------
+
 [Previous Tutorial, Your Second Function](Function).
 
 For this tutorial we'll go over how to handle input into a program. If you've been following along with the tutorials up until this point you should have a little bit of working code from before. If you don't have your code, or you are starting for the first time, you can look back at the previous tutorials to make sure you understand everything that we're using here.

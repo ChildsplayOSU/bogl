@@ -1,5 +1,10 @@
 # BoGL Lang (The Board Game Language)
 
+--------------
+### New Tutorial Location
+These tutorials are out of date, and will be removed. The new location for all up to-date BoGL information will is https://bogl.engr.oregonstate.edu/tutorials/.
+--------------
+
 ## What is BoGL Lang?
 
 BoGL Lang is a domain specific teaching language for teaching young students algorithms. It serves as a simple first step language into computer science.
