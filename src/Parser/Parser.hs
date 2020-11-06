@@ -196,13 +196,18 @@ gameIdentifier = capIdentifier
 capIdentifier :: ParsecT String u Identity [Char]
 capIdentifier = lookAhead upper *> identifier
 
+-- | Comma separated values, 2 or more
+commaSep2 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
+commaSep2 p = (:) <$> (lexeme p <* lexeme comma) <*> commaSep1 p
+
 -- | Comma separated values, 1 or more
 commaSep1 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
 commaSep1 = P.commaSep1 lexer
 
 -- | 0 or more comma separated values
-commaSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
-commaSep = P.commaSep lexer
+-- unused, but possibly useful
+--commaSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
+--commaSep = P.commaSep lexer
 
 -- | Reserved ops
 reservedOp :: String -> ParsecT String u Identity ()
@@ -216,10 +221,11 @@ reservedOp = P.reservedOp lexer
 comma :: ParsecT String u Identity String
 comma = P.comma lexer
 
--- | A parser for a literal expression
+-- | A parser for a literal expression (to be used for input).
+--   Consumes all preceding whitespace since it is a top-level parser.
 literal :: Parser (Expr SourcePos)
-literal =
-  I <$> int
+literal = spaces *> -- note: intentionally does not use whiteSpace, which allows comments
+  (I <$> int
   <|>
   B <$> (reserved "True" *> pure True)
   <|>
@@ -227,7 +233,9 @@ literal =
   <|>
   S <$> capIdentifier
   <|>
-  Tuple <$> parens ((:) <$> (lexeme literal <* lexeme comma) <*> commaSep literal)
+  (try $ parens (literal <* notFollowedBy comma)) -- parenthesized literal
+  <|>
+  Tuple <$> parens (commaSep2 literal))
 
 -- | Atomic expression, under an annotation
 atom :: Parser (Expr SourcePos)

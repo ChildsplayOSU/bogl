@@ -36,4 +36,4 @@ instance Show TypeError where
   show (Dereff n _t)             = "Could not dereference the function " ++ n ++ " with type " ++ show _t ++ ". Maybe you forgot to give it arguments."
   show (Uninitialized n)         = "Incomplete initialization of Board " ++ quote n
   show (SigBadFeq n sig f)       = quote (n ++ " : " ++ show sig) ++ " cannot be defined with the function equation\n\t" ++ show f
-  show (InputMismatch act xp e)  = "Got type " ++ show act ++ " but expected type " ++ show xp ++ " from input:\n\t" ++ show e
+  show (InputMismatch act xp e)  = "Got type " ++ show act ++ ", but expected type " ++ show xp ++ " from input:\n\t" ++ show e

@@ -94,12 +94,9 @@ boardt = Plain boardxt
 boardxt :: Xtype
 boardxt = bnestx Board
 
+-- | Xtype smart constructor for Input
 inputxt :: Xtype
 inputxt = bnestx Input
-
--- | Nest a Btype as a Type
-p :: Btype -> Type
-p b = Plain $ X b S.empty
 
 instance Show Xtype where
   show (X b xs) | S.null xs = show b
