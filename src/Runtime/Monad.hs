@@ -10,6 +10,7 @@ import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Identity
+import qualified Data.Map.Strict as Map
 
 
 -- | Eval Monad transformer
@@ -32,7 +33,7 @@ getEnv = evalEnv <$> ask
 
 -- | Produces an empty environment for testing, and for starting evaluations
 emptyEnv :: (Int,Int) -> Env
-emptyEnv x = Env [] x
+emptyEnv x = Env Map.empty x
 
 -- | Modifies the evaluation environment, producing a new environment
 modifyEval :: (EvalEnv -> EvalEnv) -> Env -> Env
@@ -76,13 +77,13 @@ runEval env buf x = runIdentity (runReaderT (runExceptT (evalStateT x buf)) env)
 
 -- | Evaluate with an extended scope
 extScope :: EvalEnv -> Eval a -> Eval a
-extScope env = local (modifyEval (env++))
+extScope env = local (modifyEval (Map.union env))
 
 -- | Lookup a name in the environment FIXME
 lookupName :: Name -> Eval (Maybe Val)
 lookupName n = do
   env <- getEnv
-  case lookup n env of
+  case Map.lookup n env of
     Just v -> (return . Just) v
     Nothing -> return Nothing
 

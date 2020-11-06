@@ -15,13 +15,14 @@ import Data.Array
 import Data.List
 import Data.Aeson hiding (Array)
 import GHC.Generics
+import qualified Data.Map.Strict as Map
 
 -- | Representation of a Board in BoGL,
 -- composed of an NxM array of 'Val'
 type Board = Array (Int, Int) Val
 
 -- | Evaluation environment
-type EvalEnv = [(Name, Val)]
+type EvalEnv = Map.Map Name Val --[(Name, Val)]
 
 -- | Runtime values that can be encountered
 data Val = Vi Int                      -- ^ Integer value

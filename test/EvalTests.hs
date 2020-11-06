@@ -14,6 +14,7 @@ import Runtime.Values
 import Data.Array
 import Language.Types
 import Parser.Parser
+import qualified Data.Map.Strict as Map
 
 evalTests :: Test
 evalTests = TestList [
@@ -129,8 +130,8 @@ testEvalLimit :: Test
 testEvalLimit = TestCase (
   assertEqual "Test that the evaluation limit works"
   True
-  (isRightErr (let _valdef = (Vf ["x"] [] (If (Binop Less (Ref "x") (I 6000)) (App "iloop" (Tuple [(Binop Plus (Ref "x") (I 1))])) (Ref "x"))) in
-     let env    = Env [("iloop", _valdef)] (1,1) in
+  (isRightErr (let _valdef = (Vf ["x"] Map.empty (If (Binop Less (Ref "x") (I 6000)) (App "iloop" (Tuple [(Binop Plus (Ref "x") (I 1))])) (Ref "x"))) in
+     let env    = Env (Map.fromList [("iloop", _valdef)]) (1,1) in
      let buffer = ([],[],1) in
      let evalVal= eval (App "iloop" (Tuple [(I 0)])) in
      runEval env buffer evalVal)))
@@ -142,7 +143,7 @@ testNegativeBoardAccess = TestCase (
   True
   (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
    let _board  = Vboard barray in
-   let env    = Env [("b", _board)] (1,1) in
+   let env    = Env (Map.fromList [("b", _board)]) (1,1) in
    let buffer = ([],[],1) in
    let evalVal= eval (Ref "b!(1,-1)") in
    runEval env buffer evalVal)))
@@ -187,5 +188,5 @@ testBadPlace = TestCase (
   True
   (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
    let _board  = Vboard barray in
-   let evalTT = runEval (Env [("b",_board)] (1,1)) ([], [], 1) in
+   let evalTT = runEval (Env (Map.fromList [("b",_board)]) (1,1)) ([], [], 1) in
    isRightErr (evalTT (eval (App "place" (Tuple [(I 1),(Ref "b"),(Tuple [(I 1),(I 2)])]))))))
