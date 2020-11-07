@@ -4,10 +4,11 @@ import System.Exit (exitSuccess,exitFailure)
 import ParserTests
 import EvalTests
 import TypeCheckerTests
+import APITests
 
 -- collects all tests together
 spielTests :: Test
-spielTests = TestList [parserTests,evalTests,typeCheckerTests]
+spielTests = TestList [parserTests,evalTests,typeCheckerTests, apiTests]
 
 -- run all tests in the suite
 main :: IO ()

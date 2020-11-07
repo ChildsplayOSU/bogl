@@ -17,9 +17,6 @@ import Language.Types
 import GHC.Generics
 import Data.Aeson
 import Runtime.Values
-import Runtime.Eval
-import Parser.Parser
-import Runtime.Monad
 import Error.Error
 
 import Text.Parsec (errorPos, sourceLine, sourceColumn, ParseError)
@@ -58,31 +55,17 @@ instance FromJSON SpielFile where
   parseJSON (Object v) = SpielFile <$> v .: "fileName" <*> v .: "content"
   parseJSON _          = fail "Unable to parse File option" -- fallback
 
-instance FromJSON Val where
-  parseJSON (Object v) = do
-    t <- v .: "input"
-    case parseLine t of
-      Right x -> case runWithBuffer (emptyEnv (0,0)) ([], [], 1) x of
-        Right (_, (Err s)) -> fail $ "failed to evaluate: " ++ s
-        Right (_, v') -> return v'
-        Left _ -> fail "failed to parse..." -- FIXME
-      Left _ -> fail "failed to parse..."
-  parseJSON _ = fail "Unable to parse Val"
-
-
 -- | Representation of input to the repl, from the user
 data SpielCommand = SpielCommand {
     prelude     :: String,
     file        :: String,
     input       :: String,
-    buffer      :: [Val],
+    buffer      :: [String],
     programName :: String
   } deriving (Eq, Show, Generic)
 
-
 instance ToJSON SpielCommand
 instance FromJSON SpielCommand
-
 
 -- | Error message
 type Message = String
@@ -155,8 +138,8 @@ instance Show SpielResponse where
   show (SpielTypeHole m _ _)            = show m
   -- show a fallback error, such as reading a bad-file
   show (SpielError m)                   = show m
-  show x                                = show x
-
+  show (SpielTypeError e)               = show e
+  show _                                = "unused SpielResponse" -- todo: clean these out
 
 -- | List of spiel responses
 type SpielResponses = [SpielResponse]

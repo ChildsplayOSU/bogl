@@ -646,7 +646,7 @@ testWellFormedLiteral = TestCase (
   True $
   checkAllParsePass literal lits)
      where
-        lits = ["1", "True", "False", "-1", "+1", "A", "(((40, 2), Nested, Tuple), 0)",
+        lits = ["1", " 1", "1 ", "True", "False", "-1", "+1", "A", "(((40, 2), Nested, Tuple), 0)",
                 "(Parenthesized)", "       (Whitespace      ,     100    )"]
 
 testIllFormedLiteral :: Test

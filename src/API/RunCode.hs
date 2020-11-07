@@ -13,13 +13,10 @@ import API.Run
 import API.JSONData
 import Servant
 
-import Control.Monad.IO.Class
-
-
 -- | Runs literal code, lifting it into Handler
 -- Runs the contents of the prelude and gamefile without writing them out into files
 -- Once these both succeed, the new temporary files are parsed
 -- , and the response is returned
 handleRunCode :: SpielCommand -> Handler SpielResponses
 -- calls API.Run._runCodeWithCommands to interpret this raw BoGL code
-handleRunCode sc = liftIO (_runCodeWithCommands sc)
+handleRunCode sc = return $ _runCodeWithCommands sc

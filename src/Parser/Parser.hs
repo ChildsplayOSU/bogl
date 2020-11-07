@@ -143,9 +143,6 @@ op s f assoc = Infix (reservedOp s *> pure f) assoc
 lexeme :: ParsecT String u Identity a -> ParsecT String u Identity a
 lexeme = P.lexeme lexer
 
--- TODO REMOVED UNUSED
---integer = P.integer lexer
-
 -- | Integer token recognizer
 int :: ParsecT String u Identity Int
 int = fromInteger <$> P.integer lexer
@@ -560,9 +557,8 @@ parseGameFromText :: String -> String -> ([Maybe (ValDef SourcePos)], ParState) 
 parseGameFromText prog fileName pr = parseWithState (snd pr) (parseGame (catMaybes (fst pr))) fileName prog
 
 -- | Parse a prelude and game from text directly, without a file
-parsePreludeAndGameText :: String -> String -> String -> IO ParseResult
-parsePreludeAndGameText preludeContent gameFileContent fileName = do
-  prel <- return (parsePreludeFromText preludeContent)
-  case prel of
-    Right r -> return (parseGameFromText gameFileContent fileName r)
-    Left err              -> return $ Left err
+parsePreludeAndGameText :: String -> String -> String -> ParseResult
+parsePreludeAndGameText preludeContent gameFileContent fileName =
+  case parsePreludeFromText preludeContent of
+    Right r  -> (parseGameFromText gameFileContent fileName r)
+    Left err -> Left err
