@@ -6,8 +6,8 @@ License     : BSD-3
 -}
 
 module Parser.Parser (
-   parseLine, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameText,
-   expr, isLeft, parseAll, valdef, ftype, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser, lexer, reservedNames, enum)
+   parseLine, parseFromText, parsePreludeFromText, parseGameFromText, parseGameFile, parsePreludeAndGameText,
+   expr, isLeft, parseAll, valdef, ftype, xtype, boardeqn, equation, decl, parseGame, typesyn, Parser, lexer, reservedNames, enum, literal)
 where
 
 import Parser.Error
@@ -143,9 +143,6 @@ op s f assoc = Infix (reservedOp s *> pure f) assoc
 lexeme :: ParsecT String u Identity a -> ParsecT String u Identity a
 lexeme = P.lexeme lexer
 
--- TODO REMOVED UNUSED
---integer = P.integer lexer
-
 -- | Integer token recognizer
 int :: ParsecT String u Identity Int
 int = fromInteger <$> P.integer lexer
@@ -196,12 +193,16 @@ gameIdentifier = capIdentifier
 capIdentifier :: ParsecT String u Identity [Char]
 capIdentifier = lookAhead upper *> identifier
 
+-- | Comma separated values, 2 or more
+commaSep2 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
+commaSep2 p = (:) <$> (lexeme p <* lexeme comma) <*> commaSep1 p
+
 -- | Comma separated values, 1 or more
 commaSep1 :: ParsecT String u Identity a -> ParsecT String u Identity [a]
 commaSep1 = P.commaSep1 lexer
 
 -- | 0 or more comma separated values
--- unused
+-- unused, but possibly useful
 --commaSep :: ParsecT String u Identity a -> ParsecT String u Identity [a]
 --commaSep = P.commaSep lexer
 
@@ -216,6 +217,22 @@ reservedOp = P.reservedOp lexer
 -- | Comma separator
 comma :: ParsecT String u Identity String
 comma = P.comma lexer
+
+-- | A parser for a literal expression (to be used for input).
+--   Consumes all preceding whitespace since it is a top-level parser.
+literal :: Parser (Expr SourcePos)
+literal = spaces *> -- note: intentionally does not use whiteSpace, which allows comments
+  (I <$> int
+  <|>
+  B <$> (reserved "True" *> pure True)
+  <|>
+  B <$> (reserved "False" *> pure False)
+  <|>
+  S <$> capIdentifier
+  <|>
+  (try $ parens (literal <* notFollowedBy comma)) -- parenthesized literal
+  <|>
+  Tuple <$> parens (commaSep2 literal))
 
 -- | Atomic expression, under an annotation
 atom :: Parser (Expr SourcePos)
@@ -540,9 +557,8 @@ parseGameFromText :: String -> String -> ([Maybe (ValDef SourcePos)], ParState) 
 parseGameFromText prog fileName pr = parseWithState (snd pr) (parseGame (catMaybes (fst pr))) fileName prog
 
 -- | Parse a prelude and game from text directly, without a file
-parsePreludeAndGameText :: String -> String -> String -> IO ParseResult
-parsePreludeAndGameText preludeContent gameFileContent fileName = do
-  prel <- return (parsePreludeFromText preludeContent)
-  case prel of
-    Right r -> return (parseGameFromText gameFileContent fileName r)
-    Left err              -> return $ Left err
+parsePreludeAndGameText :: String -> String -> String -> ParseResult
+parsePreludeAndGameText preludeContent gameFileContent fileName =
+  case parsePreludeFromText preludeContent of
+    Right r  -> (parseGameFromText gameFileContent fileName r)
+    Left err -> Left err

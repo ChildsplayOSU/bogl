@@ -21,6 +21,10 @@ checkAllParse prd pr = all (prd . parseAll pr "")
 checkAllParseFail :: Foldable t => Parser a -> t String -> Bool
 checkAllParseFail = checkAllParse isLeft
 
+-- | Checks that all parse results are successes
+checkAllParsePass :: Foldable t => Parser a -> t String -> Bool
+checkAllParsePass = checkAllParse isRight
+
 --
 -- exported tests for the Parser
 --
@@ -43,6 +47,8 @@ parserTests = TestList [
   testTypeExtLimitation2, -- todo: remove when this becomes a type error
   testIdentifiersMustBeLower,
   testNestedExprInWhileOkay,
+  testIllFormedLiteral,
+  testWellFormedLiteral,
   testRejectReservedNameSymbol,
   testMisnamedDefIsParseError1,
   testMisnamedDefIsParseError2,
@@ -628,12 +634,29 @@ testIdentifiersMustBeLower = TestCase (
   False
   (isRight $ parseAll (many decl) "" "F:Int\nF=5\nF2:Int->Int\nF2(x)=x"))
 
--- | Inputs should be okay where a normal Input would be
 testNestedExprInWhileOkay :: Test
 testNestedExprInWhileOkay = TestCase (
   assertEqual "Test that unparenthesized nested expressions are allowed in while"
   True
   (isRight $ parseAll expr "" "while x < 10 do x + 1"))
+
+testWellFormedLiteral :: Test
+testWellFormedLiteral = TestCase (
+  assertEqual "Test that well-formed literals parse"
+  True $
+  checkAllParsePass literal lits)
+     where
+        lits = ["1", " 1", "1 ", "True", "False", "-1", "+1", "A", "(((40, 2), Nested, Tuple), 0)",
+                "(Parenthesized)", "       (Whitespace      ,     100    )"]
+
+testIllFormedLiteral :: Test
+testIllFormedLiteral = TestCase (
+  assertEqual "Test that ill-formed literals do not parse"
+  True $
+  checkAllParseFail literal lits)
+     where
+        lits = ["1 +", "1 * 1", "input", "let x = 1 in while x < 10 do x + 1", "1,1", "(1,)",
+                "(1,,1)", "()", "(,1,2)", "-- 1", "{- 1 -}"]
 
 -- | Tests that reserved names are not valid symbols
 testRejectReservedNameSymbol :: Test
