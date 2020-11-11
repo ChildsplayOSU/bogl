@@ -632,21 +632,21 @@ testTypeExtLimitation2 = TestCase (
 
 testCantDefineContentBefore :: Test
 testCantDefineContentBefore = TestCase (
-  assertBool "Test that Content cannot cannot defined by a user before board"
+  assertBool "Test that Content cannot be defined by a user before board"
   (isLeft $ parseAll (parseGame []) "" g))
      where
         g = "game E\ntype Content = Int\ntype Board = Array (1,1) of Int)"
 
 testCantDefineContentAfter :: Test
 testCantDefineContentAfter = TestCase (
-  assertBool "Test that Content cannot cannot defined by a user after board"
+  assertBool "Test that Content cannot be defined by a user after board"
   (isLeft $ parseAll (parseGame []) "" g))
      where
         g = "game E\ntype Board = Array (1,1) of Int)\ntype Content = Int"
 
 testCantDefineContentInPrelude :: Test
 testCantDefineContentInPrelude = TestCase (
-  assertBool "Test that Content cannot cannot defined by a user in the prelude"
+  assertBool "Test that Content cannot be defined by a user in the prelude"
   (isLeft $ parsePreludeFromText "type Content = Int"))
 
 -- | Tests that identifiers must starst with a lowercase alpha char
