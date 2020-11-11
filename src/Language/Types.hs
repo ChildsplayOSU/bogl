@@ -19,7 +19,7 @@ import qualified Data.Set as S
 data BoardDef = BoardDef
   {
     size  :: (Int, Int) -- ^ size of the board
-  , piece :: Xtype      -- ^ types of pieces that can be on the board
+  , content :: Xtype    -- ^ type of values that can be on the board
   }
   deriving (Generic)
 

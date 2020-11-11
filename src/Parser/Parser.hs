@@ -43,7 +43,7 @@ data ParState =
 
 -- | A parse context with builtins
 startState :: ParState
-startState = PS Nothing [] (map fst builtins ++ map fst builtinRefs) []
+startState = PS Nothing [] (map fst builtins ++ map fst builtinRefs ++ reservedTypes) []
 
 -- | Parser type
 type Parser = Parsec String (ParState)
@@ -483,6 +483,7 @@ board = do
   _ <- (lexeme . char) ')'
   boardType <- reserved "of" *> xtype
   guard (x > 0 && y > 0) <?> "board dimensions to be >= 1"
+  addSyn ("Content", boardType)
   return $ BoardDef (x,y) boardType
   -- fallback to a default 1,1 board of Int
   -- only comes up when 'type Board' is not seen
@@ -537,7 +538,7 @@ parseFromFile _p fname = do
 -- Still takes a file name so as to provide a reasonable debug message if parsing fails
 -- This will likely be something general, such as Prelude or Gamefile
 parseFromText :: Parser a -> String -> String -> Either ParseError a
-parseFromText _p fn content = parseAll _p fn content
+parseFromText _p fn contents = parseAll _p fn contents
 
 -- | Parse a single line as an expression
 parseLine :: String -> Either ParseError (Expr SourcePos)
@@ -549,7 +550,7 @@ parseGameFile = parseFromFile (parseGame [])
 
 -- | Parse the prelude from text
 parsePreludeFromText :: String -> Either ParseError ([Maybe (ValDef SourcePos)], ParState)
-parsePreludeFromText content = parseFromText prelude "Prelude" content
+parsePreludeFromText contents = parseFromText prelude "Prelude" contents
 
 -- | Parse a game from text and the result of a previous parse (e.g. the prelude)
 -- Such as in the case of the function above 'Parser.Parser.parsePreludeFromtext'

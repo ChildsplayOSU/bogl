@@ -45,6 +45,9 @@ parserTests = TestList [
   testTypeSynCannotBeItsOwnValue,
   testTypeExtLimitation1, -- todo: remove when this becomes a type error
   testTypeExtLimitation2, -- todo: remove when this becomes a type error
+  testCantDefineContentBefore,
+  testCantDefineContentAfter,
+  testCantDefineContentInPrelude,
   testIdentifiersMustBeLower,
   testNestedExprInWhileOkay,
   testIllFormedLiteral,
@@ -626,6 +629,25 @@ testTypeExtLimitation2 = TestCase (
   assertEqual "Test that a type cannot be extended by a non etype"
   False
   (isRight $ parseAll (parseGame []) "" "game E\ntype T1 = Board\ntype T2 = Int & T1"))
+
+testCantDefineContentBefore :: Test
+testCantDefineContentBefore = TestCase (
+  assertBool "Test that Content cannot be defined by a user before board"
+  (isLeft $ parseAll (parseGame []) "" g))
+     where
+        g = "game E\ntype Content = Int\ntype Board = Array (1,1) of Int)"
+
+testCantDefineContentAfter :: Test
+testCantDefineContentAfter = TestCase (
+  assertBool "Test that Content cannot be defined by a user after board"
+  (isLeft $ parseAll (parseGame []) "" g))
+     where
+        g = "game E\ntype Board = Array (1,1) of Int)\ntype Content = Int"
+
+testCantDefineContentInPrelude :: Test
+testCantDefineContentInPrelude = TestCase (
+  assertBool "Test that Content cannot be defined by a user in the prelude"
+  (isLeft $ parsePreludeFromText "type Content = Int"))
 
 -- | Tests that identifiers must starst with a lowercase alpha char
 testIdentifiersMustBeLower :: Test

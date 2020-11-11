@@ -65,7 +65,7 @@ deftype (BVal (Sig n _t) eqs x) = do
 beqntype :: BoardEq SourcePos -> Typechecked Type
 beqntype (PosDef _ xp yp _e) = do
    et <- exprtypeE _e
-   pt <- getPiece
+   pt <- getContent
    (mx, my) <- getSize
    case (et <= pt, xp <= Index mx && xp > Index 0, yp <= Index my && yp > Index 0) of
       (True, True, True) -> return boardt
@@ -124,14 +124,14 @@ exprtype (Binop Get e1 (Tuple [(I x), (I y)])) = do
   inB <- inBounds (x, y)
   hasType _t1 boardxt
   if inB
-     then getPiece
+     then getContent
      else outofbounds (Index x) (Index y)
 exprtype (Binop Get e1 e2) = do
   _t1 <- exprtype e1
   _t2 <- exprtype e2
   hasType _t1 (X Board S.empty)
   hasType _t2 (Tup [intxt, intxt])
-  getPiece
+  getContent
 exprtype (Binop o e1 e2) = do
   _t1 <- exprtype e1
   _t2 <- exprtype e2
