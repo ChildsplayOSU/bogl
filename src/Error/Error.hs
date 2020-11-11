@@ -21,6 +21,7 @@ data Error = Error {
 
 -- Note: the error code functionality works, but only for type errors so they are not displayed
 instance Show Error where
+   show (Error (TE e@(InputMismatch _ _ _)) _ _) = show e
    show (Error (TE e) _ p) = "Type error in " ++ srcname ++ show e
       where
          srcname = case sourceName p of
@@ -57,3 +58,4 @@ cterr terr = Error (TE terr) (assign terr)
                     (Dereff _ _)          -> 8
                     (Uninitialized _)     -> 10
                     (SigBadFeq _ _ _)     -> 11
+                    (InputMismatch _ _ _) -> 12

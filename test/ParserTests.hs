@@ -21,6 +21,10 @@ checkAllParse prd pr = all (prd . parseAll pr "")
 checkAllParseFail :: Foldable t => Parser a -> t String -> Bool
 checkAllParseFail = checkAllParse isLeft
 
+-- | Checks that all parse results are successes
+checkAllParsePass :: Foldable t => Parser a -> t String -> Bool
+checkAllParsePass = checkAllParse isRight
+
 --
 -- exported tests for the Parser
 --
@@ -41,8 +45,13 @@ parserTests = TestList [
   testTypeSynCannotBeItsOwnValue,
   testTypeExtLimitation1, -- todo: remove when this becomes a type error
   testTypeExtLimitation2, -- todo: remove when this becomes a type error
+  testCantDefineContentBefore,
+  testCantDefineContentAfter,
+  testCantDefineContentInPrelude,
   testIdentifiersMustBeLower,
   testNestedExprInWhileOkay,
+  testIllFormedLiteral,
+  testWellFormedLiteral,
   testRejectReservedNameSymbol,
   testMisnamedDefIsParseError1,
   testMisnamedDefIsParseError2,
@@ -621,6 +630,25 @@ testTypeExtLimitation2 = TestCase (
   False
   (isRight $ parseAll (parseGame []) "" "game E\ntype T1 = Board\ntype T2 = Int & T1"))
 
+testCantDefineContentBefore :: Test
+testCantDefineContentBefore = TestCase (
+  assertBool "Test that Content cannot be defined by a user before board"
+  (isLeft $ parseAll (parseGame []) "" g))
+     where
+        g = "game E\ntype Content = Int\ntype Board = Array (1,1) of Int)"
+
+testCantDefineContentAfter :: Test
+testCantDefineContentAfter = TestCase (
+  assertBool "Test that Content cannot be defined by a user after board"
+  (isLeft $ parseAll (parseGame []) "" g))
+     where
+        g = "game E\ntype Board = Array (1,1) of Int)\ntype Content = Int"
+
+testCantDefineContentInPrelude :: Test
+testCantDefineContentInPrelude = TestCase (
+  assertBool "Test that Content cannot be defined by a user in the prelude"
+  (isLeft $ parsePreludeFromText "type Content = Int"))
+
 -- | Tests that identifiers must starst with a lowercase alpha char
 testIdentifiersMustBeLower :: Test
 testIdentifiersMustBeLower = TestCase (
@@ -628,12 +656,29 @@ testIdentifiersMustBeLower = TestCase (
   False
   (isRight $ parseAll (many decl) "" "F:Int\nF=5\nF2:Int->Int\nF2(x)=x"))
 
--- | Inputs should be okay where a normal Input would be
 testNestedExprInWhileOkay :: Test
 testNestedExprInWhileOkay = TestCase (
   assertEqual "Test that unparenthesized nested expressions are allowed in while"
   True
   (isRight $ parseAll expr "" "while x < 10 do x + 1"))
+
+testWellFormedLiteral :: Test
+testWellFormedLiteral = TestCase (
+  assertEqual "Test that well-formed literals parse"
+  True $
+  checkAllParsePass literal lits)
+     where
+        lits = ["1", " 1", "1 ", "True", "False", "-1", "+1", "A", "(((40, 2), Nested, Tuple), 0)",
+                "(Parenthesized)", "       (Whitespace      ,     100    )"]
+
+testIllFormedLiteral :: Test
+testIllFormedLiteral = TestCase (
+  assertEqual "Test that ill-formed literals do not parse"
+  True $
+  checkAllParseFail literal lits)
+     where
+        lits = ["1 +", "1 * 1", "input", "let x = 1 in while x < 10 do x + 1", "1,1", "(1,)",
+                "(1,,1)", "()", "(,1,2)", "-- 1", "{- 1 -}"]
 
 -- | Tests that reserved names are not valid symbols
 testRejectReservedNameSymbol :: Test

@@ -19,7 +19,7 @@ import qualified Data.Set as S
 data BoardDef = BoardDef
   {
     size  :: (Int, Int) -- ^ size of the board
-  , piece :: Xtype      -- ^ types of pieces that can be on the board
+  , content :: Xtype    -- ^ type of values that can be on the board
   }
   deriving (Generic)
 
@@ -94,9 +94,9 @@ boardt = Plain boardxt
 boardxt :: Xtype
 boardxt = bnestx Board
 
--- | Nest a Btype as a Type
-p :: Btype -> Type
-p b = Plain $ X b S.empty
+-- | Xtype smart constructor for Input
+inputxt :: Xtype
+inputxt = bnestx Input
 
 instance Show Xtype where
   show (X b xs) | S.null xs = show b

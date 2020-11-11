@@ -68,7 +68,7 @@ evalWithLimit e = do
                             ++ "Please double check your program and try again."
 
 -- | Evaluation occurs in the Identity monad with these side effects:
--- ReaderT: Evaluation enviroment, board size and piece type, and input type
+-- ReaderT: Evaluation enviroment, board size and content type, and input type
 -- StateT: Input buffer, used for reading input
 
 -- | Evaluate in the environment given, with a buffer.

@@ -23,21 +23,25 @@ import Control.Monad.State
 
 -- | List of builtin function signatures
 builtinT :: Xtype -> Xtype -> [(String, Type)]
-builtinT = \inputT pieceT -> [
+builtinT = \inputT contentT -> [
   ("input",      Plain $ inputT),
-  ("place",      Function (Ft (Tup [pieceT, boardxt, (Tup [intxt, intxt])]) boardxt)),
-  ("countBoard", Function (Ft (Tup [pieceT, boardxt]) intxt)),
-  ("countCol",   Function (Ft (Tup [pieceT, boardxt]) intxt)),
-  ("countRow",   Function (Ft (Tup [pieceT, boardxt]) intxt)),
-  ("countDiag",  Function (Ft (Tup [pieceT, boardxt]) intxt)),
+  ("place",      Function (Ft (Tup [contentT, boardxt, (Tup [intxt, intxt])]) boardxt)),
+  ("countBoard", Function (Ft (Tup [contentT, boardxt]) intxt)),
+  ("countCol",   Function (Ft (Tup [contentT, boardxt]) intxt)),
+  ("countRow",   Function (Ft (Tup [contentT, boardxt]) intxt)),
+  ("countDiag",  Function (Ft (Tup [contentT, boardxt]) intxt)),
   ("isFull",     Function (Ft boardxt boolxt)),
-  ("inARow",     Function (Ft (Tup [intxt, pieceT, X Board S.empty]) boolxt)),
+  ("inARow",     Function (Ft (Tup [intxt, contentT, X Board S.empty]) boolxt)),
   ("not",        Function (Ft boolxt boolxt)),
   ("or",         Function (Ft (Tup [boolxt, boolxt]) boolxt)),
   ("and",        Function (Ft (Tup [boolxt, boolxt]) boolxt))
            ]
 
--- | places a piece on a board and also adds this new board to the display buffer.
+-- | A user may use these in their type signatures, but they cannot define them
+reservedTypes :: [String]
+reservedTypes = ["Content"]
+
+-- | places a content on a board and also adds this new board to the display buffer.
 --   We only want the latest version of each unique board, so filter out its predecessor.
 place :: [Val] -> Eval Val
 place = \[v, Vboard arr, Vt [Vi x, Vi y]] -> do

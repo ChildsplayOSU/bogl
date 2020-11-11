@@ -16,7 +16,7 @@ import Control.Monad.Reader
 import Text.Parsec.Pos
 
 
-import Language.Types hiding (piece, size)
+import Language.Types hiding (content, size)
 
 import qualified Data.Set as S
 
@@ -33,7 +33,7 @@ type TypeEnv = [(Name, Type)]
 data Env = Env {
   types :: TypeEnv,
   input :: Xtype,
-  piece :: Xtype,
+  content :: Xtype,
   size  :: (Int, Int)
                }
 
@@ -54,7 +54,6 @@ data Stat = Stat {
 
 -- | Typechecking monad
 type Typechecked a = (StateT Stat (ReaderT Env (ExceptT Error Identity))) a
-
 
 -- | Run a computation inside of the typechecking monad
 typecheck :: Env -> Typechecked a -> Either Error (a, Stat)
@@ -79,9 +78,9 @@ getEnv = types <$> ask
 getInput :: Typechecked Xtype
 getInput = input <$> ask
 
--- | Get the piece type
-getPiece :: Typechecked (Xtype)
-getPiece = piece <$> ask
+-- | Get the content type
+getContent :: Typechecked (Xtype)
+getContent = content <$> ask
 
 -- | Get the board size
 getSize :: Typechecked (Int, Int)
@@ -126,8 +125,8 @@ getType :: Name -> Typechecked Type
 getType n = do
   env <- getEnv
   inputT <- getInput
-  pieceT <- getPiece
-  case (lookup n env, lookup n (builtinT inputT pieceT)) of
+  contentT <- getContent
+  case (lookup n env, lookup n (builtinT inputT contentT)) of
     (Just e, _) -> return e
     (_, Just e) -> return e
     _ -> notbound n
@@ -154,6 +153,7 @@ unify (X y z) (X w k)
 unify a b = mismatch (Plain a) (Plain b)
 
 -- | Check if t1 has type t2 with subsumption (i.e. by subtyping)
+--   This is a wrapper around the Ord instance to produce the type error if there is a mismatch
 hasType :: Xtype -> Xtype -> Typechecked Xtype
 hasType (Tup xs) (Tup ys)
   | length xs == length ys = Tup <$> zipWithM hasType xs ys
@@ -172,6 +172,13 @@ getInfo = ((,) <$> getSrc <*> getPos)
 -- | Type mismatch error
 mismatch :: Type -> Type -> Typechecked a
 mismatch _t1 _t2 = getInfo >>= (\(e, x) -> throwError $ cterr (Mismatch _t1 _t2 e) x)
+
+-- | Input type mismatch error
+inputmismatch :: Type -> Typechecked a
+inputmismatch act = do
+                       (e, x) <- getInfo
+                       it     <- getInput
+                       throwError $ cterr (InputMismatch act (Plain it) e) x
 
 -- | Type mismatch error for function application
 appmismatch :: Name -> Type -> Type -> Typechecked a
