@@ -16,7 +16,7 @@ import Control.Monad.Reader
 import Text.Parsec.Pos
 
 
-import Language.Types hiding (piece, size)
+import Language.Types hiding (content, size)
 
 import qualified Data.Set as S
 
@@ -33,7 +33,7 @@ type TypeEnv = [(Name, Type)]
 data Env = Env {
   types :: TypeEnv,
   input :: Xtype,
-  piece :: Xtype,
+  content :: Xtype,
   size  :: (Int, Int)
                }
 
@@ -78,9 +78,9 @@ getEnv = types <$> ask
 getInput :: Typechecked Xtype
 getInput = input <$> ask
 
--- | Get the piece type
-getPiece :: Typechecked (Xtype)
-getPiece = piece <$> ask
+-- | Get the content type
+getContent :: Typechecked (Xtype)
+getContent = content <$> ask
 
 -- | Get the board size
 getSize :: Typechecked (Int, Int)
@@ -125,8 +125,8 @@ getType :: Name -> Typechecked Type
 getType n = do
   env <- getEnv
   inputT <- getInput
-  pieceT <- getPiece
-  case (lookup n env, lookup n (builtinT inputT pieceT)) of
+  contentT <- getContent
+  case (lookup n env, lookup n (builtinT inputT contentT)) of
     (Just e, _) -> return e
     (_, Just e) -> return e
     _ -> notbound n
