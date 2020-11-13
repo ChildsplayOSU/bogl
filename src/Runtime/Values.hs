@@ -58,7 +58,7 @@ instance RuntimeEnv EvalEnv where
 
 -- The base environment type that all other environments are built around
 emptyEvalEnv :: EvalEnv
-emptyEvalEnv = (MapEvalEnv Map.empty)
+emptyEvalEnv = MapEvalEnv Map.empty
 
 
 -- Produces an evaluation env from the base env type

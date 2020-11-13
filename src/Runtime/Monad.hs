@@ -10,7 +10,6 @@ import Control.Monad.Reader
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Identity
-import qualified Data.Map.Strict as Map
 
 
 -- | Eval Monad transformer
