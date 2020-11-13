@@ -193,7 +193,7 @@ eval (App n es) = do
 -- evaluate a Let expression
 eval (Let n e1 e2) = do
   v <- eval e1
-  extScope (MapEvalEnv (Map.singleton n v)) (eval e2)
+  extScope (insertEvalEnv (n,v) emptyEvalEnv) (eval e2)
 
 -- evaluate an If-Then-Else expression
 eval (If p e1 e2) = do
