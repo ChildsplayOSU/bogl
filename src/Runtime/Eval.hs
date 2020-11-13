@@ -28,7 +28,7 @@ bindings :: (Int, Int) -> [ValDef a] -> Writer [Exception] Env
 bindings sz vs = e
   where
     e = foldM (\env (n, v) -> case runEval env ([], [], 1) v of
-                                Right v' -> return $ modifyEval (Map.union $ Map.fromList [(n, v')]) env
+                                Right v' -> return $ modifyEval (insertEvalEnv (n, v')) env
                                 Left _err -> (tell [_err]) >> return env)
         (emptyEnv sz)
         (map bind vs)
@@ -185,15 +185,15 @@ eval (App n es) = do
     Nothing -> do
       f <- lookupName n
       case f of
-        Just (Vf params env' e) -> extScope (Map.union (Map.fromList (zip params (args))) env') (evalWithLimit (eval e)) -- ++ env?
-        Just (Pv env' e)        -> extScope (Map.union (Map.fromList (zip [] (args))) env') (evalWithLimit (eval e)) -- ++ env?
+        Just (Vf params env' e) -> extScope (extendEvalEnv (params,args) env') (evalWithLimit (eval e))--(Map.union (Map.fromList (zip params (args))) env') (evalWithLimit (eval e)) -- ++ env?
+        Just (Pv env' e)        -> extScope (extendEvalEnv ([],args) env') (evalWithLimit (eval e)) --(Map.union (Map.fromList (zip [] (args))) env') (evalWithLimit (eval e)) -- ++ env?
         Nothing                 -> return $ Err $ "Couldn't find " ++ n ++ " in the environment!"
         _                       -> return $ Err $ n ++ " was not correct when looking it up in the environment!"
 
 -- evaluate a Let expression
 eval (Let n e1 e2) = do
   v <- eval e1
-  extScope (Map.singleton n v) (eval e2) --(pure (n, v))
+  extScope (MapEvalEnv (Map.singleton n v)) (eval e2)
 
 -- evaluate an If-Then-Else expression
 eval (If p e1 e2) = do
@@ -214,8 +214,8 @@ eval (While c b names exprs) = do
          env <- getEnv         -- get the current environment
          result <- eval b      -- evaluate the body
          case result of        -- update the variables in the environment w/ new values and recurse:
-            (Vt vs) -> extScope (Map.union (Map.fromList (zip names vs)) env) recurse
-            r       -> extScope (Map.union (Map.fromList [(head names, r)]) env) recurse -- that head should never fail...
+            (Vt vs) -> extScope (extendEvalEnv (names,vs) env) recurse --extScope (unionEvalEnv (Map.fromList (zip names vs)) env) recurse
+            r       -> extScope (insertEvalEnv (head names, r) env) recurse --extScope (unionEvalEnv (Map.fromList [(head names, r)]) env) recurse -- that head should never fail...
       (Just False) -> do
         e <- eval exprs
         return e

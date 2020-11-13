@@ -21,8 +21,50 @@ import qualified Data.Map.Strict as Map
 -- composed of an NxM array of 'Val'
 type Board = Array (Int, Int) Val
 
--- | Evaluation environment
-type EvalEnv = Map.Map Name Val --[(Name, Val)]
+
+-- | Typeclass for a runtime environment
+class RuntimeEnv a where
+  -- insert single key/val pair into the env
+  insertEvalEnv :: (String,Val) -> a -> a
+  -- extend an env with a tuple of keys and vals to be combined
+  extendEvalEnv :: ([String],[Val]) -> a -> a
+  -- combine two environments, producing a new env
+  unionEvalEnv  :: a -> a -> a
+  -- looks up a value in an env
+  lookupEvalEnv :: String -> a -> Maybe Val
+
+
+-- | Different kinds of evaluation environments
+data EvalEnv = ListEvalEnv [(String,Val)] -- env represented with a list
+  | MapEvalEnv (Map.Map String Val) -- env represented with a map
+  deriving(Show)
+
+
+-- | RuntimeEnv instance for EvalEnv
+instance RuntimeEnv EvalEnv where
+  insertEvalEnv pair (ListEvalEnv env) = ListEvalEnv $ pair : env
+  insertEvalEnv (k,v) (MapEvalEnv env) = MapEvalEnv $ Map.insert k v env
+
+  extendEvalEnv (keys,vals) (ListEvalEnv env) = ListEvalEnv $ (zip keys vals) ++ env
+  extendEvalEnv (keys,vals) (MapEvalEnv env) = MapEvalEnv $ Map.union (Map.fromList (zip keys vals)) env
+
+  unionEvalEnv (ListEvalEnv e1) (ListEvalEnv e2) = (ListEvalEnv $ e1 ++ e2)
+  unionEvalEnv (MapEvalEnv e1)  (MapEvalEnv e2) = MapEvalEnv $ Map.union e1 e2
+  unionEvalEnv _ _ = error "Cannot union environments of different values!"
+
+  lookupEvalEnv n (ListEvalEnv e) = lookup n e
+  lookupEvalEnv n (MapEvalEnv e) = Map.lookup n e
+
+
+-- The base environment type that all other environments are built around
+emptyEvalEnv :: EvalEnv
+emptyEvalEnv = (MapEvalEnv Map.empty)
+
+
+-- Produces an evaluation env from the base env type
+evalEnvFromList :: [(String,Val)] -> EvalEnv
+evalEnvFromList ls = extendEvalEnv (unzip ls) emptyEvalEnv
+
 
 -- | Runtime values that can be encountered
 data Val = Vi Int                      -- ^ Integer value
