@@ -32,7 +32,10 @@ evalTests = TestList [
   testEvalNextNotPresent,
   testEvalLimit,
   testNegativeBoardAccess,
-  testBadPlace]
+  testBadPlace,
+  testEvalEqDoesntHideError,
+  testEvalNumOpDoesntHideError,
+  testEvalCompareOpDoesntHideError]
 
 testEvalEquiv :: Test
 testEvalEquiv = TestCase (
@@ -189,3 +192,43 @@ testBadPlace = TestCase (
    let _board  = Vboard barray in
    let evalTT = runEval (Env [("b",_board)] (1,1)) ([], [], 1) in
    isRightErr (evalTT (eval (App "place" (Tuple [(I 1),(Ref "b"),(Tuple [(I 1),(I 2)])]))))))
+
+
+-- | Tests that verifying a binop in if-then-else maintains errors
+-- let x = -1 in if b!(m,1)==1 then 1 else 0
+testEvalEqDoesntHideError :: Test
+testEvalEqDoesntHideError = TestCase (
+  assertEqual "Tests that verifying a binop in if-then-else maintains errors"
+  True
+  (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
+     let _board  = Vboard barray in
+     let env    = Env [("b", _board)] (1,1) in
+     let buffer = ([],[],1) in
+     let evalVal= eval (Let "x" (I $ -1) (If (Binop Equiv (Ref "b!(x,1)") (I 1)) (I 1) (I 0))) in
+     runEval env buffer evalVal)))
+
+-- | Tests the evaluating a num op doesn't hide errors
+-- let x = -1 in if (b!(m,1) + 1)==1 then 1 else 0
+testEvalNumOpDoesntHideError :: Test
+testEvalNumOpDoesntHideError = TestCase (
+  assertEqual "Tests the evaluating a num op doesn't hide errors"
+  True
+  (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
+     let _board  = Vboard barray in
+     let env    = Env [("b", _board)] (1,1) in
+     let buffer = ([],[],1) in
+     let evalVal= eval (Let "x" (I $ -1) (If (Binop Equiv (Binop Plus (Ref "b!(x,1)") (I 1)) (I 1)) (I 1) (I 0))) in
+     runEval env buffer evalVal)))
+
+-- | Tests that the comparing op doesn't hide errors
+-- let x = -1 in if b!(m,1)>=1 then 1 else 0
+testEvalCompareOpDoesntHideError :: Test
+testEvalCompareOpDoesntHideError = TestCase (
+  assertEqual "Tests that the comparing op doesn't hide errors"
+  True
+  (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
+     let _board  = Vboard barray in
+     let env    = Env [("b", _board)] (1,1) in
+     let buffer = ([],[],1) in
+     let evalVal= eval (Let "x" (I $ -1) (If (Binop Geq (Ref "b!(x,1)") (I 1)) (I 1) (I 0))) in
+     runEval env buffer evalVal)))

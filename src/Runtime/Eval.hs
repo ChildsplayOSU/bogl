@@ -106,6 +106,9 @@ evalBinOp Get l r      = do
    pos    <- eval r
    case (_board, pos) of
       (Vboard arr, Vt [Vi x, Vi y]) -> return $ tryUnsafeBoardAccess (x,y) arr
+      -- verify neither the left or right is an error
+      (Err el, _)                   -> return $ Err el
+      (_, Err er)                   -> return $ Err er
       _ -> return $ Err $ "Could not access " ++ show r ++ " on the board \n" ++ show l
 
 -- | evaluates the == and /= operations
@@ -113,7 +116,11 @@ evalEq :: (Val -> Val -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
 evalEq f l r = do
                   v1 <- eval l
                   v2 <- eval r
-                  return $ Vb (f v1 v2)
+                  case (v1, v2) of
+                    -- verify neither the left or right is an error
+                    (Err el, _) -> return $ Err el
+                    (_, Err er) -> return $ Err er
+                    (_,_)       -> return $ Vb (f v1 v2)
 
 -- | evaluates comparison operations for only Ints (except for == & /=)
 evalCompareOpInt :: (Int -> Int -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
@@ -121,8 +128,11 @@ evalCompareOpInt f l r = do
                      v1 <- eval l
                      v2 <- eval r
                      case (v1, v2) of
-                        (Vi l', Vi r') -> return (Vb (f l' r'))
-                        _ -> return $ Err $ "Could not compare " ++ show l ++ " to " ++ show r
+                        (Vi l', Vi r')  -> return (Vb (f l' r'))
+                        -- verify neither the left or right is an error
+                        (Err el, _)     -> return $ Err el
+                        (_, Err er)     -> return $ Err er
+                        _               -> return $ Err $ "Could not compare " ++ show l ++ " to " ++ show r
 
 -- | evaluates numerical operations
 evalNumOp :: String -> (Int -> Int -> Int) -> (Expr a) -> (Expr a) -> Eval Val
@@ -135,6 +145,9 @@ evalNumOp sym f l r =
           (Vi l', Vi r') -> if r' == 0 && (sym == "/" || sym == "%")
                               then return (Err "Cannot divide by zero")
                               else return (Vi (f l' r'))
+          -- verify neither the left or right is an error
+          (Err el, _)    -> return $ Err el
+          (_, Err er)    -> return $ Err er
           _  -> return $
                   Err $ "Could not do numerical operation on " ++ (show l) ++ " to " ++ (show r)
 
@@ -196,10 +209,11 @@ eval (Let n e1 e2) = do
 
 -- evaluate an If-Then-Else expression
 eval (If p e1 e2) = do
-  b <- unpackBool <$> (eval p)
-  case b of
-    (Just bb) -> if bb then evalWithLimit $ eval e1 else evalWithLimit $ eval e2
-    Nothing   -> return $ Err e
+  mb <- eval p
+  case mb of
+    (Vb bb)      -> if bb then evalWithLimit $ eval e1 else evalWithLimit $ eval e2
+    er2@(Err _)  -> return er2
+    _            -> return $ Err e
       where e = "The expression " ++ show p ++ " did not evaluate to a Bool as expected!"
 
 -- evaluate a BinOp expression
@@ -207,18 +221,19 @@ eval (Binop op e1 e2) = evalBinOp op e1 e2
 
 -- evaluate a while expression
 eval (While c b names exprs) = do
-   c' <- unpackBool <$> eval c   -- evaluate the condition
+   c' <- eval c   -- evaluate the condition
    case c' of
-      (Just True)  -> do
+      (Vb True)  -> do
          env <- getEnv         -- get the current environment
          result <- eval b      -- evaluate the body
          case result of        -- update the variables in the environment w/ new values and recurse:
             (Vt vs) -> extScope ((zip names vs) ++ env) recurse
             r       -> extScope ((head names, r) : env) recurse -- that head should never fail...
-      (Just False) -> do
+      (Vb False) -> do
         e <- eval exprs
         return e
-      Nothing      -> return $ Err $ "The expression " ++ show c ++
+      er2@(Err _)  -> return er2  -- propagate any error produced by the condition
+      _            -> return $ Err $ "The expression " ++ show c ++
                                      " did not evaluate to a Bool as expected!"
    where
       recurse = evalWithLimit $ eval (While c b names exprs)
