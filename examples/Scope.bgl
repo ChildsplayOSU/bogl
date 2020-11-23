@@ -1,0 +1,21 @@
+-- if eleven = 11 then we have lexical-scope (good)
+-- if eleven = 20, then we have dynamic scope (bad)
+game Scope
+
+x : Int
+x = 1
+
+b : Int
+b = x
+
+f : Int -> Int
+f(x) = x + b
+
+eleven : Int
+eleven = f(10)
+
+g : Int -> Int
+g(y) = x + y
+
+eleven' : Int
+eleven' = let x = 10 in g(10)

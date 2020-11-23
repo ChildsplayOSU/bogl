@@ -165,7 +165,7 @@ eval (Ref n) = do
                   -- valid reference
                   (Just v) -> case v of
                     -- Pending Value, need to eval this to get the actual value
-                    (Pv _ e') -> evalWithLimit $ eval e'
+                    (Pv env e') -> extScope env $ evalWithLimit $ eval e'
                     -- normal value, return as is
                     _         -> return $ v
                   -- invalid reference

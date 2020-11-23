@@ -1,4 +1,4 @@
-module EvalTests (evalTests, evalTicTacToe, evalWhile) where
+module EvalTests (evalTests, evalTicTacToe, evalWhile, evalScope) where
 --
 -- EvalTests.hs
 --
@@ -167,6 +167,12 @@ evalWhile = evalFile (examplesPath ++ "While.bgl") vs ([], [], 0)
             ("tenOne", Vt [Vi 10, Vi 1]), ("ten4", Vi 10), ("thirty", Vi 30), ("twenty", Vi 20),
             ("eleven", Vi 11), ("five", Vi 5), ("fifteen", Vi 15), ("twentyNine", Vi 29)]
 
+-- | Evaluates many different expressions that contain while loops
+evalScope :: IO [(Bool, String, String)]
+evalScope = evalFile (examplesPath ++ "Scope.bgl") vs ([], [], 0)
+   where
+      vs = [("eleven", Vi 11), ("eleven'", Vi 11)]
+
 -- | Takes a file name, buffer, [(veq names, expected values)]
 --   parses the file, evaluates the veqs and returns the result and some information
 evalFile :: String -> [(String, Val)] -> Buffer -> IO [(Bool, String, String)]
@@ -177,8 +183,8 @@ evalFile fn l buf = do
       (Right (Game _ (BoardDef (szx, szy) _) _ vs)) -> return $ map check l
          where
             check (eqName, expected) = case run (Ref eqName) of
-                           (Right (_, actual)) -> (expected == actual, eqName, show actual)
-                           e              -> (False, eqName, show e)
+                     (Right (_, actual)) -> (expected == actual, fn ++ ":" ++ eqName, show actual)
+                     e              -> (False, fn ++ ":" ++ eqName, show e)
             run = runWithBuffer (bindings_ (szx, szy) vs) buf
 
 -- | Test that place function is not allowed to place outside the board
