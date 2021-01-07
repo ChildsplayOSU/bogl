@@ -4,7 +4,7 @@ module Runtime.Monad where
 
 import Runtime.Values
 import Language.Syntax
-
+import Error.RuntimeError
 
 import Control.Monad.Reader
 import Control.Monad.Except
@@ -54,7 +54,7 @@ data Exception =
 
 -- | Take an expressions, and before evaluating it checks & updates evaluation iterations
 -- If the count is less than the limit, continue evaluating,
--- otherwise return an error instead of evluating further.
+-- otherwise return an error instead of evaluating further.
 -- Prevents infinite loops via recursion, while, or
 -- self referencing value equations, among other things
 evalWithLimit :: Eval Val -> Eval Val
@@ -63,8 +63,7 @@ evalWithLimit e = do
   put (tape,bord,iters+1)
   case iters < 5000 of -- hard limit of 5k iterations before stopping
     True  -> e
-    False -> return $ Err $ "Your expression took too long to evaluate and was stopped! "
-                            ++ "Please double check your program and try again."
+    False -> throwRuntimeError StackOverflow
 
 -- | Evaluation occurs in the Identity monad with these side effects:
 -- ReaderT: Evaluation enviroment, board size and content type, and input type
@@ -90,9 +89,9 @@ lookupName n = do
 waitForInput :: [Val] -> Eval a
 waitForInput vs = throwError (NeedInput vs)
 
--- | Converts a string into an evaluation error
-err :: String -> Eval a
-err n = throwError (Error n)
+-- | Converts a runtime error into an evaluation error
+throwRuntimeError :: RuntimeError -> Eval a
+throwRuntimeError re = throwError (Error $ show re)
 
 -- | Read input
 readTape :: Eval Val

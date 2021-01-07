@@ -14,6 +14,7 @@ import Runtime.Values
 import Data.Array
 import Language.Types
 import Parser.Parser
+import Error.RuntimeError
 
 evalTests :: Test
 evalTests = TestList [
@@ -77,9 +78,8 @@ testEvalEquivSymbols = TestCase (
 
 testEvalLeqNotForSymbols :: Test
 testEvalLeqNotForSymbols = TestCase (
-  assertEqual "Tests that <= does not work for symbols"
-  True
-  (isRightErr (evalTest (eval (Binop Leq (S "A") (S "B"))))))
+  assertBool "Tests that <= does not work for symbols"
+  (matchesRuntimeError (evalTest (eval (Binop Leq (S "A") (S "B")))) (BadComparison "A" "B")))
 
 testEvalPlusMinusTimes :: Test
 testEvalPlusMinusTimes = TestCase (
@@ -99,7 +99,7 @@ testBadTypesPlus :: Test
 testBadTypesPlus = TestCase (
   assertBool "Test bad add for bool and int"
   --(Right (Err "Could not do numerical operation on True to 2 * 3"))
-  (_unpackBadEither (evalTest (eval (Binop Plus (B True) (Binop Times (I 2) (I 3)))))))
+  (matchesRuntimeError (evalTest (eval (Binop Plus (B True) (Binop Times (I 2) (I 3))))) (BadNumericalOp "True" "2 * 3")))
 
 
 testEval2 :: Test
@@ -122,16 +122,14 @@ testEvalLetRef = TestCase (
 
 testEvalNextNotPresent :: Test
 testEvalNextNotPresent = TestCase (
-  assertEqual "Test 'next' not builtin anymore"
-  True
-  (isRightErr (evalTest (eval (App "next" (Tuple [(S "X")]))))))
+  assertBool "Test 'next' not builtin anymore"
+  (matchesRuntimeError (evalTest (eval (App "next" (Tuple [(S "X")])))) (UndefinedReference "next")))
 
 -- | Tests that the evaluation limit is enforced after 5k iterations
 -- This will naturally stop at 6k iterations, in case the loop is not terminated forcibly
 testEvalLimit :: Test
 testEvalLimit = TestCase (
-  assertEqual "Test that the evaluation limit works"
-  True
+  assertBool "Test that the evaluation limit works"
   (isRightErr (let _valdef = (Vf ["x"] [] (If (Binop Less (Ref "x") (I 6000)) (App "iloop" (Tuple [(Binop Plus (Ref "x") (I 1))])) (Ref "x"))) in
      let env    = Env [("iloop", _valdef)] (1,1) in
      let buffer = ([],[],1) in
@@ -141,14 +139,13 @@ testEvalLimit = TestCase (
 -- | Tests that negative board access doesn't crash out things
 testNegativeBoardAccess :: Test
 testNegativeBoardAccess = TestCase (
-  assertEqual "Test that evaluating a negative board position gives an appropriate error"
-  True
-  (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
+  assertBool "Test that evaluating a negative board position gives an appropriate error" $
+  matchesRuntimeError (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
    let _board  = Vboard barray in
    let env    = Env [("b", _board)] (1,1) in
    let buffer = ([],[],1) in
-   let evalVal= eval (Ref "b!(1,-1)") in
-   runEval env buffer evalVal)))
+   let evalVal= eval (Binop Get (Ref "b") (Tuple [I 1, I $ -1])) in
+   runEval env buffer evalVal) (InvalidBoardAccess (1,-1) (1,1)))
 
 -- | Evaluate tic tac toe with a series of moves that leads to X winning
 --   This is reflected as the output Vs "X"
@@ -186,8 +183,7 @@ evalFile fn l buf = do
 -- | Test that place function is not allowed to place outside the board
 testBadPlace :: Test
 testBadPlace = TestCase (
-  assertEqual "Tests that the 'place' function won't crash when out of bounds"
-  True
+  assertBool "Tests that the 'place' function won't crash when out of bounds"
   (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
    let _board  = Vboard barray in
    let evalTT = runEval (Env [("b",_board)] (1,1)) ([], [], 1) in
@@ -198,37 +194,34 @@ testBadPlace = TestCase (
 -- let x = -1 in if b!(m,1)==1 then 1 else 0
 testEvalEqDoesntHideError :: Test
 testEvalEqDoesntHideError = TestCase (
-  assertEqual "Tests that verifying a binop in if-then-else maintains errors"
-  True
-  (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
+  assertBool "Tests that verifying a binop in if-then-else maintains errors"
+  (matchesRuntimeError (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
      let _board  = Vboard barray in
      let env    = Env [("b", _board)] (1,1) in
      let buffer = ([],[],1) in
-     let evalVal= eval (Let "x" (I $ -1) (If (Binop Equiv (Ref "b!(x,1)") (I 1)) (I 1) (I 0))) in
-     runEval env buffer evalVal)))
+     let evalVal= eval (Let "x" (I $ -1) (If (Binop Equiv (Binop Get (Ref "b") (Tuple [Ref "x", I 1])) (I 1)) (I 1) (I 0))) in
+     runEval env buffer evalVal) (InvalidBoardAccess (-1,1) (1,1))))
 
--- | Tests the evaluating a num op doesn't hide errors
+-- | Tests that evaluating a num op doesn't hide errors
 -- let x = -1 in if (b!(m,1) + 1)==1 then 1 else 0
 testEvalNumOpDoesntHideError :: Test
 testEvalNumOpDoesntHideError = TestCase (
-  assertEqual "Tests the evaluating a num op doesn't hide errors"
-  True
-  (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
+  assertBool "Tests that evaluating a num op doesn't hide errors"
+  (matchesRuntimeError (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
      let _board  = Vboard barray in
      let env    = Env [("b", _board)] (1,1) in
      let buffer = ([],[],1) in
-     let evalVal= eval (Let "x" (I $ -1) (If (Binop Equiv (Binop Plus (Ref "b!(x,1)") (I 1)) (I 1)) (I 1) (I 0))) in
-     runEval env buffer evalVal)))
+     let evalVal= eval (Let "x" (I $ -1) (If (Binop Equiv (Binop Plus (Binop Get (Ref "b") (Tuple [Ref "x", I 1])) (I 1)) (I 1)) (I 1) (I 0))) in
+     runEval env buffer evalVal) (InvalidBoardAccess (-1,1) (1,1))))
 
 -- | Tests that the comparing op doesn't hide errors
 -- let x = -1 in if b!(m,1)>=1 then 1 else 0
 testEvalCompareOpDoesntHideError :: Test
 testEvalCompareOpDoesntHideError = TestCase (
-  assertEqual "Tests that the comparing op doesn't hide errors"
-  True
-  (isRightErr (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
+  assertBool "Tests that the comparing op doesn't hide errors"
+  (matchesRuntimeError (let barray = array ((1,1),(1,1)) [((1,1),(Vi 1))] in
      let _board  = Vboard barray in
      let env    = Env [("b", _board)] (1,1) in
      let buffer = ([],[],1) in
-     let evalVal= eval (Let "x" (I $ -1) (If (Binop Geq (Ref "b!(x,1)") (I 1)) (I 1) (I 0))) in
-     runEval env buffer evalVal)))
+     let evalVal= eval (Let "x" (I $ -1) (If (Binop Geq (Binop Get (Ref "b") (Tuple [Ref "x", I 1])) (I 1)) (I 1) (I 0))) in
+     runEval env buffer evalVal) (InvalidBoardAccess (-1,1) (1,1))))
