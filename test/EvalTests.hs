@@ -14,7 +14,7 @@ import Runtime.Values
 import Data.Array
 import Language.Types
 import Parser.Parser
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict as Map()
 
 evalTests :: Test
 evalTests = TestList [

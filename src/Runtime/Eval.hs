@@ -19,7 +19,7 @@ import Control.Monad.Writer
 import Control.Monad.State
 
 import Text.Parsec.Pos
-import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict as Map()
 
 
 -- | Produce all of the bindings from a list of value definitions.
@@ -185,8 +185,8 @@ eval (App n es) = do
     Nothing -> do
       f <- lookupName n
       case f of
-        Just (Vf params env' e) -> extScope (extendEvalEnv (params,args) env') (evalWithLimit (eval e))--(Map.union (Map.fromList (zip params (args))) env') (evalWithLimit (eval e)) -- ++ env?
-        Just (Pv env' e)        -> extScope (extendEvalEnv ([],args) env') (evalWithLimit (eval e)) --(Map.union (Map.fromList (zip [] (args))) env') (evalWithLimit (eval e)) -- ++ env?
+        Just (Vf params env' e) -> extScope (extendEvalEnv (zip params args) env') (evalWithLimit (eval e))
+        Just (Pv env' e)        -> extScope env' (evalWithLimit (eval e))
         Nothing                 -> return $ Err $ "Couldn't find " ++ n ++ " in the environment!"
         _                       -> return $ Err $ n ++ " was not correct when looking it up in the environment!"
 
@@ -214,8 +214,8 @@ eval (While c b names exprs) = do
          env <- getEnv         -- get the current environment
          result <- eval b      -- evaluate the body
          case result of        -- update the variables in the environment w/ new values and recurse:
-            (Vt vs) -> extScope (extendEvalEnv (names,vs) env) recurse --extScope (unionEvalEnv (Map.fromList (zip names vs)) env) recurse
-            r       -> extScope (insertEvalEnv (head names, r) env) recurse --extScope (unionEvalEnv (Map.fromList [(head names, r)]) env) recurse -- that head should never fail...
+            (Vt vs) -> extScope (extendEvalEnv (zip names vs) env) recurse
+            r       -> extScope (insertEvalEnv (head names, r) env) recurse -- that head should never fail...
       (Just False) -> do
         e <- eval exprs
         return e
