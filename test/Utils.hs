@@ -11,10 +11,13 @@ import Parser.Parser
 import Text.Parsec.Error
 import System.Directory
 import System.FilePath
+import Error.RuntimeError
 
 import Language.Types
 import Language.Syntax
 import Text.Parsec.Pos
+
+import Debug.Trace
 
 -- | The boilerplate for a Game which is to be filled in with ValDefs
 testGame :: [ValDef SourcePos] -> Game SourcePos
@@ -39,10 +42,24 @@ getExampleFiles = do
 evalTest :: Eval Val -> Either Exception Val
 evalTest ev = runEval (emptyEnv (0,0)) ([], [], 1) ev
 
+-- Verifies a Value Error (not an exception) was produced during a computation
 isRightErr :: Either Exception Val -> Bool
 isRightErr m = case m of
                 Right (Err _) -> True
                 _             -> False
+
+-- | Used to verify an exception matches explicitly, with the provided string message
+{-
+isExceptionWithString :: Either Exception Val -> String -> Bool
+isExceptionWithString m s = case m of
+                            Left (Error e) -> trace ("Error was " ++ e) e == s
+                            _              -> False
+-}
+
+matchesRuntimeError :: Either Exception Val -> RuntimeError -> Bool
+matchesRuntimeError m re = case m of
+                            Left (Error e) -> trace ("Error was " ++ e) $ show re == e
+                            _              -> False
 
 -- | Read a single line and return the result (intended for brevity in test cases)
 parseLine' :: Parser a -> String -> Either ParseError a
