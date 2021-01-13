@@ -20,6 +20,7 @@ import Control.Monad.Writer
 import Control.Monad.State
 
 import Text.Parsec.Pos
+import qualified Data.Map.Strict as Map()
 
 
 -- | Produce all of the bindings from a list of value definitions.
@@ -28,7 +29,7 @@ bindings :: (Int, Int) -> [ValDef a] -> Writer [Exception] Env
 bindings sz vs = e
   where
     e = foldM (\env (n, v) -> case runEval env ([], [], 1) v of
-                                Right v' -> return $ modifyEval ((n, v'):) env
+                                Right v' -> return $ modifyEval (insertEvalEnv (n, v')) env
                                 Left _err -> (tell [_err]) >> return env)
         (emptyEnv sz)
         (map bind vs)
@@ -162,7 +163,7 @@ eval (Ref n) = do
                   -- valid reference
                   (Just v) -> case v of
                     -- Pending Value, need to eval this to get the actual value
-                    (Pv _ e') -> evalWithLimit $ eval e'
+                    (Pv env e') -> extScope env $ evalWithLimit $ eval e'
                     -- normal value, return as is
                     _         -> return $ v
                   --  undefined reference
@@ -182,15 +183,15 @@ eval (App n es) = do
     Nothing -> do
       f <- lookupName n
       case f of
-        Just (Vf params env' e) -> extScope (zip params (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
-        Just (Pv env' e)        -> extScope (zip [] (args) ++ env') (evalWithLimit (eval e)) -- ++ env?
+        Just (Vf params env' e) -> extScope (extendEvalEnv (zip params args) env') (evalWithLimit (eval e))
+        Just (Pv env' e)        -> extScope env' (evalWithLimit (eval e))
         Nothing                 -> throwRuntimeError (UndefinedReference n)
         _                       -> throwRuntimeError (InvalidLookup n)
 
 -- evaluate a Let expression
 eval (Let n e1 e2) = do
   v <- eval e1
-  extScope (pure (n, v)) (eval e2)
+  extScope (insertEvalEnv (n,v) emptyEvalEnv) (eval e2)
 
 -- evaluate an If-Then-Else expression
 eval (If p e1 e2) = do
@@ -211,8 +212,8 @@ eval (While c b names exprs) = do
          env <- getEnv         -- get the current environment
          result <- eval b      -- evaluate the body
          case result of        -- update the variables in the environment w/ new values and recurse:
-            (Vt vs) -> extScope ((zip names vs) ++ env) recurse
-            r       -> extScope ((head names, r) : env) recurse -- that head should never fail...
+            (Vt vs) -> extScope (extendEvalEnv (zip names vs) env) recurse
+            r       -> extScope (insertEvalEnv (head names, r) env) recurse -- that head should never fail...
       (Vb False) -> do
         e <- eval exprs
         return e

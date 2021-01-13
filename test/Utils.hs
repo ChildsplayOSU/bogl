@@ -17,8 +17,6 @@ import Language.Types
 import Language.Syntax
 import Text.Parsec.Pos
 
-import Debug.Trace
-
 -- | The boilerplate for a Game which is to be filled in with ValDefs
 testGame :: [ValDef SourcePos] -> Game SourcePos
 testGame = Game "Test" (BoardDef (5,5) intxt) (InputDef intxt)
@@ -58,7 +56,7 @@ isExceptionWithString m s = case m of
 
 matchesRuntimeError :: Either Exception Val -> RuntimeError -> Bool
 matchesRuntimeError m re = case m of
-                            Left (Error e) -> trace ("Error was " ++ e) $ show re == e
+                            Left (Error e) -> show re == e
                             _              -> False
 
 -- | Read a single line and return the result (intended for brevity in test cases)

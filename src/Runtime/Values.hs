@@ -15,13 +15,42 @@ import Data.Array
 import Data.List
 import Data.Aeson hiding (Array)
 import GHC.Generics
+import qualified Data.Map.Strict as Map
 
 -- | Representation of a Board in BoGL,
 -- composed of an NxM array of 'Val'
 type Board = Array (Int, Int) Val
 
--- | Evaluation environment
-type EvalEnv = [(Name, Val)]
+
+-- | Typeclass for a runtime environment
+class RuntimeEnv a where
+  -- insert single key/val pair into the env
+  insertEvalEnv :: (String,Val) -> a -> a
+  -- extend an env with a tuple of keys and vals to be combined
+  extendEvalEnv :: [(String,Val)] -> a -> a
+  -- combine two environments, producing a new env
+  unionEvalEnv  :: a -> a -> a
+  -- looks up a value in an env
+  lookupEvalEnv :: String -> a -> Maybe Val
+  -- produce an eval env from a list
+  evalEnvFromList :: [(String,Val)] -> a
+  -- empty eval env
+  emptyEvalEnv :: a
+
+data MapEvalEnv = MapEvalEnv (Map.Map String Val)
+  deriving Show
+
+-- | RuntimeEnv instance
+instance RuntimeEnv MapEvalEnv where
+  insertEvalEnv (k,v) (MapEvalEnv env)   = MapEvalEnv $ Map.insert k v env
+  extendEvalEnv kvPairs (MapEvalEnv env) = MapEvalEnv $ Map.union (Map.fromList kvPairs) env
+  -- HEADSUP: union is left-biased! The order in which the environments is unioned is very critical, otherwise new bindings will be hidden by old bindings!
+  -- it should be e1 then e2...to make this requirement explicit. Please keep this in mind if you're attemping to make a change! (@montymxb)
+  unionEvalEnv (MapEvalEnv e1) (MapEvalEnv e2) = MapEvalEnv $ Map.union e1 e2
+  lookupEvalEnv n (MapEvalEnv e)         = Map.lookup n e
+  evalEnvFromList ls                     = extendEvalEnv ls emptyEvalEnv
+  emptyEvalEnv                           = MapEvalEnv Map.empty
+
 
 -- | Runtime values that can be encountered
 data Val = Vi Int                      -- ^ Integer value
@@ -29,8 +58,8 @@ data Val = Vi Int                      -- ^ Integer value
          | Vboard Board                -- ^ Board value (displayed to user)
          | Vt [Val]                    -- ^ Tuple value
          | Vs Name                     -- ^ Symbol value
-         | Vf [Name] EvalEnv (Expr ()) -- ^ Function value (annotations discarded)
-         | Pv EvalEnv (Expr ())        -- ^ Deannotated pending value allows for 'input' in Val Eqs
+         | Vf [Name] MapEvalEnv (Expr ()) -- ^ Function value (annotations discarded)
+         | Pv MapEvalEnv (Expr ())        -- ^ Deannotated pending value allows for 'input' in Val Eqs
          | Err String                  -- ^ Runtime error (caught by typechecker)
          | Deferred                    -- ^ This needs an input.
          deriving Generic
