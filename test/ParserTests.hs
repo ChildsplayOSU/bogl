@@ -384,7 +384,6 @@ testCheckUpdatedBoard = TestCase (
   (parseAll xtype "" "(Board, (Int, Int))" == Right (Tup [X Board S.empty, Tup [X Itype S.empty, X Itype S.empty]])))
 
 
--- TODO used to be --"Right (Symbol(no extension),Board(no extension))"
 -- | Determine whether a symbol and board can be evaluated
 testCheckUpdatedBoard2 :: Test
 testCheckUpdatedBoard2 = TestCase (
