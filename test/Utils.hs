@@ -19,7 +19,7 @@ import Text.Parsec.Pos
 
 -- | The boilerplate for a Game which is to be filled in with ValDefs
 testGame :: [ValDef SourcePos] -> Game SourcePos
-testGame = Game "Test" (BoardDef (5,5) intxt) (InputDef intxt)
+testGame vd = Game "Test" (BoardDef (5,5) intxt) (InputDef intxt) vd []
 
 -- relative to top-level spiel directory
 examplesPath :: String

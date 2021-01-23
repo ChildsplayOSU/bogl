@@ -82,10 +82,10 @@ evalInput x = case run x of
 
 -- | Handles running a command in the repl from the server
 serverRepl :: (Game SourcePos) -> String -> String -> Buffer -> SpielResponse
-serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn replExpr buf = do
+serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs ds) fn replExpr buf = do
   case parseLine replExpr of
     Right x -> do
-      case tcexpr (environment i b vs) x of
+      case tcexpr (environment i b vs ds) x of
         Right _ -> do -- Right t
           case runWithBuffer (bindings_ (szx, szy) vs) buf x of
             -- with a runtime error

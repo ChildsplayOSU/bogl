@@ -38,7 +38,7 @@ data ParState =
        ctype      :: Maybe Type,       -- ^ type of current object being parsed
        whileNames :: [Name],           -- ^ context from last-parsed function or let expression
        ids        :: [Name],           -- ^ identifiers
-       syn        :: [(Name, Xtype)]   -- ^ type synonyms
+       tdef      :: [TypeDef]         -- ^ type definitions
       }
 
 -- | A parse context with builtins
@@ -55,14 +55,18 @@ type ParseResult = Either ParseError (Game SourcePos)
 getids :: Parser [Name]
 getids = ids <$> getState
 
+-- | Get all type definitions
+getDefs :: Parser [TypeDef]
+getDefs = tdef <$> getState
+
 -- | Add a type synonym
 addSyn :: (Name, Xtype) -> Parser ()
-addSyn x = modifyState (\env -> env{syn = x:syn env})
+addSyn x = modifyState (\env -> env{tdef = x:tdef env})
 
 -- | Lookup a type synonym
 lookupSyn :: Name -> Parser Xtype
 lookupSyn n = do
-  t <- (lookup <$> (pure n) <*> (syn <$> getState))
+  t <- (lookup <$> (pure n) <*> (tdef <$> getState))
   case t of
     Nothing -> fail $ "Type " ++ n ++ " not declared!"
     Just t' -> return t'
@@ -518,7 +522,7 @@ parseGame vs =
   -- followed by type synonyms for board and input
   (many typesyn *> board) <*> (many typesyn *> input) <*>
   -- followed by the prelude contents, and any other declarations
-  ((\_p -> vs ++ catMaybes _p) <$> (many decl))
+  ((\_p -> vs ++ catMaybes _p) <$> (many decl)) <*> getDefs
 
 -- | Uses the parser p to parse all input with state ps, throws an error if anything is left over
 parseWithState :: ParState -> Parser a -> String -> String -> Either ParseError a

@@ -32,6 +32,7 @@ type TypeEnv = [(Name, Type)]
 -- | Typechecker environment
 data Env = Env {
   types :: TypeEnv,
+  defs  :: [TypeDef],
   input :: Xtype,
   content :: Xtype,
   size  :: (Int, Int)
@@ -39,11 +40,11 @@ data Env = Env {
 
 -- | Initial empty environment
 initEnv :: Xtype -> Xtype -> (Int, Int) -> Env
-initEnv i _p s = Env [] i _p s
+initEnv i _p s = Env [] [] i _p s
 
 -- | An example environment for interal use (e.g. testing, ghci)
 exampleEnv :: Env
-exampleEnv = Env (builtinT intxt intxt) intxt intxt (5, 5)
+exampleEnv = Env (builtinT intxt intxt) [] intxt intxt (5, 5)
 
 -- | Typechecker state
 data Stat = Stat {
@@ -68,11 +69,15 @@ typeHoles e a = case typecheck e a of
 
 -- | Add some types to the environment
 extendEnv :: Env -> (Name, Type) -> Env
-extendEnv (Env _t i _p s) v = Env (v:_t) i _p s
+extendEnv (Env _t d i _p s) v = Env (v:_t) d i _p s
 
 -- | Get the type environment
 getEnv :: Typechecked TypeEnv
 getEnv = types <$> ask
+
+-- | Get the type definitions
+getDefs :: Typechecked [TypeDef]
+getDefs = defs <$> ask
 
 -- | Get the input type
 getInput :: Typechecked Xtype
@@ -94,7 +99,7 @@ inBounds (x, y) = do
 
 -- | Extend the environment
 localEnv :: ([(Name, Type)] -> [(Name, Type)]) -> Typechecked a -> Typechecked a
-localEnv f e = local (\(Env a b c d) -> Env (f a) b c d) e
+localEnv f e = local (\(Env a td b c d) -> Env (f a) td b c d) e
 
 -- | Get the current type holes
 getHoles :: Typechecked TypeEnv

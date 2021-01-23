@@ -24,6 +24,9 @@ type Name = String
 -- | An unparsed expression
 type ExprS = String
 
+-- | A type definition or synonym
+type TypeDef = (Name, Xtype)
+
 -- | Game datatype
 data Game a = Game
   {
@@ -31,6 +34,7 @@ data Game a = Game
   , board :: BoardDef   -- ^ Size and type of the board
   , input :: InputDef   -- ^ Type of input
   , defns :: [ValDef a] -- ^ List of value definitions
+  , tdefs :: [TypeDef]
   }
   deriving (Generic)
 
@@ -203,11 +207,12 @@ instance Show Parlist where
 instance Show Signature where
   show (Sig n t) = n ++ " : " ++ show t
 
+-- | TODO! show typedefs
 instance Show (Game a) where
-  show (Game n b i vs) = "Game : " ++ n ++ "\n"
-                         ++ show b ++ "\n"
-                         ++ show i ++ "\n"
-                         ++ intercalate ("\n\n\n") (map show vs)
+  show (Game n b i vs _) = "Game : " ++ n ++ "\n"
+                           ++ show b ++ "\n"
+                           ++ show i ++ "\n"
+                           ++ intercalate ("\n\n\n") (map show vs)
 
 instance Show Op where
   show Plus     = " + "

@@ -89,6 +89,13 @@ eqntype n et f = sigbadfeq n et $ (clearAnnEq f)
 exprtypeE :: (Expr SourcePos) -> Typechecked Xtype -- TODO do this with mapStateT stack thing
 exprtypeE _e = setSrc _e >> exprtype _e
 
+assignName :: Xtype -> Typechecked Xtype
+assignName x = do
+                  ds <- getDefs
+                  case find (\a -> snd a == x) ds of
+                     Just (n, _) -> return $ X (Named n) S.empty
+                     _           -> return $ x
+
 -- | Get the type of an expression
 exprtype :: (Expr SourcePos) -> Typechecked Xtype
 exprtype (Annotation a _e) = setPos a >> exprtype _e
@@ -160,8 +167,8 @@ exprtype (While c b _ _e) = do
               else mismatch (Plain a) (Plain et)
 
 -- | Produce the environment
-environment :: BoardDef -> InputDef -> [ValDef SourcePos] -> Env
-environment (BoardDef sz _t) (InputDef i) vs = Env (map f vs ++ (builtinT i _t)) i _t sz
+environment :: BoardDef -> InputDef -> [ValDef SourcePos] -> [TypeDef] -> Env
+environment (BoardDef sz _t) (InputDef i) vs td = Env (map f vs ++ (builtinT i _t)) td i _t sz
   where f (Val (Sig n _t1) _ _)  = (n, _t1)
         f (BVal (Sig n _t1) _ _) = (n, _t1)
 
@@ -195,7 +202,7 @@ tc g = case tc' g of
 
 -- | Typecheck a game, and produce (environment, result of typechecking)
 tc' :: (Game SourcePos) -> (Env, [Either (ValDef SourcePos, Error) (Name, Type)])
-tc' (Game _ b i v) = runWriter (runTypeCheck b i v)
+tc' (Game _ b i v _) = runWriter (runTypeCheck b i v)
 
 -- | Check if a given 'Expr' is a subtype of Input
 exprHasInputType :: Env -> (Expr SourcePos) -> Either Error ((), TypeEnv)

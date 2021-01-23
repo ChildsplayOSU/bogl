@@ -38,6 +38,7 @@ data Btype = Booltype      -- ^ Boolean
            | Board         -- ^ A game board
            | Top           -- ^ Really this is bottom FIXME
            | Undef         -- ^ Not definable by a user (only occurs when typechecking)
+           | Named String
    deriving (Generic, Eq)
 
 instance Ord Btype where
@@ -126,6 +127,7 @@ instance Show Btype where
   show Board     = "Board"
   show AnySymbol = "AnySymbol"
   show Undef     = "?"
+  show (Named s) = s
 
 instance ToJSON Btype where
 
