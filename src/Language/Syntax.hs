@@ -21,6 +21,9 @@ import Utils.String
 -- | Names of games, signatures, etc.
 type Name = String
 
+-- | An unparsed expression
+type ExprS = String
+
 -- | Game datatype
 data Game a = Game
   {
