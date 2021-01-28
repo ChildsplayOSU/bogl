@@ -55,9 +55,9 @@ type ParseResult = Either ParseError (Game SourcePos)
 getids :: Parser [Name]
 getids = ids <$> getState
 
--- | Get all type definitions
+-- | Get all type definitions in program order
 getDefs :: Parser [TypeDef]
-getDefs = tdef <$> getState
+getDefs = reverse . tdef <$> getState
 
 -- | Add a type synonym
 addSyn :: (Name, Xtype) -> Parser ()
@@ -69,7 +69,7 @@ lookupSyn n = do
   t <- (lookup <$> (pure n) <*> (tdef <$> getState))
   case t of
     Nothing -> fail $ "Type " ++ n ++ " not declared!"
-    Just t' -> return t'
+    Just t' -> return $ namedt n -- TODO! clean up
 
 -- | Add an id to list of used ids
 addid :: Name -> Parser ()

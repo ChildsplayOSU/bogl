@@ -14,6 +14,7 @@ import Language.Types
 
 import Control.Monad.State
 import Control.Monad.Writer
+import Control.Monad.Extra
 
 import Data.Either
 import Data.List
@@ -96,11 +97,22 @@ assignName x = do
                      Just (n, _) -> return $ X (Named n) S.empty
                      _           -> return $ x
 
+assignSymbol :: Name -> Typechecked Xtype
+assignSymbol n = do
+                    ds   <- getDefs
+                    case find (\a -> declaredIn n (snd a)) ds of
+                       (Just (n, _)) -> return $ namedt n
+                       _             -> unknown $ "The value " ++ n ++ " does not have a type"
+   where
+      -- TODO! a hack that works only if type defs are stored in program order
+      declaredIn s (X b ss) = S.member s ss
+      declaredIn _ _       = False
+
 -- | Get the type of an expression
 exprtype :: (Expr SourcePos) -> Typechecked Xtype
 exprtype (Annotation a _e) = setPos a >> exprtype _e
 exprtype (I _) = t Itype
-exprtype (S s) = return $ X Top (S.singleton s)
+exprtype (S s) = assignSymbol s
 exprtype (B _) = t Booltype
 exprtype (Let n e1 e2) = do
   _t <- exprtype e1

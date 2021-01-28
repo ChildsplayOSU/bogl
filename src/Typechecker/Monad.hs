@@ -26,6 +26,8 @@ import Runtime.Builtins
 import Error.Error
 import Error.TypeError
 
+import Data.List
+
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]
 
@@ -140,22 +142,52 @@ getType n = do
 addHole :: (Name, Type) -> Typechecked ()
 addHole a = modify (\(Stat h s e) -> Stat (a:h) s e)
 
+(<:) :: Xtype -> Xtype -> Typechecked Bool
+xa <: xb = do
+             (xa', xb') <- derefs (xa, xb)
+             return $ xa' <= xb'
+
 -- | Attempt to unify two types
 unify :: Xtype -> Xtype -> Typechecked Xtype
-unify (Tup xs) (Tup ys)
-  | length xs == length ys = Tup <$> zipWithM unify xs ys
-unify (Hole _) (Hole _) = undefined
-unify x (Hole n) = unify (Hole n) x
-unify (Hole n) x = do
+unify xa xb = do
+                 (xa', xb') <- derefs (xa, xb)
+                 unify' xa' xb'
+
+-- | Attempt to unify two dereferenced types
+unify' :: Xtype -> Xtype -> Typechecked Xtype
+unify' (Tup xs) (Tup ys)
+  | length xs == length ys = Tup <$> zipWithM unify' xs ys
+unify' (Hole _) (Hole _) = undefined
+unify' x (Hole n) = unify' (Hole n) x
+unify' (Hole n) x = do
   hs <- getHoles
   case lookup n hs of
     Just (Plain _t) -> if _t <= x then return x else mismatch (Plain _t) (Plain x) -- function holes FIXME
     Nothing -> addHole (n, Plain x) >> return x
     _       -> undefined -- unhandled case when a lookup does not match one of the above
-unify (X y z) (X w k)
+unify' (X y z) (X w k)
   | y <= w = return $ X w (z `S.union` k) -- take the more defined type
   | w <= y = return $ X y (z `S.union` k)
-unify a b = mismatch (Plain a) (Plain b)
+unify' a b = mismatch (Plain a) (Plain b)
+
+-- | Dereference a named type (to enable a subtype check)
+deref :: Xtype -> Typechecked Xtype
+deref (X (Named n) _) = do
+                           ds <- getDefs
+                           case find (\a -> fst a == n) ds of
+                              Just (_, x) -> return x
+                              _           -> unknown "Internal type dereference error"
+deref (Tup xs)        = do
+                           xs' <- mapM deref xs
+                           return $ Tup xs'
+deref h               = return h
+
+-- | Dereference a pair of named types (a convenience function that wraps deref)
+derefs :: (Xtype, Xtype) -> Typechecked (Xtype, Xtype)
+derefs (xl, xr) = do
+                     xl' <- deref xl
+                     xr' <- deref xr
+                     return (xl', xr')
 
 -- | Check if t1 has type t2 with subsumption (i.e. by subtyping)
 --   This is a wrapper around the Ord instance to produce the type error if there is a mismatch

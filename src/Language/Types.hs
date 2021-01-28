@@ -83,6 +83,9 @@ bnestx b = X b S.empty
 boolxt :: Xtype
 boolxt = bnestx Booltype
 
+namedt :: String -> Xtype
+namedt = bnestx . Named
+
 -- | Xtype smart constructor for Itype
 intxt :: Xtype
 intxt = bnestx Itype
