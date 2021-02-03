@@ -24,6 +24,7 @@ import Text.Parsec.Pos
 import qualified Data.Set as S
 
 import Error.Error
+import Debug.Trace
 
 -- | return Nothing or the first element of a list which doen't satisfy a predicate
 all' :: Foldable t => (a -> Bool) -> t a -> Maybe a
@@ -44,31 +45,33 @@ getCovered (mx,my) (PosDef _ xp yp _) = case (xp,yp) of
 deftype :: (ValDef SourcePos) -> Typechecked Type
 deftype (Val (Sig n _t) eqn x) = do
   setPos x
+  ds <- getDefs
+  traceM $ show ds
   eqt <- localEnv ((n, _t):) (eqntype n _t eqn)
-  if eqt <= _t
-    then return _t
-    else sigmismatch n _t eqt
+  ifM (eqt <: _t) (return _t) (sigmismatch n _t eqt)
 
 deftype (BVal (Sig n _t) eqs x) = do
   setPos x
   (mx, my) <- getSize
   -- get a set of the spaces covered by these board equations
   let placesCovered = S.fromList $ concat $ map (getCovered (mx,my)) eqs
-  eqTypes <- mapM beqntype eqs
-  case all' (<= _t) eqTypes of
+  eqTypes  <- mapM beqntype eqs
+  allSubs  <- mapM (<: _t) eqTypes
+  case all' (\(t, isSub) -> isSub) (zip eqTypes allSubs) of
     -- pass if all spaces are defined, otherwise incomplete/uninitialized
     -- placesCovered is a set of all places. Places of invalid positions do not count
     -- i.e, if the size of the set of positions is equivalent to mx*my, then all correct positions have been covered
     Nothing -> if length placesCovered == mx*my then return _t else uninitialized n
-    (Just badEqn) -> sigmismatch n _t badEqn
+    (Just (badEqn, _)) -> sigmismatch n _t badEqn
 
 -- | Get the type of a board equation
 beqntype :: BoardEq SourcePos -> Typechecked Type
 beqntype (PosDef _ xp yp _e) = do
    et <- exprtypeE _e
    pt <- getContent
+   isSub <- et <: pt
    (mx, my) <- getSize
-   case (et <= pt, xp <= Index mx && xp > Index 0, yp <= Index my && yp > Index 0) of
+   case (isSub, xp <= Index mx && xp > Index 0, yp <= Index my && yp > Index 0) of
       (True, True, True) -> return boardt
       (False, _, _)      -> mismatch (Plain pt) (Plain et)
       _                  -> outofbounds xp yp
@@ -130,7 +133,8 @@ exprtype (App n es) = do
   _t <- getType n
   case _t of
     (Function (Ft i o)) -> do
-     if est <= i then
+     argsMatch <- est <: i
+     if argsMatch then
         return o
      else
         appmismatch n (Plain i) (Plain est)
@@ -186,11 +190,11 @@ environment (BoardDef sz _t) (InputDef i) vs td = Env (map f vs ++ (builtinT i _
 
 -- | Runs the typechecker on a board def, input def, list of valdefs, and produces results of errors or successfully typechecked names
 -- recursion is not allowed by this.
-runTypeCheck :: BoardDef -> InputDef -> [ValDef SourcePos] -> Writer [Either (ValDef SourcePos, Error) (Name, Type)] Env
-runTypeCheck (BoardDef sz _t) (InputDef i) vs = foldM (\env v -> case typecheck env (deftype v) of
+runTypeCheck :: BoardDef -> InputDef -> [ValDef SourcePos] -> [TypeDef]-> Writer [Either (ValDef SourcePos, Error) (Name, Type)] Env
+runTypeCheck (BoardDef sz _t) (InputDef i) vs td = foldM (\env v -> case typecheck env (deftype v) of
                                 Right (_t2, _e) -> tell (map Right (holes _e)) >> (return $ extendEnv env (ident v, _t2))
                                 Left _err       -> (tell . pure . Left) (v, _err) >> return env)
-                                    (initEnv i _t sz)
+                                    (initEnv i _t sz td)
                                     (vs)
 
 -- | Typechecker Result
@@ -214,7 +218,7 @@ tc g = case tc' g of
 
 -- | Typecheck a game, and produce (environment, result of typechecking)
 tc' :: (Game SourcePos) -> (Env, [Either (ValDef SourcePos, Error) (Name, Type)])
-tc' (Game _ b i v _) = runWriter (runTypeCheck b i v)
+tc' (Game _ b i v td) = runWriter (runTypeCheck b i v td)
 
 -- | Check if a given 'Expr' is a subtype of Input
 exprHasInputType :: Env -> (Expr SourcePos) -> Either Error ((), TypeEnv)
@@ -225,7 +229,8 @@ isInputType :: (Expr SourcePos) -> Typechecked ()
 isInputType ie = do
    et <- exprtypeE ie
    it <- getInput
-   if et <= it then return () else inputmismatch $ Plain et
+   isSub <- et <: it
+   if isSub then return () else inputmismatch $ Plain et
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
 tcexpr :: Env -> (Expr SourcePos) -> Either Error (Xtype, TypeEnv)

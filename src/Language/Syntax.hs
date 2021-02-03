@@ -207,12 +207,16 @@ instance Show Parlist where
 instance Show Signature where
   show (Sig n t) = n ++ " : " ++ show t
 
+showDef :: TypeDef -> String
+showDef (n, t) = "type " ++ n ++ " = " ++ show t
+
 -- | TODO! show typedefs
 instance Show (Game a) where
-  show (Game n b i vs _) = "Game : " ++ n ++ "\n"
+  show (Game n b i vs ds) = "Game : " ++ n ++ "\n\n"
+                           ++ intercalate ("\n") (map showDef ds) ++ "\n"
                            ++ show b ++ "\n"
-                           ++ show i ++ "\n"
-                           ++ intercalate ("\n\n\n") (map show vs)
+                           ++ show i ++ "\n\n"
+                           ++ intercalate ("\n\n") (map show vs)
 
 instance Show Op where
   show Plus     = " + "

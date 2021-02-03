@@ -28,6 +28,8 @@ import Error.TypeError
 
 import Data.List
 
+import Debug.Trace
+
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]
 
@@ -41,8 +43,8 @@ data Env = Env {
                }
 
 -- | Initial empty environment
-initEnv :: Xtype -> Xtype -> (Int, Int) -> Env
-initEnv i _p s = Env [] [] i _p s
+initEnv :: Xtype -> Xtype -> (Int, Int) -> [TypeDef] -> Env
+initEnv i _p s td = Env [] td i _p s
 
 -- | An example environment for interal use (e.g. testing, ghci)
 exampleEnv :: Env
@@ -142,10 +144,23 @@ getType n = do
 addHole :: (Name, Type) -> Typechecked ()
 addHole a = modify (\(Stat h s e) -> Stat (a:h) s e)
 
-(<:) :: Xtype -> Xtype -> Typechecked Bool
-xa <: xb = do
-             (xa', xb') <- derefs (xa, xb)
-             return $ xa' <= xb'
+-- | Types for which the subtype relation is defined
+--   In the Typechecked monad because subtyping depends on type definitions
+class Subtypeable t where
+   (<:) :: t -> t -> Typechecked Bool
+
+instance Subtypeable Xtype where
+   xa <: xb = do
+               (xa', xb') <- derefs (xa, xb)
+               return $ xa' <= xb'
+
+instance Subtypeable Type where
+   (Plain xa) <: (Plain xb) = xa <: xb
+   (Function (Ft xa xb)) <: (Function (Ft xa' xb')) = do
+                                                         inputs <- xa <: xa'
+                                                         outputs <- xb <: xb'
+                                                         return $ inputs && outputs
+   _ <: _ = return False
 
 -- | Attempt to unify two types
 unify :: Xtype -> Xtype -> Typechecked Xtype
@@ -175,7 +190,7 @@ deref :: Xtype -> Typechecked Xtype
 deref (X (Named n) _) = do
                            ds <- getDefs
                            case find (\a -> fst a == n) ds of
-                              Just (_, x) -> return x
+                              Just (_, x) -> deref x
                               _           -> unknown "Internal type dereference error"
 deref (Tup xs)        = do
                            xs' <- mapM deref xs
