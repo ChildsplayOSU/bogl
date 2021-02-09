@@ -234,8 +234,3 @@ isInputType ie = do
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
 tcexpr :: Env -> (Expr SourcePos) -> Either Error (Xtype, Stat)
 tcexpr _e x = typecheck _e (exprtypeE x)
-
--- | Produce a string of types in the environment
---printT :: (Xtype, TypeEnv) -> String
---printT (x, env) = show x ++ "\n" ++ "Type Holes:" ++
---                  (intercalate "\n" (map (\(a, b) -> a ++ ": " ++ show b) env))

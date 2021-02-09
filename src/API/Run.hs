@@ -41,7 +41,7 @@ _handleParsed (SpielCommand _ gameFile replExpr buf _) game =
          H (Left er)    -> [er]
          H (Right buf') -> [progTypes, (serverRepl game gameFile replExpr (buf', [], 1))]
    else
-      progTypes : map (SpielTypeError . snd) (errors progTCRes)
+      progTypes : map (SpielTypeError . snd) ((reverse . errors) progTCRes)
    where
       progTCRes = tc game
       inputEnv  = (e progTCRes) { types = [] } -- keep the input type, discard other bindings
