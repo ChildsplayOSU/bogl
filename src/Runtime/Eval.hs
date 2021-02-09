@@ -223,10 +223,6 @@ eval (While c b names exprs) = do
    where
       recurse = evalWithLimit $ eval (While c b names exprs)
 
--- evaluate a type hole
--- TODO, we don't have type holes in BoGL anymore, phase this out
-eval (HE _) = throwRuntimeError (UnexpectedEvaluation "Type hole: ") -- type hole...
-
 -- | Runs an expression under a given environment and a given buffer, producing
 -- a result of either a list of values and a buffer, or a list of values and a single value
 runWithBuffer :: Env -> Buffer -> (Expr SourcePos) -> Either ([Val], Buffer) ([Val], Val)

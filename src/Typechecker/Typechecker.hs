@@ -6,7 +6,7 @@ Copyright   : (c)
 License     : BSD-3
 -}
 
-module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, printT, TcResult(..), showTCError, exprHasInputType) where
+module Typechecker.Typechecker (tcexpr, environment, runTypeCheck, tc, TcResult(..), showTCError, exprHasInputType) where
 
 import Runtime.Builtins
 import Language.Syntax hiding (input)
@@ -171,7 +171,6 @@ exprtype (If e1 e2 e3) = do
   if _t1 == boolxt
    then unify _t2 t3
    else unknown $ "The condition for 'if' must be of type " ++ show (Plain boolxt)
-exprtype (HE n) = return (Hole n)
 exprtype (While c b _ _e) = do
   et <- exprtype _e
   ct <- exprtype c
@@ -192,7 +191,7 @@ environment (BoardDef sz _t) (InputDef i) vs td = Env (map f vs ++ (builtinT i _
 -- recursion is not allowed by this.
 runTypeCheck :: BoardDef -> InputDef -> [ValDef SourcePos] -> [TypeDef]-> Writer [Either (ValDef SourcePos, Error) (Name, Type)] Env
 runTypeCheck (BoardDef sz _t) (InputDef i) vs td = foldM (\env v -> case typecheck env (deftype v) of
-                                Right (_t2, _e) -> tell (map Right (holes _e)) >> (return $ extendEnv env (ident v, _t2))
+                                Right (_t2, _e) -> (return $ extendEnv env (ident v, _t2))
                                 Left _err       -> (tell . pure . Left) (v, _err) >> return env)
                                     (initEnv i _t sz td)
                                     (vs)
@@ -221,8 +220,8 @@ tc' :: (Game SourcePos) -> (Env, [Either (ValDef SourcePos, Error) (Name, Type)]
 tc' (Game _ b i v td) = runWriter (runTypeCheck b i v td)
 
 -- | Check if a given 'Expr' is a subtype of Input
-exprHasInputType :: Env -> (Expr SourcePos) -> Either Error ((), TypeEnv)
-exprHasInputType tcenv = typeHoles tcenv . isInputType
+exprHasInputType :: Env -> (Expr SourcePos) -> Either Error ((), Stat)
+exprHasInputType tcenv = typecheck tcenv . isInputType
 
 -- | Check if a given 'Expr' is a subtype of Input
 isInputType :: (Expr SourcePos) -> Typechecked ()
@@ -233,10 +232,10 @@ isInputType ie = do
    if isSub then return () else inputmismatch $ Plain et
 
 -- | Run the typechecker on an 'Expr' and report any errors to the console.
-tcexpr :: Env -> (Expr SourcePos) -> Either Error (Xtype, TypeEnv)
-tcexpr _e x = typeHoles _e (exprtypeE x)
+tcexpr :: Env -> (Expr SourcePos) -> Either Error (Xtype, Stat)
+tcexpr _e x = typecheck _e (exprtypeE x)
 
 -- | Produce a string of types in the environment
-printT :: (Xtype, TypeEnv) -> String
-printT (x, env) = show x ++ "\n" ++ "Type Holes:" ++
-                  (intercalate "\n" (map (\(a, b) -> a ++ ": " ++ show b) env))
+--printT :: (Xtype, TypeEnv) -> String
+--printT (x, env) = show x ++ "\n" ++ "Type Holes:" ++
+--                  (intercalate "\n" (map (\(a, b) -> a ++ ": " ++ show b) env))

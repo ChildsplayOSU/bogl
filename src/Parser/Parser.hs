@@ -246,8 +246,6 @@ atom =
 -- | Atomic expressions
 atom' :: Parser (Expr SourcePos)
 atom' =
-  HE <$> ((char '?') *> lowerIdentifier)
-  <|>
   I <$> int
   <|>
   B <$> (reserved "True" *> pure True)

@@ -37,7 +37,6 @@ data Btype = Booltype      -- ^ Boolean
            | Input         -- ^ The input type specified at the top of the program
            | Board         -- ^ A game board
            | Top           -- ^ Really this is bottom FIXME
-           | Undef         -- ^ Not definable by a user (only occurs when typechecking)
            | Named String
    deriving (Generic, Eq)
 
@@ -50,7 +49,6 @@ instance Ord Btype where
 --   Note: ttypes are subsumed by xtypes in our implementation
 data Xtype = X Btype (S.Set String)
            | Tup [Xtype]
-           | Hole String
   deriving (Generic, Eq)
 
 instance Ord Xtype where
@@ -111,7 +109,6 @@ instance Show Xtype where
                      where
                         showTypes = "{" ++ intercalate (", ") (S.toList xs) ++ "}"
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
-  show (Hole _) = "?"
 
 instance ToJSON Xtype where
 
@@ -129,7 +126,6 @@ instance Show Btype where
   show Input     = "Input"
   show Board     = "Board"
   show AnySymbol = "AnySymbol"
-  show Undef     = "?"
   show (Named s) = s
 
 instance ToJSON Btype where

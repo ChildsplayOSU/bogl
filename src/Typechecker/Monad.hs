@@ -52,7 +52,6 @@ exampleEnv = Env (builtinT intxt intxt) [] intxt intxt (5, 5)
 
 -- | Typechecker state
 data Stat = Stat {
-  holes :: TypeEnv,
   source :: Maybe (Expr SourcePos),
   pos :: SourcePos
             }
@@ -63,13 +62,7 @@ type Typechecked a = (StateT Stat (ReaderT Env (ExceptT Error Identity))) a
 -- | Run a computation inside of the typechecking monad
 typecheck :: Env -> Typechecked a -> Either Error (a, Stat)
 typecheck e a = runIdentity . runExceptT . (flip runReaderT e) $
-                (runStateT a (Stat [] Nothing (newPos "" 0 0)))
-
--- | Typecheck type holes
-typeHoles :: Env -> Typechecked a -> Either Error (a, TypeEnv)
-typeHoles e a = case typecheck e a of
-  Left terr -> Left terr
-  Right (x, stat) -> Right (x, holes stat)
+                (runStateT a (Stat Nothing (newPos "" 0 0)))
 
 -- | Add some types to the environment
 extendEnv :: Env -> (Name, Type) -> Env
@@ -105,13 +98,9 @@ inBounds (x, y) = do
 localEnv :: ([(Name, Type)] -> [(Name, Type)]) -> Typechecked a -> Typechecked a
 localEnv f e = local (\(Env a td b c d) -> Env (f a) td b c d) e
 
--- | Get the current type holes
-getHoles :: Typechecked TypeEnv
-getHoles = holes <$> get
-
 -- | Set the source line
 setSrc :: (Expr SourcePos) -> Typechecked ()
-setSrc e = modify (\(Stat h _ x) -> Stat h (Just e) x)
+setSrc e = modify (\(Stat _ x) -> Stat (Just e) x)
 
 -- | Set the position
 setPos :: (SourcePos) -> Typechecked ()
@@ -139,10 +128,6 @@ getType n = do
     (Just e, _) -> return e
     (_, Just e) -> return e
     _ -> notbound n
-
--- | add a type hole
-addHole :: (Name, Type) -> Typechecked ()
-addHole a = modify (\(Stat h s e) -> Stat (a:h) s e)
 
 -- | Types for which the subtype relation is defined
 --   In the Typechecked monad because subtyping depends on type definitions
@@ -172,14 +157,6 @@ unify xa xb = do
 unify' :: Xtype -> Xtype -> Typechecked Xtype
 unify' (Tup xs) (Tup ys)
   | length xs == length ys = Tup <$> zipWithM unify' xs ys
-unify' (Hole _) (Hole _) = undefined
-unify' x (Hole n) = unify' (Hole n) x
-unify' (Hole n) x = do
-  hs <- getHoles
-  case lookup n hs of
-    Just (Plain _t) -> if _t <= x then return x else mismatch (Plain _t) (Plain x) -- function holes FIXME
-    Nothing -> addHole (n, Plain x) >> return x
-    _       -> undefined -- unhandled case when a lookup does not match one of the above
 unify' (X y z) (X w k)
   | y <= w = return $ X w (z `S.union` k) -- take the more defined type
   | w <= y = return $ X y (z `S.union` k)
