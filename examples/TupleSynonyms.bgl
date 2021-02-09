@@ -1,0 +1,15 @@
+game TestTupleSynonyms
+
+-- A test to check that types are properly assigned to parameters
+-- of multi-argument functions with type synonyms
+
+type T = Int
+
+type Pair1 = (T,T)
+type Pair2 = Pair1
+type Pair3 = Pair2
+
+-- a bug resulted in x : Pair3, y : Pair3, which makes this function ill-typed
+-- A well-typed f is a reasonable indication that bugs of this class don't occur
+f : Pair3 -> Pair3
+f(x,y) = (x,y)

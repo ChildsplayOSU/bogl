@@ -13,6 +13,7 @@ import Control.Monad.State
 import Control.Monad.Identity
 import Control.Monad.Except
 import Control.Monad.Reader
+import Control.Monad.Extra
 import Text.Parsec.Pos
 
 
@@ -174,6 +175,32 @@ deref (Tup xs)        = do
                            return $ Tup xs'
 deref h               = return h
 
+-- | Dereferences a type until it finds a tuple. If there is not tuple, returns the original type
+--   This is used in 'eqntype' to ensure that params of multi-argument functions are assigned the
+--   type of their respective tuple element in the signature.
+--
+--   TODO! write a test for this
+findTuple :: Xtype -> Typechecked Xtype
+findTuple x = do
+            x' <- findTuple' x
+            case x' of
+               Tup xs -> return $ Tup xs
+               _      -> return x
+
+-- | Dereferences a type until it finds a tuple or no more dereferencing is possible
+--   See 'findTuple' for more info
+findTuple' :: Xtype -> Typechecked Xtype
+findTuple' (X (Named n) _) = do
+                           ds <- getDefs
+                           case find (\a -> fst a == n) ds of
+                              Just (_, Tup xs) -> return (Tup xs)
+                              Just (_, x) -> findTuple' x
+                              _           -> unknown "Internal type dereference error"
+findTuple' (Tup xs)        = do
+                           xs' <- mapM findTuple' xs
+                           return $ Tup xs'
+findTuple' h               = return h
+
 -- | Dereference a pair of named types (a convenience function that wraps deref)
 derefs :: (Xtype, Xtype) -> Typechecked (Xtype, Xtype)
 derefs (xl, xr) = do
@@ -186,7 +213,7 @@ derefs (xl, xr) = do
 hasType :: Xtype -> Xtype -> Typechecked Xtype
 hasType (Tup xs) (Tup ys)
   | length xs == length ys = Tup <$> zipWithM hasType xs ys
-hasType ta tb = if ta <= tb then return tb else mismatch (Plain ta) (Plain tb)
+hasType ta tb = ifM (ta <: tb) (return tb) (mismatch (Plain ta) (Plain tb))
 
 -- | Returns a typechecked base type
 t :: Btype -> Typechecked Xtype

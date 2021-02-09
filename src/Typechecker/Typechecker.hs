@@ -79,8 +79,9 @@ beqntype (PosDef _ xp yp _e) = do
 -- | Get the type of an equation
 eqntype :: Name -> Type -> (Equation SourcePos) -> Typechecked Type
 eqntype _ _ (Veq _ _e) = exprtypeE _e >>= (return . Plain)
-eqntype _ (Function (Ft inputs _)) (Feq _ (Pars params) _e) = do
-  case inputs of
+eqntype _ ts@(Function (Ft inputs _)) f@(Feq _ (Pars params) _e) = do
+  it <- findTuple inputs
+  case it of
     (Tup inputs') -> do
       e' <- localEnv ((++) (zip params (map Plain inputs'))) (exprtypeE _e)
       return $ Function (Ft inputs e')
@@ -188,7 +189,6 @@ environment (BoardDef sz _t) (InputDef i) vs td = Env (map f vs ++ (builtinT i _
         f (BVal (Sig n _t1) _ _) = (n, _t1)
 
 -- | Runs the typechecker on a board def, input def, list of valdefs, and produces results of errors or successfully typechecked names
--- recursion is not allowed by this.
 runTypeCheck :: BoardDef -> InputDef -> [ValDef SourcePos] -> [TypeDef]-> Writer [Either (ValDef SourcePos, Error) (Name, Type)] Env
 runTypeCheck (BoardDef sz _t) (InputDef i) vs td = foldM (\env v -> case typecheck env (deftype v) of
                                 Right (_t2, _e) -> (return $ extendEnv env (ident v, _t2))
