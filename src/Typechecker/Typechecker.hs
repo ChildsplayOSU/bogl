@@ -46,7 +46,6 @@ deftype :: (ValDef SourcePos) -> Typechecked Type
 deftype (Val (Sig n _t) eqn x) = do
   setPos x
   ds <- getDefs
-  traceM $ show ds
   eqt <- localEnv ((n, _t):) (eqntype n _t eqn)
   ifM (eqt <: _t) (return _t) (sigmismatch n _t eqt)
 
@@ -160,7 +159,8 @@ exprtype (Binop o e1 e2) = do
   _t1 <- exprtype e1
   _t2 <- exprtype e2
   t' <- unify _t1 _t2
-  case (t' == intxt, arithmetic o, relational o, equiv o) of
+  isInt <- t' <: intxt
+  case (isInt, arithmetic o, relational o, equiv o) of
      (True, True, _, _)      -> return intxt
      (True, False, True, _)  -> return boolxt
      (_, False, False, True) -> return boolxt
@@ -169,18 +169,15 @@ exprtype (If e1 e2 e3) = do
   _t1 <- exprtype e1
   _t2 <- exprtype e2
   t3 <- exprtype e3
-  if _t1 == boolxt
-   then unify _t2 t3
-   else unknown $ "The condition for 'if' must be of type " ++ show (Plain boolxt)
+  ifM (_t1 <: boolxt) (unify _t2 t3) errMsg
+  where
+     errMsg = unknown $ "The condition for 'if' must be of type " ++ show boolxt
 exprtype (While c b _ _e) = do
   et <- exprtype _e
   ct <- exprtype c
   bt <- exprtype b
-  case (ct, bt) of
-    ((X Booltype s), y) | S.null s && y == et -> return et
-    (a, bb) -> if bb == et
-              then mismatch (Plain bb) (Plain (X Booltype S.empty))
-              else mismatch (Plain a) (Plain et)
+  let report = ifM (bt <: et) (mismatch (Plain ct) (Plain boolxt)) (mismatch (Plain bt) (Plain et))
+  ifM ((ct <: boolxt) &&^ (bt <: et)) (return et) report
 
 -- | Produce the environment
 environment :: BoardDef -> InputDef -> [ValDef SourcePos] -> [TypeDef] -> Env
