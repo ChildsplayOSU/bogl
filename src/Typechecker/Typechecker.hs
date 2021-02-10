@@ -75,14 +75,16 @@ beqntype (PosDef _ xp yp _e) = do
 -- | Get the type of an equation
 eqntype :: Name -> Type -> (Equation SourcePos) -> Typechecked Type
 eqntype _ _ (Veq _ _e) = exprtypeE _e >>= (return . Plain)
-eqntype _ (Function (Ft inputs _)) (Feq _ (Pars params) _e) = do
+eqntype n t@(Function (Ft inputs _)) eq@(Feq _ (Pars params) _e) = do
   case inputs of
     (Tup inputs') -> do
       e' <- localEnv ((++) (zip params (map Plain inputs'))) (exprtypeE _e)
-      return $ Function (Ft inputs e')
+      checkLen inputs' params (Function (Ft inputs e'))
     (input') -> do
       e' <- localEnv ((++) (zip params (pure (Plain input')))) (exprtypeE _e)
-      return $ Function (Ft inputs e')
+      checkLen [input'] params (Function (Ft inputs e'))
+  where
+    checkLen a b c = if (length a) == (length b) then return $ c else unknown "Add a better type error message here for eq. vs. sig. mismatch"
 eqntype n et f = sigbadfeq n et $ (clearAnnEq f)
 
 -- Synthesize the type of an expression
