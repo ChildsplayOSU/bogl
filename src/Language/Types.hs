@@ -33,7 +33,6 @@ data InputDef = InputDef
 -- | Atomic types
 data Btype = Booltype      -- ^ Boolean
            | Itype         -- ^ Int
-           | AnySymbol     -- ^ this is the type all symbols live in
            | Input         -- ^ The input type specified at the top of the program
            | Board         -- ^ A game board
            | Top           -- ^ Really this is bottom FIXME
@@ -52,7 +51,6 @@ data Xtype = X Btype (S.Set String)
   deriving (Generic, Eq)
 
 instance Ord Xtype where
-  (X Top _) <= (X AnySymbol _) = True -- A set of symbols is the subtype of AnySymbols
   (X k x)   <= (X k' x')       = (k <= k') && (x `S.isSubsetOf` x')
   (Tup xs)  <= (Tup xs') | length xs == length xs' = and (zipWith (<=) xs xs')
   _ <= _ = False
@@ -125,7 +123,6 @@ instance Show Btype where
   show Top       = "T"
   show Input     = "Input"
   show Board     = "Board"
-  show AnySymbol = "AnySymbol"
   show (Named s) = s
 
 instance ToJSON Btype where

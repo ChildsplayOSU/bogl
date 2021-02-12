@@ -360,11 +360,6 @@ btype =
   --reserved "Input" *> pure Input
   <|>
   reserved "Board" *> pure Board
-  -- removes 'AnySymbol' as a directly usable type
-  -- serves as a parent of all types internally, but this prevents
-  -- it from being referenced externally (as requested by the CSforAll group) (@montymxb)
-  -- <|>
-  -- reserved "AnySymbol" *> pure AnySymbol
 
 -- | Parse an enum of a set of names
 enum :: Parser (S.Set Name)
