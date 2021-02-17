@@ -1,0 +1,31 @@
+-- A basic test that subtyping and type synonyms work as exepected
+-- i.e. * subtyping is similar to a subset relation
+--      * a type synonym is always a subtype of its referent
+game G
+
+type TA = {A}
+type TB = {B}
+type TAB = TA & TB
+type TABC = TAB & {C}
+
+type T = Int & TABC
+type TSyn = T
+type TSyn2 = TSyn
+
+a : TA
+a = A
+
+f : TAB -> TAB
+f(x) = x
+
+g : TABC -> TABC
+g(x) = x
+
+h : T -> T
+h(x) = x
+
+a' : TSyn2
+a' = h(g(f(a)))
+
+a'' : T
+a'' = a'
