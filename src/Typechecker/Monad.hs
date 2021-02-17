@@ -29,7 +29,7 @@ import Error.TypeError
 
 import Data.List
 
-import Debug.Trace
+--import Debug.Trace
 
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]

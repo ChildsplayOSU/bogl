@@ -63,13 +63,14 @@ getDefs = reverse . tdef <$> getState
 addSyn :: (Name, Xtype) -> Parser ()
 addSyn x = modifyState (\env -> env{tdef = x:tdef env})
 
--- | Lookup a type synonym
+-- | Lookup a type name and nest it as an xtype if it exists
+--   Note: this is not actually a parse error and should be done when type checking
 lookupSyn :: Name -> Parser Xtype
 lookupSyn n = do
   t <- (lookup <$> (pure n) <*> (tdef <$> getState))
   case t of
     Nothing -> fail $ "Type " ++ n ++ " not declared!"
-    Just t' -> return $ namedt n -- TODO! clean up
+    Just _ -> return $ namedt n
 
 -- | Add an id to list of used ids
 addid :: Name -> Parser ()

@@ -24,7 +24,7 @@ import Text.Parsec.Pos
 import qualified Data.Set as S
 
 import Error.Error
-import Debug.Trace
+--import Debug.Trace
 
 -- | return Nothing or the first element of a list which doen't satisfy a predicate
 all' :: Foldable t => (a -> Bool) -> t a -> Maybe a
@@ -45,7 +45,6 @@ getCovered (mx,my) (PosDef _ xp yp _) = case (xp,yp) of
 deftype :: (ValDef SourcePos) -> Typechecked Type
 deftype (Val (Sig n _t) eqn x) = do
   setPos x
-  ds <- getDefs
   eqt <- localEnv ((n, _t):) (eqntype n _t eqn)
   ifM (eqt <: _t) (return _t) (sigmismatch n _t eqt)
 
@@ -56,7 +55,7 @@ deftype (BVal (Sig n _t) eqs x) = do
   let placesCovered = S.fromList $ concat $ map (getCovered (mx,my)) eqs
   eqTypes  <- mapM beqntype eqs
   allSubs  <- mapM (<: _t) eqTypes
-  case all' (\(t, isSub) -> isSub) (zip eqTypes allSubs) of
+  case all' (\(_, isSub) -> isSub) (zip eqTypes allSubs) of
     -- pass if all spaces are defined, otherwise incomplete/uninitialized
     -- placesCovered is a set of all places. Places of invalid positions do not count
     -- i.e, if the size of the set of positions is equivalent to mx*my, then all correct positions have been covered
@@ -78,7 +77,7 @@ beqntype (PosDef _ xp yp _e) = do
 -- | Get the type of an equation
 eqntype :: Name -> Type -> (Equation SourcePos) -> Typechecked Type
 eqntype _ _ (Veq _ _e) = exprtypeE _e >>= (return . Plain)
-eqntype _ ts@(Function (Ft inputs _)) f@(Feq _ (Pars params) _e) = do
+eqntype _ (Function (Ft inputs _)) (Feq _ (Pars params) _e) = do
   it <- findTuple inputs
   case it of
     (Tup inputs') -> do
@@ -89,26 +88,21 @@ eqntype _ ts@(Function (Ft inputs _)) f@(Feq _ (Pars params) _e) = do
       return $ Function (Ft inputs e')
 eqntype n et f = sigbadfeq n et $ (clearAnnEq f)
 
--- Synthesize the type of an expression
+-- | Synthesize the type of an expression
 exprtypeE :: (Expr SourcePos) -> Typechecked Xtype -- TODO do this with mapStateT stack thing
 exprtypeE _e = setSrc _e >> exprtype _e
 
-assignName :: Xtype -> Typechecked Xtype
-assignName x = do
-                  ds <- getDefs
-                  case find (\a -> snd a == x) ds of
-                     Just (n, _) -> return $ X (Named n) S.empty
-                     _           -> return $ x
-
+-- | Assign a type to a symbol based on the first type definition that it appears in
 assignSymbol :: Name -> Typechecked Xtype
 assignSymbol n = do
                     ds   <- getDefs
                     case find (\a -> declaredIn n (snd a)) ds of
-                       (Just (n, _)) -> return $ namedt n
+                       (Just (tn, _)) -> return $ namedt tn
                        _             -> unknown $ "The value " ++ n ++ " does not have a type"
    where
-      -- TODO! a hack that works only if type defs are stored in program order
-      declaredIn s (X b ss) = S.member s ss
+      -- TODO! works only if type defs are stored in program order
+      -- in the formal spec, symbol -> type name mappings are stored in the type env
+      declaredIn s (X _ ss) = S.member s ss
       declaredIn _ _       = False
 
 -- | Get the type of an expression
