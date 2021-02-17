@@ -17,12 +17,13 @@ import Language.Types
 import Text.Parsec.Pos
 
 import Typechecker.Typechecker
-import Typechecker.Monad (Env(types))
+import Typechecker.Monad (Env(types, defs))
 import Runtime.Eval (runWithBuffer, bindings_)
 import Runtime.Values
 import Runtime.Monad (Buffer, emptyEnv)
 
 import Control.Monad(liftM, ap)
+import Debug.Trace
 
 -- | Runs BoGL code from raw text with the given commands
 -- utilizes parsePreludeAndGameText to parse the code directly,
@@ -44,6 +45,8 @@ _handleParsed (SpielCommand _ gameFile replExpr buf _) game =
       progTypes : map (SpielTypeError . snd) ((reverse . errors) progTCRes)
    where
       progTCRes = tc game
+      -- left for easy debugging. change the if above to `if showDefs then` to emit type defs
+      -- showDefs  = trace ((show . defs . e) progTCRes) (success progTCRes)
       inputEnv  = (e progTCRes) { types = [] } -- keep the input type, discard other bindings
       progTypes = SpielTypes (rtypes progTCRes)
 

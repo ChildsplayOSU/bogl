@@ -366,21 +366,30 @@ enum :: Parser (S.Set Name)
 enum = reservedOp "{" *>
          (S.fromList <$> (commaSep1 (notAlreadyInUse capIdentifier))) <* reservedOp "}"
 
+-- | Bad extension error message
+badExtension :: String
+badExtension = "the right side of & must either be an {Enumeration} or the name of one"
+
+-- | Dereference a named enumeration type and union its symbols
+chase :: Name -> Parser (S.Set Name)
+chase n = do
+  t <- (lookup <$> (pure n) <*> (tdef <$> getState))
+  case t of
+    Nothing -> fail $ "Type " ++ n ++ " not declared!"
+    Just (X (Named n') e) -> S.union e <$> (chase n')
+    Just (X Top e)        -> return e
+    _                     -> fail badExtension
+
+
 -- | An enum or the type name of an enum
 --   in the future, this will be an enum or any type name
 --   the type checker should catch the error if it is not an enum
---   that currently would require a substantial change that will be better to implemenent when the
---   new type system is implemented
+--   that requires a forthcoming substantial change to the syntax of types
 enumName :: Parser (S.Set Name)
 enumName =
    enum
    <|>
-      (do
-         maybeE <- typeName
-         case maybeE of          -- todo: move this to the type checker
-            X Top e -> return e
-            _ -> fail "the right side of & must either be an {Enumeration} or the name of one"
-      )
+   (capIdentifier >>= chase)
 
 -- | Parse a type name if it has been defined
 typeName :: Parser Xtype
