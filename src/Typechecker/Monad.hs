@@ -152,16 +152,19 @@ instance Subtypeable Type where
 unify :: Xtype -> Xtype -> Typechecked Xtype
 unify xa xb = do
                  (xa', xb') <- derefs (xa, xb)
-                 unify' xa' xb'
+                 unify' (xa, xa') (xb, xb')  -- pass xa, xb so errors report type names
 
 -- | Attempt to unify two dereferenced types
-unify' :: Xtype -> Xtype -> Typechecked Xtype
-unify' (Tup xs) (Tup ys)
-  | length xs == length ys = Tup <$> zipWithM unify' xs ys
-unify' (X y z) (X w k)
+--   requires un-dereferenced versions of the types as well
+--   this allows nominal rather than structural type error messages
+--   i.e. to report type names like T rather than type defs like Int & {X}
+unify' :: (Xtype, Xtype) -> (Xtype, Xtype) -> Typechecked Xtype
+unify' ((Tup xns), (Tup xs)) ((Tup yns), (Tup ys))
+  | all (\x -> length x == length xs) [xns, xs, yns, ys] = Tup <$> zipWithM unify' (zip xns xs) (zip yns ys)
+unify' (_, (X y z)) (_, (X w k))
   | y <= w = return $ X w (z `S.union` k) -- take the more defined type
   | w <= y = return $ X y (z `S.union` k)
-unify' a b = mismatch (Plain a) (Plain b)
+unify' (tna, _) (tnb, _) = mismatch (Plain tna) (Plain tnb)
 
 -- | Dereference a named type (to enable a subtype check)
 deref :: Xtype -> Typechecked Xtype
