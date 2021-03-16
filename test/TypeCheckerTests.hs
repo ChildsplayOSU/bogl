@@ -37,6 +37,7 @@ typeCheckerTests = TestList
    , testCompleteBoardEq
    , testBoardTypeMismatch
    , testFeqMismatch
+   , testArgCountMismatch
    ]
 
 -- | Represents the rest result for typchecking examples
@@ -250,3 +251,15 @@ testBoardTypeMismatch = TestCase (
     (Tc False _ [(_, Error (TE (Mismatch _ _ _)) _ _)] _) -> True
     -- anything else, pass or fail, is incorrect
     _                                      -> False)
+
+-- | Test TC on equation with # of args that doesn't match the arg # in the type
+-- f : Int -> Int
+-- f(x,y) = 1
+testArgCountMismatch :: Test
+testArgCountMismatch = TestCase (
+  assertBool "Verify that if arg count & input type count do not match, a type error is reported" $
+  let aeqn = (Val (Sig "f" (Function (Ft intxt intxt))) (Feq "f" (Pars ["x","y"]) (I 1)) dummyPos) in
+  case tc $ testGame [aeqn] of
+    (Tc False _ [(_, Error (TE (Unknown x)) _ _)] _) -> True
+    _                                                -> False
+  )

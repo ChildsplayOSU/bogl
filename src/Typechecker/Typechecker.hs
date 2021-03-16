@@ -22,6 +22,7 @@ import Data.List
 import Typechecker.Monad
 import Text.Parsec.Pos
 import qualified Data.Set as S
+import Utils.String
 
 import Error.Error
 --import Debug.Trace
@@ -77,15 +78,23 @@ beqntype (PosDef _ xp yp _e) = do
 -- | Get the type of an equation
 eqntype :: Name -> Type -> (Equation SourcePos) -> Typechecked Type
 eqntype _ _ (Veq _ _e) = exprtypeE _e >>= (return . Plain)
-eqntype _ (Function (Ft inputs _)) (Feq _ (Pars params) _e) = do
+eqntype n t'@(Function (Ft inputs _)) (Feq _ (Pars params) _e) = do
   it <- findTuple inputs
   case it of
     (Tup inputs') -> do
       e' <- localEnv ((++) (zip params (map Plain inputs'))) (exprtypeE _e)
-      return $ Function (Ft inputs e')
+      checkLen inputs' params (Function (Ft inputs e'))
     (input') -> do
       e' <- localEnv ((++) (zip params (pure (Plain input')))) (exprtypeE _e)
-      return $ Function (Ft inputs e')
+      checkLen [input'] params (Function (Ft inputs e'))
+  where
+    checkLen a b c = let la = length a
+                         lb = length b in
+                     if la == lb then
+                      return c
+                     else
+                       unknown $ "The equation for " ++ quote n ++ " has " ++ (show lb) ++ " arguments, but its type " ++ (show t') ++ " has only " ++ (show la)
+
 eqntype n et f = sigbadfeq n et $ (clearAnnEq f)
 
 -- | Synthesize the type of an expression
