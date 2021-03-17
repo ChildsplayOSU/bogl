@@ -1,0 +1,8 @@
+game G
+
+type TX = {X}
+
+-- The type Int & {X} has not been declared so the if expression should fail to type check
+-- The let expression is used to ensure that the failure is not due to a signature mismatch
+a : Int
+a = let discard = if True then 1 else X in 42

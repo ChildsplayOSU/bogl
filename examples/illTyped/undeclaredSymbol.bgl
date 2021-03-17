@@ -1,0 +1,7 @@
+game G
+
+-- the symbol `Undeclared` should not be available for use unless it appears
+-- in a type definition
+
+x : Int
+x = let x = Undeclared in 1
