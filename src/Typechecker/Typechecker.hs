@@ -93,7 +93,7 @@ eqntype n t'@(Function (Ft inputs _)) (Feq _ (Pars params) _e) = do
                      if la == lb then
                       return c
                      else
-                       unknown $ "The equation for " ++ quote n ++ " has " ++ (show lb) ++ " arguments, but its type " ++ (show t') ++ " has only " ++ (show la)
+                       unknown $ "The equation for " ++ quote n ++ " has " ++ (show lb) ++ " parameters, but its type " ++ (show t') ++ " has only " ++ (show la)
 
 eqntype n et f = sigbadfeq n et $ (clearAnnEq f)
 
