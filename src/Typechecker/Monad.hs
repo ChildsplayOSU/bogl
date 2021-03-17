@@ -155,13 +155,13 @@ unify xa xb = do
                  unify' (xa, xa') (xb, xb')  -- pass xa, xb so errors report type names
 
 -- | Assign a type name to a type definition
-assignTypeName :: Xtype -> Typechecked Xtype
+assignTypeName :: Xtype -> Typechecked (Maybe Xtype)
 assignTypeName x = do
                       ds   <- getDefs
                       look <- findM (\a -> x <: snd a) ds
                       case look of
-                         (Just (tn, _)) -> return $ namedt tn
-                         _              -> unknown $ "The type " ++ show x ++ " was not declared"
+                         (Just (tn, _)) -> return $ Just $ namedt tn
+                         _              -> return Nothing
 
 -- | Attempt to unify two dereferenced types
 --   requires un-dereferenced versions of the types as well
@@ -170,12 +170,19 @@ assignTypeName x = do
 unify' :: (Xtype, Xtype) -> (Xtype, Xtype) -> Typechecked Xtype
 unify' ((Tup xns), (Tup xs)) ((Tup yns), (Tup ys))
   | all (\x -> length x == length xs) [xns, xs, yns, ys] = Tup <$> zipWithM unify' (zip xns xs) (zip yns ys)
-unify' (_, tl@(X y z)) (_, tr@(X w k))
+unify' (tnl, tl@(X y z)) (tnr, tr@(X w k))
   | tr <= tl = return tl
   | tl <= tr = return tr
-  | w <= y   = assignTypeName $ X y (z `S.union` k)
-  | y <= w   = assignTypeName $ X w (z `S.union` k)
-unify' (tna, _) (tnb, _) = mismatch (Plain tna) (Plain tnb)
+  | w <= y   = do
+                  r <- assignTypeName $ X y (z `S.union` k)
+                  report r
+  | y <= w   = do
+                  r <- assignTypeName $ X w (z `S.union` k)
+                  report r
+  where
+     report (Just ty) = return ty
+     report Nothing  = mismatch (Plain tnl) (Plain tnr)
+unify' (tnl, _) (tnr, _) = mismatch (Plain tnl) (Plain tnr)
 
 -- | Dereference a named type (to enable a subtype check)
 deref :: Xtype -> Typechecked Xtype
