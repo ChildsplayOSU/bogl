@@ -27,6 +27,38 @@ import Utils.String
 import Error.Error
 --import Debug.Trace
 
+{-
+   - Type checker details -
+
+   - The parser provides type signatures by name
+       - e.g. the type checker gets pair : Pair rather than pair : (Int, Int)
+
+   - due to historical syntax of types, some type definitions must be modified
+       - e.g.
+            type T1 = {A,B}, type T2 = {C} type T3 = T1 & T2
+            can only be parsed with T3 = {A,B,C}
+
+   - otherwise, type definitions/synonyms are not dereferenced when parsing
+       - e.g.
+            type T1 = (Int, Int), type T2 = T1, type T3 = T2
+            T3 type def is given to type checker as T3 = T2, not T3 = (Int, Int)
+
+   - The type checker should produce typings and report type errors by name
+       - e.g. X : Piece rather than X : {X, O}
+
+   - subtyping requires comparing the structure of types, so types must be expanded/dereferenced
+       - e.g. to check T1 <: T2 first change to {A, B} <: Int & {A, B}
+
+   - type unification (see 'unify' in Typechecker/Monad.hs) is used for conditionals and binary ops
+       - e.g. if a then b : T1 else c : T2 is type-correct if
+           a type T has been declared such that T1 <: T and T2 <: T
+
+   - type definitions and type names were bolted on to a type checker that did not have those
+     things in mind so the unification/dereferencing code is a bity messy.
+
+   - fortunately, there are plenty of type checker tests so this can be refactored in the future
+-}
+
 -- | return Nothing or the first element of a list which doen't satisfy a predicate
 all' :: Foldable t => (a -> Bool) -> t a -> Maybe a
 all' _p xs = foldl (\none x -> if _p x then none else Just x) Nothing xs

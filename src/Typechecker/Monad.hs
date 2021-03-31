@@ -29,7 +29,7 @@ import Error.TypeError
 
 import Data.List
 
---import Debug.Trace
+-- import Debug.Trace
 
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]
@@ -149,6 +149,7 @@ instance Subtypeable Type where
    _ <: _ = return False
 
 -- | Attempt to unify two types
+--   i.e. for types T1 and T2: has a type T been declared such that T1 <: T and T2 <: T
 unify :: Xtype -> Xtype -> Typechecked Xtype
 unify xa xb = do
                  (xa', xb') <- derefs (xa, xb)
@@ -164,12 +165,19 @@ assignTypeName x = do
                          _              -> return Nothing
 
 -- | Attempt to unify two dereferenced types
+--
 --   requires un-dereferenced versions of the types as well
---   this allows nominal rather than structural type error messages
---   i.e. to report type names like T rather than type defs like Int & {X}
+--   this is to report type names like T rather than type defs like Int & {X}
 unify' :: (Xtype, Xtype) -> (Xtype, Xtype) -> Typechecked Xtype
-unify' ((Tup xns), (Tup xs)) ((Tup yns), (Tup ys))
+unify' ((Tup xns), (Tup xs)) ((Tup yns), (Tup ys)) -- element-wise unification of tuples
   | all (\x -> length x == length xs) [xns, xs, yns, ys] = Tup <$> zipWithM unify' (zip xns xs) (zip yns ys)
+unify' (xn, (Tup xs)) (yn, (Tup ys)) = -- expand named type and assign names to tuple elements
+   do
+      xns <- findTuple xn
+      yns <- findTuple yn
+      unify' (xns, Tup xs) (yns, Tup ys)
+-- if one is a subtype of the other, then the result is the larger type
+-- else, create a type from tl and tr (if possible) and see if it has been defined in user program
 unify' (tnl, tl@(X y z)) (tnr, tr@(X w k))
   | tr <= tl = return tl
   | tl <= tr = return tr
@@ -185,6 +193,9 @@ unify' (tnl, tl@(X y z)) (tnr, tr@(X w k))
 unify' (tnl, _) (tnr, _) = mismatch (Plain tnl) (Plain tnr)
 
 -- | Dereference a named type (to enable a subtype check)
+--   e.g. type T1 = Int & {A,B}
+--
+--   T1 ---deref--> Int & {A,B}
 deref :: Xtype -> Typechecked Xtype
 deref (X (Named n) s) = do
                            ds <- getDefs
@@ -194,9 +205,10 @@ deref (X (Named n) s) = do
                                                 return $ addSymbols s d
                               _           -> unknown "Internal type dereference error"
    where
+      -- | initial type was n & s. After dereferencing, use this create x & s
       addSymbols :: S.Set String -> Xtype -> Xtype
       addSymbols ss (X b ss') = X b (S.union ss ss')
-      addSymbols _ tup        = tup
+      addSymbols _ tup        = tup -- extended tuples not currently allowed by impl syntax
 deref (Tup xs)        = do
                            xs' <- mapM deref xs
                            return $ Tup xs'
@@ -206,6 +218,11 @@ deref h               = return h
 -- | Dereferences a type until it finds a tuple. If there is not tuple, returns the original type
 --   This is used in 'eqntype' to ensure that params of multi-argument functions are assigned the
 --   type of their respective tuple element in the signature.
+--
+--   e.g. type T1 = (Int, Int)
+--        type T2 = T1
+--
+--        dereference T2 to (Int, Int)
 --
 --   TODO! write a test for this
 findTuple :: Xtype -> Typechecked Xtype

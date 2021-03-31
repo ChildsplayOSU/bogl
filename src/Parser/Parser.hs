@@ -372,6 +372,8 @@ badExtension :: String
 badExtension = "the right side of & must either be an {Enumeration} or the name of one"
 
 -- | Dereference a named enumeration type and union its symbols
+--   this is needed because the abstract syntax currently doesn't allow, e.g. {A} & {B}
+--   instead it is stored as {A, B}
 chase :: Name -> Parser (S.Set Name)
 chase n = do
   t <- (lookup <$> (pure n) <*> (tdef <$> getState))

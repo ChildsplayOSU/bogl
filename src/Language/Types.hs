@@ -36,7 +36,7 @@ data Btype = Booltype      -- ^ Boolean
            | Input         -- ^ The input type specified at the top of the program
            | Board         -- ^ A game board
            | Top           -- ^ Really this is bottom FIXME
-           | Named String
+           | Named String  -- ^ A named type, e.g. Player
    deriving (Generic, Eq)
 
 instance Ord Btype where

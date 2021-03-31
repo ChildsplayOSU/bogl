@@ -34,7 +34,7 @@ data Game a = Game
   , board :: BoardDef   -- ^ Size and type of the board
   , input :: InputDef   -- ^ Type of input
   , defns :: [ValDef a] -- ^ List of value definitions
-  , tdefs :: [TypeDef]
+  , tdefs :: [TypeDef]  -- ^ Type definitions and type synonyms
   }
   deriving (Generic)
 

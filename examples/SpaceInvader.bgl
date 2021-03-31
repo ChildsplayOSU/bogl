@@ -1,0 +1,237 @@
+-- Algorithm: Space Invader, where there is a board with a SHIP, UFO, and BOMB. The ship moves left and right.
+-- Input: ship movement (left, right, bomb)
+-- Requirements: If bomb, then ship doesn't move but the cell above the ship has a bomb. If left or right, then the ship moves a cell to the right or left.
+-- All bombs on the board move up the cells on each iteration, and it is checked to see if it hits a UFO.
+game SpaceInvader
+
+type Player = {Player1Name, Player2Name}
+
+type Position = (Int, Int)
+-- the board can be any size but the maxCol and maxRow functions need to be changed
+-- M = Ship
+-- X = Bomb
+-- U = UFO
+-- O = Empty/Open
+type BoardValues= {M,X,U,O}
+
+-- pieces and an open space
+type Board = Array(4,5) of BoardValues
+
+-- WASD and Bomb drop
+type AnyMove = {W,A,S,D,B}
+
+--type EntityInfo = (Board, Position)
+type GameInfo = (Board, Position, Position)
+
+-- input is any kind of move
+type Input = AnyMove
+
+
+--Create constants for Rows and Cols
+--Board constraints are 7x7
+maxCol : Int
+maxCol = 4
+
+maxRow : Int
+maxRow = 5
+
+
+-- convenience functions for directions
+up : AnyMove
+up = W
+
+left : AnyMove
+left = A
+
+right : AnyMove
+right = D
+
+down : AnyMove
+down = S
+
+dropBomb : AnyMove
+dropBomb = B
+
+
+-- convenience functions for board pieces
+ship : BoardValues
+ship = M
+
+bomb : BoardValues
+bomb = X
+
+ufo : BoardValues
+ufo = U
+
+open : BoardValues
+open = O
+
+
+-- initial board is open spaces
+initialBoard : Board
+initialBoard!(x,y) = open
+
+
+-- Places a UFO and Player ship on a board, and returns it
+spaceInvaderBoard : GameInfo -> Board
+spaceInvaderBoard(b, shipPosition, ufoPosition) = place(ufo, place(ship, b, shipPosition), ufoPosition)
+
+
+-- Empty an entity's position
+empty : (Board, Position) -> Board
+empty(b, p) = place(open, b, p)
+
+
+-- Get an entity's column position
+getCol : Position -> Int
+getCol(x, y) = x
+
+
+-- Get an entity's row position
+getRow : Position -> Int
+getRow(x, y) = y
+
+
+-- Find out where the ship is
+getShipPosition : GameInfo -> Position
+getShipPosition(b, p1, p2) = p1
+
+
+-- Find out where the UFO is
+getUFOPosition : GameInfo -> Position
+getUFOPosition(b, p1, p2) = p2
+
+
+-- Update an entity's position
+updatePosition : (Position, AnyMove) -> Position
+updatePosition(p, move) = 
+   if move == left then 
+		-- move left
+		(getCol(p)-1, getRow(p))
+   else if move == right then 
+		-- move right
+		(getCol(p)+1, getRow(p))
+   else if move == up then 
+		-- move Up
+		(getCol(p), getRow(p)-1)
+   else
+		-- otherwise, move down (S)
+		(getCol(p), getRow(p)+1)
+
+
+-- Get the board part of the game information 
+getBoard : GameInfo -> Board
+getBoard(b, p, p2) = b
+
+
+-- Update all the bombs on the board
+updateBombs : (Board, Position) -> Board
+updateBombs(b, p) = 
+   --if the place is empty or a UFO, keep it the same
+   if and(and(getCol(p)<maxCol, or(b!p == open, b!p == ufo)), getRow(p)<maxRow) then 
+		-- move bomb up one space
+      updateBombs(b, (getCol(p)+1, getRow(p)))
+   else if and(and(getCol(p)==maxCol, getRow(p)<maxRow), or(b!p == open, b!p == ufo)) then 
+		-- move bomb over one row?
+      updateBombs(b, (1, getRow(p)+1))
+   --Update current bomb to empty and move the bomb
+   else if and(and(getCol(p)<maxCol, b!p == bomb), getRow(p)==1) then 
+      updateBombs(empty(b,p), (getCol(p)+1, getRow(p)))
+   else if and(and(getCol(p)<maxCol, b!p == bomb), getRow(p)<maxRow) then 
+      updateBombs(place(bomb, empty(b,p), (getCol(p), getRow(p)-1)), (getCol(p)+1, getRow(p)))
+   else if and(and(getCol(p)==maxCol, getRow(p)==1), b!p == bomb) then 
+      updateBombs(empty(b,p), (1, getRow(p)+1))
+   else if and(and(getCol(p)==maxCol, b!p == bomb), getRow(p)<maxRow) then 
+      updateBombs(place(bomb, empty(b,p), (getCol(p), getRow(p)-1)), (1, getRow(p)+1))
+   --We don't need to check the last row, since the last row is a ship and can't be bombs, getCol==maxCol and getRow==maxRow stops
+   else 
+      b
+
+
+-- Move the ship Right or Left or shoot a bomb
+moveShip : (GameInfo, AnyMove) -> GameInfo
+moveShip(info, move) = 
+   if move == left then 
+		-- move left
+      (place(ship, empty(getBoard(info), getShipPosition(info)), (getCol(getShipPosition(info))-1, getRow(getShipPosition(info)))),
+       updatePosition(getShipPosition(info), left), getUFOPosition(info))
+   else if move == right then 
+		-- move right
+      (place(ship, empty(getBoard(info), getShipPosition(info)), (getCol(getShipPosition(info))+1, getRow(getShipPosition(info)))),
+       updatePosition(getShipPosition(info), right), getUFOPosition(info))
+   else 
+		-- drop a bomb
+      (place(bomb, getBoard(info), (getCol(getShipPosition(info)), getRow(getShipPosition(info))-1)),
+       getShipPosition(info), getUFOPosition(info))
+
+
+-- Move the UFO based on Right, Left, Up, Down, and after the UFO moves, then update bomb before going back to get the ship's movement.
+moveUFO : (GameInfo, AnyMove) -> GameInfo
+moveUFO(info, move) = 
+   if move == left then 
+		-- move UFO left
+      (updateBombs(place(ufo, empty(getBoard(info), getUFOPosition(info)), (getCol(getUFOPosition(info))-1, getRow(getUFOPosition(info)))), (1,1)), 
+       getShipPosition(info), updatePosition(getUFOPosition(info), left))
+   else if move == right then 
+		-- move UFO right
+      (updateBombs(place(ufo, empty(getBoard(info), getUFOPosition(info)), (getCol(getUFOPosition(info))+1, getRow(getUFOPosition(info)))), (1,1)),
+       getShipPosition(info), updatePosition(getUFOPosition(info), right))
+   else if move == up then
+		-- move UFO up
+      (updateBombs(place(ufo, empty(getBoard(info), getUFOPosition(info)), (getCol(getUFOPosition(info)), getRow(getUFOPosition(info))-1)), (1,1)),
+       getShipPosition(info), updatePosition(getUFOPosition(info), up))
+   else
+		-- move UFO down
+      (updateBombs(place(ufo, empty(getBoard(info), getUFOPosition(info)), (getCol(getUFOPosition(info)), getRow(getUFOPosition(info))+1)), (1,1)),
+       getShipPosition(info), updatePosition(getUFOPosition(info), down))
+
+
+-- Switch player to next player
+switchPlayer : Player -> Player
+switchPlayer(curPlayer) =
+   if curPlayer == Player1Name then
+	   Player2Name 
+   else
+	   Player1Name 
+
+
+-- Get good input for moves
+getInput : (GameInfo, Player) -> AnyMove
+getInput(info, player) = let move = input in
+   if and(player==Player1Name, or(or(move == right, move == left), move == dropBomb)) then
+		-- make the move
+		move
+   else if and(player==Player2Name, or(or(move == right, move == left), move == down)) then
+		-- make the move
+		move
+   else
+		-- invalid, ask again
+		getInput(info, player)
+
+
+-- Determine a winner based on how the game ended
+determineWinner : (GameInfo, Player) -> (GameInfo, Player)
+determineWinner(info, player)= if countBoard(ufo, getBoard(info))==0 then
+											(info, Player1Name)
+										 else if countBoard(ship, getBoard(info))==0 then 
+											(info, Player2Name)
+    									 else 
+											(info, Player2Name)
+
+
+-- Continue to play until the UFO gets the SHP or the BMB gets the UFO
+playSpaceInvader : (GameInfo, Player) -> (GameInfo, Player)
+playSpaceInvader(info, player) = 
+   while and(and(countBoard(ufo, getBoard(info)) /= 0, countBoard(ship, getBoard(info)) /= 0), getRow(getUFOPosition(info)) /= maxRow) do (
+      let choice = getInput(info, player) in 
+		if player == Player1Name then 
+         (moveShip(info, choice), switchPlayer(player))
+        else
+         (moveUFO(info, choice), switchPlayer(player))
+   )
+
+
+-- Get the starting position for the ship and UFO and determine who is the first player/the ship
+play : (Int, Int, Player) -> (GameInfo, Player)
+play(shipCol, ufoCol, player) = let board = spaceInvaderBoard(initialBoard, (shipCol, maxRow), (ufoCol, 1)) in
+                                   determineWinner(playSpaceInvader((board, (shipCol, maxRow), (ufoCol, 1)), player))
