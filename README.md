@@ -6,7 +6,7 @@
 
 ## BoGL is a teaching language intended to model the domain of board game specification. It is used in early computer science and software engineering education.
 
-You can learn more about the language on our [documentation page](https://aidenjn.github.io/bogl-docs/). To write and run a BoGL program, you can use our [REPL](https://bogl.engr.oregonstate.edu/).
+You can learn more about the language on our [tutorial site](https://bogl.engr.oregonstate.edu/tutorials/). To write and run a BoGL program, you can use our [REPL](https://bogl.engr.oregonstate.edu/).
 
 This is the back end of the implementation which includes the interpreter itself and a server. To actually use the language you need the [front end](https://github.com/The-Code-In-Sheep-s-Clothing/Spiel-Front) which includes an editor and REPL.
 
