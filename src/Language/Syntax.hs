@@ -21,6 +21,12 @@ import Utils.String
 -- | Names of games, signatures, etc.
 type Name = String
 
+-- | An unparsed expression
+type ExprS = String
+
+-- | A type definition or synonym
+type TypeDef = (Name, Xtype)
+
 -- | Game datatype
 data Game a = Game
   {
@@ -28,6 +34,7 @@ data Game a = Game
   , board :: BoardDef   -- ^ Size and type of the board
   , input :: InputDef   -- ^ Type of input
   , defns :: [ValDef a] -- ^ List of value definitions
+  , tdefs :: [TypeDef]  -- ^ Type definitions and type synonyms
   }
   deriving (Generic)
 
@@ -93,7 +100,6 @@ data Expr a = I Int                                 -- ^ Integer
           | While (Expr a) (Expr a) [Name] (Expr a) -- ^ While loop
           | If (Expr a) (Expr a) (Expr a)           -- ^ Conditional
           | Annotation a (Expr a)                   -- ^ Parameterized by the type of an annotation
-          | HE Name                                 -- ^ Type hole
    deriving (Eq, Generic)
 
 -- Description of arguments to While:
@@ -105,7 +111,6 @@ data Expr a = I Int                                 -- ^ Integer
 -- | this is just "deriving functor"
 instance Functor Expr where
   fmap _ (B x)               = (B x)
-  fmap _ (HE n)              = (HE n)
   fmap f (Annotation a e)    = Annotation (f a) (fmap f e)
   fmap f (While e1 e2 ns e3) = While (fmap f e1) (fmap f e2) ns (fmap f e3)
   fmap f (If e1 e2 e3)       = If (fmap f e1) (fmap f e2) (fmap f e3)
@@ -177,7 +182,6 @@ instance Show (Equation a) where
 
 instance Show (Expr a) where
   show (Annotation _ e)     = show e -- can refactor
-  show (HE n)               = "?" ++ n
   show (I i)                = show i
   show (S s)                = s
   show (B b)                = show b
@@ -200,11 +204,16 @@ instance Show Parlist where
 instance Show Signature where
   show (Sig n t) = n ++ " : " ++ show t
 
+showDef :: TypeDef -> String
+showDef (n, t) = "type " ++ n ++ " = " ++ show t
+
+-- | TODO! show typedefs
 instance Show (Game a) where
-  show (Game n b i vs) = "Game : " ++ n ++ "\n"
-                         ++ show b ++ "\n"
-                         ++ show i ++ "\n"
-                         ++ intercalate ("\n\n\n") (map show vs)
+  show (Game n b i vs ds) = "Game : " ++ n ++ "\n\n"
+                           ++ intercalate ("\n") (map showDef ds) ++ "\n"
+                           ++ show b ++ "\n"
+                           ++ show i ++ "\n\n"
+                           ++ intercalate ("\n\n") (map show vs)
 
 instance Show Op where
   show Plus     = " + "

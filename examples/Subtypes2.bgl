@@ -1,0 +1,16 @@
+game G
+
+type TX = {X}
+type TO = {O}
+type TZ = {Z}
+
+type T1 = TX & TO
+type T2 = Int & TX
+
+-- X : TX and O : TO, but since X,O <: T1, this should typecheck
+t1 : T1
+t1 = if True then X else O
+
+-- X : TX and 42 : Int, but since X,Int <: T2, this should typecheck
+t2 : T2
+t2 = if True then X else 42

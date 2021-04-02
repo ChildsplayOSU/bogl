@@ -33,11 +33,10 @@ data InputDef = InputDef
 -- | Atomic types
 data Btype = Booltype      -- ^ Boolean
            | Itype         -- ^ Int
-           | AnySymbol     -- ^ this is the type all symbols live in
            | Input         -- ^ The input type specified at the top of the program
            | Board         -- ^ A game board
            | Top           -- ^ Really this is bottom FIXME
-           | Undef         -- ^ Not definable by a user (only occurs when typechecking)
+           | Named String  -- ^ A named type, e.g. Player
    deriving (Generic, Eq)
 
 instance Ord Btype where
@@ -49,11 +48,9 @@ instance Ord Btype where
 --   Note: ttypes are subsumed by xtypes in our implementation
 data Xtype = X Btype (S.Set String)
            | Tup [Xtype]
-           | Hole String
   deriving (Generic, Eq)
 
 instance Ord Xtype where
-  (X Top _) <= (X AnySymbol _) = True -- A set of symbols is the subtype of AnySymbols
   (X k x)   <= (X k' x')       = (k <= k') && (x `S.isSubsetOf` x')
   (Tup xs)  <= (Tup xs') | length xs == length xs' = and (zipWith (<=) xs xs')
   _ <= _ = False
@@ -82,6 +79,9 @@ bnestx b = X b S.empty
 boolxt :: Xtype
 boolxt = bnestx Booltype
 
+namedt :: String -> Xtype
+namedt = bnestx . Named
+
 -- | Xtype smart constructor for Itype
 intxt :: Xtype
 intxt = bnestx Itype
@@ -107,7 +107,6 @@ instance Show Xtype where
                      where
                         showTypes = "{" ++ intercalate (", ") (S.toList xs) ++ "}"
   show (Tup xs) = "(" ++ intercalate (",") (map show xs) ++ ")"
-  show (Hole _) = "?"
 
 instance ToJSON Xtype where
 
@@ -124,8 +123,7 @@ instance Show Btype where
   show Top       = "T"
   show Input     = "Input"
   show Board     = "Board"
-  show AnySymbol = "AnySymbol"
-  show Undef     = "?"
+  show (Named s) = s
 
 instance ToJSON Btype where
 

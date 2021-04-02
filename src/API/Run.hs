@@ -17,12 +17,13 @@ import Language.Types
 import Text.Parsec.Pos
 
 import Typechecker.Typechecker
-import Typechecker.Monad (Env(types))
+import Typechecker.Monad (Env(types, defs))
 import Runtime.Eval (runWithBuffer, bindings_)
 import Runtime.Values
 import Runtime.Monad (Buffer, emptyEnv)
 
 import Control.Monad(liftM, ap)
+import Debug.Trace
 
 -- | Runs BoGL code from raw text with the given commands
 -- utilizes parsePreludeAndGameText to parse the code directly,
@@ -41,9 +42,11 @@ _handleParsed (SpielCommand _ gameFile replExpr buf _) game =
          H (Left er)    -> [er]
          H (Right buf') -> [progTypes, (serverRepl game gameFile replExpr (buf', [], 1))]
    else
-      progTypes : map (SpielTypeError . snd) (errors progTCRes)
+      progTypes : map (SpielTypeError . snd) ((reverse . errors) progTCRes)
    where
       progTCRes = tc game
+      -- left for easy debugging. change the if above to `if showDefs then` to emit type defs
+      -- showDefs  = trace ((show . defs . e) progTCRes) (success progTCRes)
       inputEnv  = (e progTCRes) { types = [] } -- keep the input type, discard other bindings
       progTypes = SpielTypes (rtypes progTCRes)
 
@@ -82,10 +85,10 @@ evalInput x = case run x of
 
 -- | Handles running a command in the repl from the server
 serverRepl :: (Game SourcePos) -> String -> String -> Buffer -> SpielResponse
-serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs) fn replExpr buf = do
+serverRepl (Game _ i@(BoardDef (szx,szy) _) b vs ds) fn replExpr buf = do
   case parseLine replExpr of
     Right x -> do
-      case tcexpr (environment i b vs) x of
+      case tcexpr (environment i b vs ds) x of
         Right _ -> do -- Right t
           case runWithBuffer (bindings_ (szx, szy) vs) buf x of
             -- with a runtime error

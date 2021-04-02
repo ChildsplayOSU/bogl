@@ -1,0 +1,17 @@
+game G
+
+type BoolSyn = Bool
+
+type T0 = (Int,Int)
+type T1 = (Int,T0)
+type T2 = (T0, T1, T1, Bool)
+
+-- there was a unification bug in the type checker with nested tuples
+-- f is the minimal example of a well-typed program that failed due to this bug
+f : T1 -> T1
+f(a,b) = if True then (a,b) else (a,b)
+
+-- g is also well typed
+-- This test is a bit arbitrary, just a more complicated version of f
+g : T2 -> ((T0, T1, T1, BoolSyn), Bool)
+g(a,b,c,d) = if True then ((a,b,c,d), False) else ((a,b,c,d), True)

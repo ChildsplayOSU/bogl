@@ -10,6 +10,7 @@ import Language.Types
 import Data.Either
 import Utils
 import Typechecker.Typechecker
+import Typechecker.Utils
 import Error.TypeError
 import Error.Error
 import Language.Syntax
@@ -36,6 +37,7 @@ typeCheckerTests = TestList
    , testCompleteBoardEq
    , testBoardTypeMismatch
    , testFeqMismatch
+   , testArgCountMismatch
    ]
 
 -- | Represents the rest result for typchecking examples
@@ -139,6 +141,26 @@ testBadBinop = TestCase (
       b  = _op (S "X") Plus (I 1)
       c  = _op (B True) Plus (B False)
 
+-- | Checks that expressions have a given type in a given program
+tcExprsInGames :: [(FilePath, ExprS, Xtype)] -> IO [(String, Either Error Xtype, Xtype)]
+tcExprsInGames i = do
+   res <- mapM check i
+   return $ filter (\(_,b,c) -> wrongType b c) res
+   where
+      wrongType (Left _) _    = True
+      wrongType (Right xa) xe = xa /= xe
+      check :: (FilePath, ExprS, Xtype) -> IO (String, Either Error Xtype, Xtype)
+      check (fp, es, et) = do
+         at <- tcInGame fp es
+         return (fp ++ ":" ++ es, at, et)
+
+-- | A list of filepaths, expressions to be type checked in those programs, and their expected types
+exprTypes :: [(FilePath, ExprS, Xtype)]
+exprTypes = map (\(a, b, c) -> (examplesPath ++ a, b, c)) exprs
+   where
+      exprs = [("TicTacToe.bgl", "1 + 1", intxt)
+              ]
+
 typeCheckAllExamples :: IO TypeCheckerTestResult
 typeCheckAllExamples = do
    bglFiles <- getExampleFiles
@@ -148,11 +170,15 @@ typeCheckAllExamples = do
    let parsed = rights results           -- the parser tests report these failures
        _failures = filter (not . success) $ map tc parsed
        errs = map Typechecker.Typechecker.errors _failures
+   failedExprs <- tcExprsInGames exprTypes
    logTestStmt "Failures:"
    mapM_ (putStrLn . ("\n" ++)) (map showTCError (concat errs))
-   let errCount = length errs
-   let failCount= length _failures
-   return $ if errCount > 0 || failCount > 0 then (Fail failCount errCount) else Pass
+   logTestStmt "Expresions that do not have the expected type:"
+   putStrLn (show failedExprs)
+   let errCount      = length errs
+       failCount     = length _failures
+       exprFailCount = length failedExprs
+   return $ if any (> 0) [errCount, failCount, exprFailCount] then (Fail failCount errCount) else Pass
 
 illTypedPath :: String
 illTypedPath = examplesPath ++ "illTyped/"
@@ -225,3 +251,15 @@ testBoardTypeMismatch = TestCase (
     (Tc False _ [(_, Error (TE (Mismatch _ _ _)) _ _)] _) -> True
     -- anything else, pass or fail, is incorrect
     _                                      -> False)
+
+-- | Test TC on equation with # of args that doesn't match the arg # in the type
+-- f : Int -> Int
+-- f(x,y) = 1
+testArgCountMismatch :: Test
+testArgCountMismatch = TestCase (
+  assertBool "Verify that if arg count & input type count do not match, a type error is reported" $
+  let aeqn = (Val (Sig "f" (Function (Ft intxt intxt))) (Feq "f" (Pars ["x","y"]) (I 1)) dummyPos) in
+  case tc $ testGame [aeqn] of
+    (Tc False _ [(_, Error (TE (Unknown x)) _ _)] _) -> True
+    _                                                -> False
+  )

@@ -38,7 +38,7 @@ data ParState =
        ctype      :: Maybe Type,       -- ^ type of current object being parsed
        whileNames :: [Name],           -- ^ context from last-parsed function or let expression
        ids        :: [Name],           -- ^ identifiers
-       syn        :: [(Name, Xtype)]   -- ^ type synonyms
+       tdef      :: [TypeDef]         -- ^ type definitions
       }
 
 -- | A parse context with builtins
@@ -55,17 +55,22 @@ type ParseResult = Either ParseError (Game SourcePos)
 getids :: Parser [Name]
 getids = ids <$> getState
 
+-- | Get all type definitions in program order
+getDefs :: Parser [TypeDef]
+getDefs = reverse . tdef <$> getState
+
 -- | Add a type synonym
 addSyn :: (Name, Xtype) -> Parser ()
-addSyn x = modifyState (\env -> env{syn = x:syn env})
+addSyn x = modifyState (\env -> env{tdef = x:tdef env})
 
--- | Lookup a type synonym
+-- | Lookup a type name and nest it as an xtype if it exists
+--   Note: this is not actually a parse error and should be done when type checking
 lookupSyn :: Name -> Parser Xtype
 lookupSyn n = do
-  t <- (lookup <$> (pure n) <*> (syn <$> getState))
+  t <- (lookup <$> (pure n) <*> (tdef <$> getState))
   case t of
     Nothing -> fail $ "Type " ++ n ++ " not declared!"
-    Just t' -> return t'
+    Just _ -> return $ namedt n
 
 -- | Add an id to list of used ids
 addid :: Name -> Parser ()
@@ -242,8 +247,6 @@ atom =
 -- | Atomic expressions
 atom' :: Parser (Expr SourcePos)
 atom' =
-  HE <$> ((char '?') *> lowerIdentifier)
-  <|>
   I <$> int
   <|>
   B <$> (reserved "True" *> pure True)
@@ -358,32 +361,38 @@ btype =
   --reserved "Input" *> pure Input
   <|>
   reserved "Board" *> pure Board
-  -- removes 'AnySymbol' as a directly usable type
-  -- serves as a parent of all types internally, but this prevents
-  -- it from being referenced externally (as requested by the CSforAll group) (@montymxb)
-  -- <|>
-  -- reserved "AnySymbol" *> pure AnySymbol
 
 -- | Parse an enum of a set of names
 enum :: Parser (S.Set Name)
 enum = reservedOp "{" *>
          (S.fromList <$> (commaSep1 (notAlreadyInUse capIdentifier))) <* reservedOp "}"
 
+-- | Bad extension error message
+badExtension :: String
+badExtension = "the right side of & must either be an {Enumeration} or the name of one"
+
+-- | Dereference a named enumeration type and union its symbols
+--   this is needed because the abstract syntax currently doesn't allow, e.g. {A} & {B}
+--   instead it is stored as {A, B}
+chase :: Name -> Parser (S.Set Name)
+chase n = do
+  t <- (lookup <$> (pure n) <*> (tdef <$> getState))
+  case t of
+    Nothing -> fail $ "Type " ++ n ++ " not declared!"
+    Just (X (Named n') e) -> S.union e <$> (chase n')
+    Just (X Top e)        -> return e
+    _                     -> fail badExtension
+
+
 -- | An enum or the type name of an enum
 --   in the future, this will be an enum or any type name
 --   the type checker should catch the error if it is not an enum
---   that currently would require a substantial change that will be better to implemenent when the
---   new type system is implemented
+--   that requires a forthcoming substantial change to the syntax of types
 enumName :: Parser (S.Set Name)
 enumName =
    enum
    <|>
-      (do
-         maybeE <- typeName
-         case maybeE of          -- todo: move this to the type checker
-            X Top e -> return e
-            _ -> fail "the right side of & must either be an {Enumeration} or the name of one"
-      )
+   (capIdentifier >>= chase)
 
 -- | Parse a type name if it has been defined
 typeName :: Parser Xtype
@@ -518,7 +527,7 @@ parseGame vs =
   -- followed by type synonyms for board and input
   (many typesyn *> board) <*> (many typesyn *> input) <*>
   -- followed by the prelude contents, and any other declarations
-  ((\_p -> vs ++ catMaybes _p) <$> (many decl))
+  ((\_p -> vs ++ catMaybes _p) <$> (many decl)) <*> getDefs
 
 -- | Uses the parser p to parse all input with state ps, throws an error if anything is left over
 parseWithState :: ParState -> Parser a -> String -> String -> Either ParseError a

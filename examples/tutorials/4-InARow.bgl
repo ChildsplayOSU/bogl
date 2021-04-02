@@ -4,10 +4,10 @@
 
 game InARow
 
-type Board = Array (5,5) of {P, Empty}
+type Player = {P}
+type Board = Array (5,5) of Player & {Empty}
 type Input = (Int, Int)
 
-type Player = {P}
 type Result = {Finished}
 
 board : Board

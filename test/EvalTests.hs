@@ -180,7 +180,7 @@ evalFile fn l buf = do
    res <- parseGameFile fn
    case res of
       (Left _) -> return [(False, fn ++ " parse error", "")]
-      (Right (Game _ (BoardDef (szx, szy) _) _ vs)) -> return $ map check l
+      (Right (Game _ (BoardDef (szx, szy) _) _ vs _)) -> return $ map check l
          where
             check (eqName, expected) = case run (Ref eqName) of
                      (Right (_, actual)) -> (expected == actual, fn ++ ":" ++ eqName, show actual)
