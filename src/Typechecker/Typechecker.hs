@@ -190,6 +190,24 @@ exprtype (Binop Get e1 e2) = do
   hasType _t1 (X Board S.empty)
   hasType _t2 (Tup [intxt, intxt])
   getContent
+-- single tuple projection
+exprtype (Binop Proj e1 e2) = do
+  _t1 <- exprtype e1
+  _t2 <- exprtype e2
+  case (_t1,_t2) of
+    -- single tuple projection
+    -- TODO, not done yet, needs to know the index value to construct the type
+    -- typechecker has to evaluate the expr first...
+    (Tup ls, X Itype _) -> return $ X Top S.empty
+    -- std. tuple projection
+    -- TODO, not done yet, needs to know the index value to construct the type
+    (Tup ls, Tup xs)    -> do
+      subInts <- mapM (\x -> x <: intxt) xs
+      case (all id subInts) of
+        True  -> return $ X Top S.empty
+        False -> badop Proj (Plain _t1) (Plain _t2)
+    -- bad projection
+    _                   -> badop Proj (Plain _t1) (Plain _t2)
 exprtype (Binop o e1 e2) = do
   _t1 <- exprtype e1
   _t2 <- exprtype e2

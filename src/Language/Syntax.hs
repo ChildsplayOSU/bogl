@@ -135,6 +135,7 @@ data Op = Plus      -- ^ Addition (+)
         | Geq       -- ^ Greater than equal to comparison (>=)
         | Greater   -- ^ Greater than comparison (>)
         | Get       -- ^ Gets contents from a position on a board (!)
+        | Proj      -- ^ Tuple projection (#)
    deriving (Eq, Generic)
 
 -- Note: the three predicates below are used in the type checker
@@ -228,3 +229,4 @@ instance Show Op where
   show Geq      = " >= "
   show Greater  = " > "
   show Get      = " ! "
+  show Proj     = " # "

@@ -37,7 +37,8 @@ evalTests = TestList [
   testBadPlace,
   testEvalEqDoesntHideError,
   testEvalNumOpDoesntHideError,
-  testEvalCompareOpDoesntHideError]
+  testEvalCompareOpDoesntHideError,
+  testEvalTupleProjections]
 
 testEvalEquiv :: Test
 testEvalEquiv = TestCase (
@@ -232,3 +233,78 @@ testEvalCompareOpDoesntHideError = TestCase (
      let buffer = ([],[],1) in
      let evalVal= eval (Let "x" (I $ -1) (If (Binop Geq (Binop Get (Ref "b") (Tuple [Ref "x", I 1])) (I 1)) (I 1) (I 0))) in
      runEval env buffer evalVal) (InvalidBoardAccess (-1,1) (1,1))))
+
+--
+-- | Tuple projection tests
+--
+testEvalTupleProjections :: Test
+testEvalTupleProjections = TestLabel "Tuple Projection Tests" (TestList [
+  testEvalSingleTupProj1,
+  testEvalSingleTupProj2,
+  testEvalSingleTupProjOutOfBounds1,
+  testEvalSingleTupProjOutOfBounds2,
+  testEvalTupProj1,
+  testEvalTupProj2,
+  testEvalTupProjOutOfBounds1,
+  testEvalTupProjOutOfBounds2
+  ])
+
+-- | Evaluate a single tuple projection using a literal
+testEvalSingleTupProj1 :: Test
+testEvalSingleTupProj1 = TestCase (
+  assertEqual "Tests that single tuple projections work for literals"
+  (Right (Vi 2))
+  (evalTest (eval $ (Binop Proj (Tuple [I 1, I 2, I 3]) (I 1)))))
+
+-- | Evaluate a single tuple projection using a reference
+testEvalSingleTupProj2 :: Test
+testEvalSingleTupProj2 = TestCase (
+  assertEqual "Tests that single tuple projections work for refs"
+  (Right (Vi 3))
+  (evalTest (eval $ (Let "x" (I 2) $ Binop Proj (Tuple [I 1, I 2, I 3]) (Ref "x")))))
+
+-- | Evaluate a single tuple projection that is out of bounds negative
+testEvalSingleTupProjOutOfBounds1 :: Test
+testEvalSingleTupProjOutOfBounds1 = TestCase (
+  assertBool "Tests that single tuple projection fails when below zero"
+  (matchesRuntimeError
+    (evalTest (eval $ (Binop Proj (Tuple [I 1, I 2, I 3]) (I $ -1))))
+    (InvalidTupleProj (-1) 3)))
+
+-- | Evaluate a single tuple projection that is out of bounds positive
+testEvalSingleTupProjOutOfBounds2 :: Test
+testEvalSingleTupProjOutOfBounds2 = TestCase (
+  assertBool "Tests that single tuple projection fails when out of bounds"
+  (matchesRuntimeError
+    (evalTest (eval $ (Binop Proj (Tuple [I 1, I 2, I 3]) (I 3))))
+    (InvalidTupleProj 3 3)))
+
+-- | Evaluate a tuple projection using a literal w/ dups
+testEvalTupProj1 :: Test
+testEvalTupProj1 = TestCase (
+  assertEqual "Tests that tuple projections work for tuples"
+  (Right (Vt [Vi 1, Vi 1, Vi 2, Vi 2, Vi 3, Vi 3]))
+  (evalTest (eval $ (Binop Proj (Tuple [I 1, I 2, I 3]) (Tuple [I 0, I 0, I 1, I 1, I 2, I 2])))))
+
+-- | Evaluate a tuple projection using a literal w/ only 2 elements
+testEvalTupProj2 :: Test
+testEvalTupProj2 = TestCase (
+  assertEqual "Tests that tuple projections work for tuples w/ 2 elements only"
+  (Right (Vt [Vi 1, Vi 3]))
+  (evalTest (eval $ (Binop Proj (Tuple [I 1, I 2, I 3]) (Tuple [I 0,I 2])))))
+
+-- | Evaluate a tuple projection that is out of bounds negative
+testEvalTupProjOutOfBounds1 :: Test
+testEvalTupProjOutOfBounds1 = TestCase (
+  assertBool "Tests that tuple projection fails when below zero"
+  (matchesRuntimeError
+    (evalTest (eval $ (Binop Proj (Tuple [I 1, I 2, I 3]) (Tuple [I 1, I $ -1, I 0]))))
+    (InvalidTupleProj (-1) 3)))
+
+-- | Evaluate a tuple projection that is out of bounds positive
+testEvalTupProjOutOfBounds2 :: Test
+testEvalTupProjOutOfBounds2 = TestCase (
+  assertBool "Tests that tuple projection fails when out of bounds"
+  (matchesRuntimeError
+    (evalTest (eval $ (Binop Proj (Tuple [I 1, I 2, I 3]) (Tuple [I 1, I 3, I 2]))))
+    (InvalidTupleProj 3 3)))

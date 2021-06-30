@@ -88,6 +88,13 @@ tryUnsafeBoardAccess (x,y) arr = let (_,(bx,by)) = bounds arr in
      False -> return $ arr ! (x,y) -- good index
      True  -> throwRuntimeError $ InvalidBoardAccess (x,y) (bx,by)
 
+-- | Attempt to access a position in a tuple that may be invalid
+tryUnsafeTupleAccess :: Int -> [Val] -> Eval Val
+tryUnsafeTupleAccess x ls = let y = length ls in
+                            case (x < 0 || x >= y) of
+                              False -> return $ ls !! x -- good tup index
+                              True  -> throwRuntimeError $ InvalidTupleProj x y -- bad index
+
 -- | Binary operation evaluation
 evalBinOp :: Op -> (Expr a) -> (Expr a) -> Eval Val
 evalBinOp Plus l r     = evalNumOp "+" (+) l r
@@ -107,6 +114,7 @@ evalBinOp Get l r      = do
    case (_board, pos) of
       (Vboard arr, Vt [Vi x, Vi y]) -> tryUnsafeBoardAccess (x,y) arr
       _                             -> throwRuntimeError (UnexpectedEvaluation $ "Could not access " ++ show r ++ " on the board \n" ++ show l)
+evalBinOp Proj _ _    = throwRuntimeError (UnexpectedEvaluation "Bad tuple projection")
 
 -- | evaluates the == and /= operations
 evalEq :: (Val -> Val -> Bool) -> (Expr a) -> (Expr a) -> Eval Val
@@ -201,7 +209,25 @@ eval (If p e1 e2) = do
     _            -> throwRuntimeError (UnexpectedEvaluation e)
       where e = "The expression " ++ show p ++ " did not evaluate to a Bool as expected!"
 
--- evaluate a BinOp expression
+-- evaluate a tuple projection (special BinOp case)
+eval (Binop Proj e1 e2) = do
+  e   <- eval e1
+  e'  <- eval e2
+  case (e,e') of
+    -- single tuple projection, produces a standalone value
+    (Vt ls, Vi x)   -> tryUnsafeTupleAccess x ls
+    -- std. tuple projection (assuming only ints, type checker should catch this before)
+    -- produces a tuple of 2 or more values, with possible duplicates
+    (Vt ls, Vt xs)  -> do
+      vs <- mapM (\x -> attemptTupleAccess x ls) xs
+      return $ Vt vs
+    _               -> throwRuntimeError (UnexpectedEvaluation "Bad tuple projection")
+    where
+      attemptTupleAccess v ls = case v of
+                                  (Vi x) -> tryUnsafeTupleAccess x ls
+                                  _      -> throwRuntimeError (UnexpectedEvaluation "Bad tuple projection")
+
+-- evaluate a regular BinOp expression
 eval (Binop op e1 e2) = evalBinOp op e1 e2
 
 -- evaluate a while expression

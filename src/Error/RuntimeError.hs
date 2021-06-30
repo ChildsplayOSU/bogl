@@ -8,6 +8,7 @@ import Utils.String
 
 data RuntimeError = DivideByZero
                   | InvalidBoardAccess (Int,Int) (Int,Int) -- ?
+                  | InvalidTupleProj Int Int -- invalid tuple projection takes index & tuple
                   | BadComparison String String
                   | BadNumericalOp String String
                   | UndefinedReference String
@@ -23,6 +24,7 @@ instance Show RuntimeError where
          "this is not a valid space. "
        p2 = if bx == by && bx == 1 then "The board only has one space at (1,1)."
                                    else "The board size is ("++ show bx ++ "," ++ show by ++")."
+  show (InvalidTupleProj x y)   = "Could not access index " ++ show x ++ " in tuple of length " ++ show y
   show (BadComparison a b)      = "Could not compare " ++ a ++ " to " ++ b
   show (BadNumericalOp a b)     = "Could not do numerical operation on " ++ a ++ " to " ++ b
   show (UndefinedReference s)   = (quote s) ++ " is undefined"

@@ -115,13 +115,13 @@ boglDef = (haskellStyle
                          "while", "do", "game", "type", "Array", "of", "case", "type"
                         ] ++ types,
     P.reservedOpNames = ["=", "*", "<", "<=", "==", "/=", ">", ">=", "-", "/=",
-                         "/", "+", ":", "->", "{", "}"]
+                         "/", "+", ":", "->", "{", "}", "#"]
     })
 
 -- | Operators (might want to fix the order of operations)
 operators :: [[Operator String u Identity (Expr a)]]
 operators = [
-             [op "!" (Binop Get) AssocLeft],
+             [op "!" (Binop Get) AssocLeft, op "#" (Binop Proj) AssocLeft],
              [op "*" (Binop Times) AssocLeft, op "/" (Binop Div) AssocLeft,
               op "%" (Binop Mod) AssocLeft],
              [op "+" (Binop Plus) AssocLeft, op "-" (Binop Minus) AssocLeft],
