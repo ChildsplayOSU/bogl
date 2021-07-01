@@ -6,7 +6,7 @@
 ##
 
 echo ""
-echo -e "\033[92mBuilding 'spielserver' binary for Windows release\033[0m"
+echo -e "\033[92mBuilding 'boglserver' binary for Windows release\033[0m"
 echo ""
 
 ## Only thing this needs in advance is stack to be installed
@@ -19,7 +19,7 @@ stack build --ghc-options -static -optl-static
 stack install
 
 ## move binary to cur location
-cp $HOME/AppData/Roaming/local/bin/spielserver.exe .
+cp $HOME/AppData/Roaming/local/bin/boglserver.exe .
 
 ## no dep verification here...
 

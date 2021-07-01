@@ -1,6 +1,6 @@
 -- Lesson 0: Introduction
 
-{- Welcome to Spiel, an implementation of the BoGL programming language.
+{- Welcome to an implementation of the BoGL programming language.
  - Comments are the same as in Haskell.
 -}
 

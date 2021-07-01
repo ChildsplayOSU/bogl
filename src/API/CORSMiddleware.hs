@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-|
 Module      : API.CORSMiddleware
-Description : CORS Middleware for the Spiel Server API
+Description : CORS Middleware for the BoGL Server API
 Copyright   : (c)
 License     : BSD-3
 

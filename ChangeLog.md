@@ -1,3 +1,3 @@
-# Changelog for Spiel-Lang
+# Changelog for Bogl-Lang
 
 ## Unreleased changes

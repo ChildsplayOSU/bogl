@@ -1,6 +1,6 @@
 {-|
 Module      : Runtime.Eval
-Description : Interpreter for Spiel
+Description : Interpreter for BoGL
 Copyright   : (c)
 License     : BSD-3
 -}

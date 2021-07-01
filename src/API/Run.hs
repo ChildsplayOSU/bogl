@@ -17,13 +17,12 @@ import Language.Types
 import Text.Parsec.Pos
 
 import Typechecker.Typechecker
-import Typechecker.Monad (Env(types, defs))
+import Typechecker.Monad (Env(types))
 import Runtime.Eval (runWithBuffer, bindings_)
 import Runtime.Values
 import Runtime.Monad (Buffer, emptyEnv)
 
 import Control.Monad(liftM, ap)
-import Debug.Trace
 
 -- | Runs BoGL code from raw text with the given commands
 -- utilizes parsePreludeAndGameText to parse the code directly,

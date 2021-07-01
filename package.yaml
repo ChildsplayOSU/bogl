@@ -1,9 +1,9 @@
-name:                Spiel-Lang
+name:                Bogl-Lang
 version:             0.1.0.6
-github:              "The-Code-In-Sheep-s-Clothing/Spiel-Lang"
+github:              "The-Code-In-Sheep-s-Clothing/Bogl-Lang"
 license:             BSD3
 author:              "The-Code-In-Sheep-s-Clothing"
-maintainer:          "example@example.com"
+maintainer:          "erwig@oregonstate.edu"
 copyright:           "2020 The-Code-In-Sheep-s-Clothing"
 
 extra-source-files:
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/Spiel-Lang#readme>
+description:         Please see the README on GitHub at <https://github.com/The-Code-In-Sheep-s-Clothing/bogl#readme>
 
 dependencies:
 - base >= 4.7 && < 5
@@ -45,19 +45,19 @@ library:
   source-dirs: src
 
 executables:
-# commented this out to remove the "ambiguous main module" message when running stack ghci
-# at the time of this comment, the spiel executable does not do anything useful
-#  spiel:
-#    main:                Main.hs
-#    source-dirs:         app
-#    ghc-options:
-#    - -Wall
-#    - -threaded
-#    - -rtsopts
-#    - -with-rtsopts=-N
-#    dependencies:
-#    - Spiel-Lang
-  spielserver:
+  # bogl executable locally
+  bogl:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -Wall
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - Bogl-Lang
+  # the bogl server (formerly spielserver)
+  boglserver:
     main:                ServerMain.hs
     source-dirs:         serverApp
     ghc-options:
@@ -66,10 +66,10 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - Spiel-Lang
+    - Bogl-Lang
 
 tests:
-  Spiel-Lang-test:
+  Bogl-Lang-test:
     main:                Tests.hs
     source-dirs:         test
     ghc-options:
@@ -78,6 +78,6 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - Spiel-Lang
+    - Bogl-Lang
     #- doctest
     - HUnit

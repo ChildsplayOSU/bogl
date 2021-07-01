@@ -4,7 +4,7 @@
 
 {-|
 Module      : API.JSONData
-Description : Defines JSON data for the Spiel API
+Description : Defines JSON data for the BoGL Server API
 Copyright   : (c)
 License     : BSD-3
 -}
@@ -123,11 +123,11 @@ instance ToJSON SpielResponse where
 
 instance Show SpielResponse where
   -- shows a board in JSON
-  show (SpielPrompt s)                  = show s
+  show (SpielPrompt s)                  = "Prompt: " ++ show s
   -- shows a success response
   show (SpielSuccess result)            = "{success: 1, result: \""++result++"\"}"
   -- indicates that the game is over and a player has won
-  show (SpielGameResult gr)             = show gr
+  show (SpielGameResult gr)             = "Game Result: " ++ show gr
   -- shows a parse error to the user
   show (SpielParseError ln cn fn m)     = "{tag: \"parseError\", lineNum: "++show ln++", colNum: "++ show cn ++", fileName: \""++ fn ++"\", message: \""++ m ++"\"}"
   -- shows a runtime error in spiel

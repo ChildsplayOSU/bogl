@@ -8,11 +8,11 @@
 
 You can learn more about the language on our [tutorial site](https://bogl.engr.oregonstate.edu/tutorials/). To write and run a BoGL program, you can use our [REPL](https://bogl.engr.oregonstate.edu/).
 
-This is the back end of the implementation which includes the interpreter itself and a server. To actually use the language you need the [front end](https://github.com/The-Code-In-Sheep-s-Clothing/Spiel-Front) which includes an editor and REPL.
+This is the back end of the implementation which includes the interpreter itself and a server. To actually use the language you need the [front end](https://github.com/The-Code-In-Sheep-s-Clothing/bogl-editor) which includes an editor and REPL.
 
 ## Installation
 1. Clone this repository
 2. Install [the haskell tool stack](https://docs.haskellstack.org/en/stable/install_and_upgrade/)
 3. Inside the project repository run `stack setup`
-4. Run `stack install`. This will put a spielserver executable in your path which the front end can then use.
+4. Run `stack install`. This will put a boglserver executable in your path which the front end can then use.
    * *optional:* Run our test suite with `stack test`

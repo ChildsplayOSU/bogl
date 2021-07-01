@@ -6,7 +6,7 @@ Description : BoGL Syntax
 Copyright   : (c)
 License     : BSD-3
 
-Spiel language AST. This slightly deviates from the specified syntax in spots.
+BoGL language AST. This slightly deviates from the specified syntax in spots.
 
 -}
 

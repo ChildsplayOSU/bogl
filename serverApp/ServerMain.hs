@@ -20,4 +20,4 @@ main = do
   case length args of
     0     -> (startServer 8080) `catch` handleExceptions      -- default to port 8080
     1     -> (startServer (read (head args))) `catch` handleExceptions -- bind to 1st port # instad
-    _     -> putStrLn "\n\nError: Can only pass one arg!\nUsage\n./spielserver\n./spielserver 8080\n\n"
+    _     -> putStrLn "\n\nError: Can only pass one arg!\nUsage\n./boglserver\n./boglserver 8080\n\n"

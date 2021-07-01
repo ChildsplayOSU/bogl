@@ -27,5 +27,5 @@ script: stack --no-terminal --skip-ghc-check test --coverage && stack haddock
 #after_script:
 #- stack install codecov-haskell
 #- mkdir -p dist/hpc/tix/all
-#- cp -r $(stack path --local-hpc-root)/Spiel-Lang/Spiel-Lang-test/* ./dist/hpc/tix/all/
-#- codecov-haskell Spiel-Lang
+#- cp -r $(stack path --local-hpc-root)/Bogl-Lang/Bogl-Lang-test/* ./dist/hpc/tix/all/
+#- codecov-haskell Bogl-Lang

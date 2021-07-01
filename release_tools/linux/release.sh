@@ -5,7 +5,7 @@
 #
 
 echo ""
-echo -e "\033[92mBuilding 'spielserver' binary for Linux release\033[0m"
+echo -e "\033[92mBuilding 'boglserver' binary for Linux release\033[0m"
 echo ""
 
 # freh build with static compilation on
@@ -16,10 +16,10 @@ stack build --ghc-options -static -optl-static
 stack install
 
 # use the binary to the present location for ease of access
-cp $HOME/.local/bin/spielserver .
+cp $HOME/.local/bin/boglserver .
 
 # Verify there are no dynamic dependencies in this binary
-ldd spielserver
+ldd boglserver
 
 echo ""
 echo -e "\033[92mDone building Linux release\033[0m"

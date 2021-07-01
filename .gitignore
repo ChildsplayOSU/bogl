@@ -1,5 +1,5 @@
 .stack-work/
-Spiel-Lang.cabal
+Bogl-Lang.cabal
 *~
 *.hi
 *.o
