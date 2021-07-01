@@ -10,7 +10,7 @@ echo ""
 
 # freh build with static compilation on
 stack clean
-stack build --ghc-options -static -optl-static
+stack build
 
 # install to the local bin
 stack install

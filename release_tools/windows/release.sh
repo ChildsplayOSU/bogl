@@ -13,7 +13,7 @@ echo ""
 
 ## fresh build with static compilation on
 stack clean
-stack build --ghc-options -static -optl-static
+stack build
 
 ## install to local bin
 stack install
