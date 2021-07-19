@@ -38,6 +38,7 @@ typeCheckerTests = TestList
    , testBoardTypeMismatch
    , testFeqMismatch
    , testArgCountMismatch
+   , testTuples
    ]
 
 -- | Represents the rest result for typchecking examples
@@ -82,6 +83,10 @@ allFailTC = and . map (not . success) . map tc
 -- | Check that every Expr in a list fails to type check
 allFailTCexpr :: Env -> [Expr SourcePos] -> Bool
 allFailTCexpr = \_e -> and . map isLeft . map (tcexpr _e)
+
+-- | Check that every Expr in a list successfully type checks
+allPassTCexpr :: Env -> [Expr SourcePos] -> Bool
+allPassTCexpr = \_e -> and . map isRight . map (tcexpr _e)
 
 testOutOfBoundsLiteralGet :: Test
 testOutOfBoundsLiteralGet = TestCase (
@@ -260,6 +265,35 @@ testArgCountMismatch = TestCase (
   assertBool "Verify that if arg count & input type count do not match, a type error is reported" $
   let aeqn = (Val (Sig "f" (Function (Ft intxt intxt))) (Feq "f" (Pars ["x","y"]) (I 1)) dummyPos) in
   case tc $ testGame [aeqn] of
-    (Tc False _ [(_, Error (TE (Unknown x)) _ _)] _) -> True
+    (Tc False _ [(_, Error (TE (Unknown _)) _ _)] _) -> True
     _                                                -> False
   )
+
+-- | Tuple typechecking tests
+testTuples :: Test
+testTuples = TestLabel "Tuple TypeChecking Tests" (TestList [
+  testTupleTCPasses,
+  testTupleTCFailures
+  ])
+
+-- | Various tuple expressions that should be type correct
+testTupleTCPasses :: Test
+testTupleTCPasses = TestCase (
+  assertBool "Test that type-correct exprs for tuples pass tc" $
+  allPassTCexpr exampleEnv [a,b,c]
+  )
+  where
+    a = Binop Equiv (Tuple [I 1, I 2]) (Tuple [I 2, I 3])
+    b = Binop Equiv (Tuple [I 1, I 2]) (Tuple [I 1, I 2])
+    c = Binop Equiv (Tuple [B False, I 2]) (Tuple [B True, I 24])
+
+-- | Various tuple expressions that should not be type correct
+testTupleTCFailures :: Test
+testTupleTCFailures = TestCase (
+  assertBool "Test that type-incorrect exprs for tuples fail tc" $
+  allFailTCexpr exampleEnv [a,b,c]
+  )
+  where
+    a = Binop Equiv (Tuple [I 1, I 2]) (Tuple [I 2, I 3, I 5])
+    b = Binop Equiv (Tuple [I 1, I 2, I 5]) (Tuple [I 1, I 2])
+    c = Binop Equiv (Tuple [B False, I 2]) (Tuple [I 24, B True])

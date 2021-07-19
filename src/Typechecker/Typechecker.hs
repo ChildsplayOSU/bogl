@@ -25,7 +25,6 @@ import qualified Data.Set as S
 import Utils.String
 
 import Error.Error
---import Debug.Trace
 
 {-
    - Type checker details -
