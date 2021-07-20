@@ -29,8 +29,6 @@ import Error.TypeError
 
 import Data.List
 
--- import Debug.Trace
-
 -- | Types in the environment
 type TypeEnv = [(Name, Type)]
 
@@ -170,7 +168,10 @@ assignTypeName x = do
 --   this is to report type names like T rather than type defs like Int & {X}
 unify' :: (Xtype, Xtype) -> (Xtype, Xtype) -> Typechecked Xtype
 unify' ((Tup xns), (Tup xs)) ((Tup yns), (Tup ys)) -- element-wise unification of tuples
+  -- only unify tuples of equivalent lengths...
   | all (\x -> length x == length xs) [xns, xs, yns, ys] = Tup <$> zipWithM unify' (zip xns xs) (zip yns ys)
+  -- ...otherwise, these tuples cannot be unified
+  | otherwise = mismatch (Plain (Tup xns)) (Plain (Tup yns))
 unify' (xn, (Tup xs)) (yn, (Tup ys)) = -- expand named type and assign names to tuple elements
    do
       xns <- findTuple xn
