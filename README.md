@@ -8,6 +8,8 @@
 
 You can learn more about the language on our [tutorial site](https://bogl.engr.oregonstate.edu/tutorials/). To write and run a BoGL program, you can use our [REPL](https://bogl.engr.oregonstate.edu/).
 
+If you are developing on any part of the BoGL stack, you can read our [technical documentation](https://bogl.engr.oregonstate.edu/technical/).
+
 This is the back end of the implementation which includes the interpreter itself and a server. To actually use the language you need the [front end](https://github.com/The-Code-In-Sheep-s-Clothing/bogl-editor) which includes an editor and REPL.
 
 ## Installation
