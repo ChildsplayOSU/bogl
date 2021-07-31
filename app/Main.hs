@@ -6,12 +6,26 @@ import API.JSONData
 import Runtime.Values
 import Data.Array
 
--- nothing
+-- | Entry point to run the command line interface (interpreter/repl)
 main :: IO ()
 main = do
+  putStrLn "=============================="
+  putStrLn "BoGL (The Board Game Language)"
+  putStrLn "Created at the School of EECS"
+  putStrLn "Oregon State University"
+  putStrLn "Version 1.2.0"
+  putStrLn "=============================="
   args <- getArgs
   -- attempt to load up this bogl file
-  let fn = getFileName args
+  case args of
+    -- at least one arg, treat as a file name to load
+    (fn:_) -> putStrLn ("* loading " ++ fn) >> load fn
+    -- no args, run standalone repl only
+    []     -> putStrLn "* running repl" >> repl
+
+-- | Load a BoGL file for the repl
+load :: String -> IO ()
+load fn = do
   c <- readFile fn
   -- evaluate this file
   let sc = SpielCommand "" c "1" [] fn
@@ -23,37 +37,54 @@ main = do
     (_:(SpielValue _ _):[]) -> do
       putStrLn $ "* parsed & typechecked " ++ fn
       putStrLn "* Running BoGL Repl"
-      repl sc
+      runRepl sc -- run the full repl
     _                     -> do
       mapM (\r -> putStrLn $ showResponse r) rez
       return ()
 
+-- | Run the repl by itself (no file loaded)
+repl :: IO ()
+repl = runRepl $ SpielCommand "" "game BoglProgram" "1" [] "Interpreter"
+
 -- | Runs the REPL for Bogl
-repl :: SpielCommand -> IO ()
-repl (SpielCommand p f _ b n) = do
+runRepl :: SpielCommand -> IO ()
+runRepl (SpielCommand p f _ b n) = do
   putStrLn ""
   putStrLn ">>> "
   ln <- getLine
   putStrLn ""
   case ln of
+    -- various exit forms
     ":q"    -> return ()
     "exit"  -> return ()
     "quit"  -> return ()
+    -- reload the current file
+    ":r"    -> do
+      putStrLn $ "* reloading " ++ n
+      case n of
+        -- no reload, running w/out a file
+        "Interpreter" -> runRepl $ SpielCommand p "game BoglProgram" "" b n
+        -- reload normally
+        _             -> do
+          newFileContent <- readFile n
+          runRepl $ SpielCommand p newFileContent "" b n
+    -- evaluate this expression
     input'  -> do
       let sc = SpielCommand p f input' b n
       let rez = _runCodeWithCommands sc
       mapM_ (handleResult sc) rez
       return ()
   where
+    -- | handle the result from evaluating a given expr
     handleResult :: SpielCommand -> SpielResponse -> IO ()
     handleResult _ (SpielTypes _) = return ()
     handleResult c p'@(SpielPrompt _) = do
       putStrLn $ showResponse p'
       replPrompt c
-      repl c
+      runRepl c
     handleResult c r = do
       putStrLn $ showResponse r
-      repl c
+      runRepl c
 
 -- | Evaluate an IO prompt
 replPrompt :: SpielCommand -> IO ()
@@ -96,10 +127,11 @@ replPrompt (SpielCommand p' f' i' b' n') = do
       putStrLn $ showResponse r
       replPrompt c
 
+-- TODO remove this entry
 -- | Attempts to extract a filename if one exists in the arg list
-getFileName :: [String] -> String
-getFileName []    = error "Pass a filename to run with BoGL!"
-getFileName (x:_) = x
+--getFileName :: [String] -> String
+--getFileName []    = error "Pass a filename to run with BoGL!"
+--getFileName (x:_) = x
 
 -- | Print boards onto the screen
 showBoards :: [Val] -> String
